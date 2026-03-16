@@ -13,7 +13,7 @@ const notoSansKr = Noto_Sans_KR({
 
 export const metadata: Metadata = {
   title: 'Garnet',
-  description: '캠페인과 실행 흐름을 정리하는 AI 마케팅 워크스페이스'
+  description: 'Garnet'
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
@@ -25,7 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             <AppNav />
             <div className="min-w-0">
               <header className="app-topbar">
-                <p className="text-[13px] font-semibold text-[#333d4b]">Garnet — AI 마케팅 워크스페이스</p>
+                <p className="text-[13px] font-semibold text-[#333d4b]">Garnet</p>
                 <SupabaseAuthChip />
               </header>
               <main className="app-main">{children}</main>

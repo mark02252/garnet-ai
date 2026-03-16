@@ -425,11 +425,11 @@ export function SupabaseAuthPanel() {
                 className="input"
                 value={otpCode}
                 onChange={(event) => setOtpCode(event.target.value)}
-                placeholder="메일에서 받은 6자리 코드"
-                maxLength={6}
+                placeholder="메일에서 받은 인증 코드"
+                maxLength={8}
               />
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                메일 보내기 후 받은 6자리 코드를 입력하고 "코드 방식으로 로그인"을 누르세요. Electron 앱 로그인에 권장합니다.
+                메일 보내기 후 받은 인증 코드를 입력하고 "코드 방식으로 로그인"을 누르세요.
               </p>
             </div>
           </div>

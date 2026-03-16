@@ -596,18 +596,18 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="min-w-[220px] rounded-[22px] border border-slate-200 bg-white/92 p-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">오늘 상태</p>
+          <div className="soft-card min-w-[220px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">오늘 상태</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <span className="accent-pill">#{DOMAIN_LABELS[form.domainOverride]}</span>
               {canRun ? <span className="pill-option">실행 가능</span> : <span className="pill-option">브리프 필요</span>}
             </div>
-            <p className="mt-3 text-sm leading-6 text-slate-600">급한 안건은 브리핑에서 보고, 여기서 바로 다음 실행으로 넘기면 됩니다.</p>
+            <p className="mt-3 text-sm leading-6 text-[var(--text-base)]">급한 안건은 브리핑에서 보고, 여기서 바로 다음 실행으로 넘기면 됩니다.</p>
           </div>
         </div>
       </section>
 
-      <div className="order-4">
+      <div className="order-2">
         <AvatarCards cards={participantCards} />
       </div>
 
@@ -615,73 +615,10 @@ export default function HomePage() {
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1.42fr)_332px]">
           <div className="space-y-4">
             <div className="panel space-y-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Launch</p>
-                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">실행</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">준비되면 바로 실행하거나 검색만 먼저 확인할 수 있습니다.</p>
-                </div>
-                <Link href="/settings" className="button-secondary px-3 py-2 text-xs">
-                  설정
-                </Link>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <span className="accent-pill">{DOMAIN_LABELS[form.domainOverride]}</span>
-                <span className="pill-option">
-                  {runtime.runProfile === 'free' ? '무료모드(자동 선택)' : '수동모드(직접 선택)'}
-                </span>
-                {configSummary ? <span className="pill-option">{configSummary}</span> : null}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <button type="submit" disabled={loading || !canRun || !hasLlmKey || !hasSearchKey} className="button-primary">
-                  {runningLabel}
-                </button>
-                <button
-                  type="button"
-                  onClick={onSearchTest}
-                  disabled={testingSearch || !canSearchTest}
-                  className="button-secondary"
-                >
-                  {testingSearch ? '웹서치 점검 중...' : '웹서치 품질 점검'}
-                </button>
-              </div>
-              <p className="text-xs text-slate-500">실행 키와 관리자 연결은 설정에서 관리합니다.</p>
-              {!canSearchTest && (
-                <p className="text-xs text-amber-700">웹서치 점검은 주제와 Search API 키가 준비되면 사용할 수 있습니다.</p>
-              )}
-              {!hasLlmKey && (
-                <p className="text-xs text-amber-700">LLM 키 또는 모델이 없어 실행할 수 없습니다. 설정 화면에서 연결을 먼저 확인해 주세요.</p>
-              )}
-              {notice && <p className="rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
-              {error && <p className="rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
-            </div>
-
-            {(loading || runProgress?.status === 'FAILED') && (
-              <div className="panel space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="section-title">실시간 실행 현황</p>
-                  <div className="flex items-center gap-2">
-                    <span className="accent-pill">{loading ? 'RUNNING' : runProgress?.status || 'IDLE'}</span>
-                    {activeRunId && (
-                      <span className="pill-option">Run {activeRunId.slice(0, 8)}</span>
-                    )}
-                  </div>
-                </div>
-                <div className="h-2 overflow-hidden rounded-full bg-slate-200/80">
-                  <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width: `${Math.max(0, Math.min(100, runProgressPct))}%` }} />
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
-                  <p>{runProgressPct}% · {runStepLabel}</p>
-                  <p>경과시간 {formatElapsed(elapsedSec)}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="panel space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Composer</p>
-                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">브리프</h3>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Composer</p>
+                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">브리프</h3>
                 </div>
                 <div className="segmented-wrap">
                   <button
@@ -703,7 +640,7 @@ export default function HomePage() {
 
               {inputMode === 'simple' ? (
                 <div className="soft-panel">
-                  <label className="mb-1 block text-sm font-medium text-slate-900">브리프 *</label>
+                  <label className="mb-1 block text-sm font-medium text-[var(--text-strong)]">브리프 *</label>
                   <textarea
                     required
                     value={form.brief}
@@ -720,7 +657,7 @@ export default function HomePage() {
                 <div className="soft-panel">
                   <div className="grid gap-4">
                     <div>
-                      <label className="mb-1 block text-sm font-medium text-slate-900">주제 *</label>
+                      <label className="mb-1 block text-sm font-medium text-[var(--text-strong)]">주제 *</label>
                       <input
                         required
                         value={form.topic}
@@ -732,15 +669,15 @@ export default function HomePage() {
 
                     <div className="grid gap-3 md:grid-cols-3">
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-slate-900">브랜드</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--text-strong)]">브랜드</label>
                         <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} className="input" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-slate-900">지역</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--text-strong)]">지역</label>
                         <input value={form.region} onChange={(e) => setForm({ ...form, region: e.target.value })} className="input" />
                       </div>
                       <div>
-                        <label className="mb-1 block text-sm font-medium text-slate-900">목표</label>
+                        <label className="mb-1 block text-sm font-medium text-[var(--text-strong)]">목표</label>
                         <input value={form.goal} onChange={(e) => setForm({ ...form, goal: e.target.value })} className="input" />
                       </div>
                     </div>
@@ -752,9 +689,9 @@ export default function HomePage() {
             <div className="panel space-y-4">
               <div className="flex flex-wrap items-end justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Routing</p>
-                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">도메인 라우팅</h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">자동 추천 또는 수동 고정 중 선택합니다.</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Routing</p>
+                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">도메인 라우팅</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">자동 추천 또는 수동 고정 중 선택합니다.</p>
                 </div>
                 <span className="pill-option">현재 {DOMAIN_LABELS[form.domainOverride]}</span>
               </div>
@@ -785,20 +722,20 @@ export default function HomePage() {
 
             <div className="panel space-y-4">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Attachments</p>
-                <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">첨부</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-600">CSV, XLSX, JSON, TXT, PDF, DOCX, 이미지 파일을 최대 {MAX_ATTACHMENTS}개까지 연결합니다.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Attachments</p>
+                <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">첨부</h3>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">CSV, XLSX, JSON, TXT, PDF, DOCX, 이미지 파일을 최대 {MAX_ATTACHMENTS}개까지 연결합니다.</p>
               </div>
               <input
                 type="file"
                 multiple
                 accept=".csv,.xlsx,.xls,.json,.txt,.md,.pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.bmp,text/plain,application/json,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/*"
-                className="block w-full text-xs text-slate-500"
+                className="block w-full text-xs text-[var(--text-muted)]"
                 onChange={onUploadAttachments}
               />
-              {attachmentMessage && <p className="text-xs text-slate-500">{attachmentMessage}</p>}
+              {attachmentMessage && <p className="text-xs text-[var(--text-muted)]">{attachmentMessage}</p>}
               {attachments.length === 0 && (
-                <div className="rounded-[18px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-4 text-sm text-slate-500">
+                <div className="rounded-lg border border-dashed border-[var(--surface-border)] bg-[var(--surface-sub)] px-4 py-4 text-sm text-[var(--text-muted)]">
                   아직 첨부된 파일이 없습니다.
                 </div>
               )}
@@ -807,28 +744,91 @@ export default function HomePage() {
                   {attachments.map((attachment, idx) => (
                     <div key={`${attachment.name}-${idx}`} className="list-card">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
                           A{idx + 1} · {attachment.sourceType}
                         </p>
                         <button type="button" className="button-secondary px-3 py-1.5 text-[11px]" onClick={() => removeAttachment(idx)}>
                           제거
                         </button>
                       </div>
-                      <p className="mt-2 text-sm font-medium text-slate-900">{attachment.name}</p>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{attachment.content}</p>
+                      <p className="mt-2 text-sm font-medium text-[var(--text-strong)]">{attachment.name}</p>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-muted)]">{attachment.content}</p>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
+            <div className="panel space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Launch</p>
+                  <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">실행</h3>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">준비되면 바로 실행하거나 검색만 먼저 확인할 수 있습니다.</p>
+                </div>
+                <Link href="/settings" className="button-secondary px-3 py-2 text-xs">
+                  설정
+                </Link>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <span className="accent-pill">{DOMAIN_LABELS[form.domainOverride]}</span>
+                <span className="pill-option">
+                  {runtime.runProfile === 'free' ? '무료모드(자동 선택)' : '수동모드(직접 선택)'}
+                </span>
+                {configSummary ? <span className="pill-option">{configSummary}</span> : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" disabled={loading || !canRun || !hasLlmKey || !hasSearchKey} className="button-primary">
+                  {runningLabel}
+                </button>
+                <button
+                  type="button"
+                  onClick={onSearchTest}
+                  disabled={testingSearch || !canSearchTest}
+                  className="button-secondary"
+                >
+                  {testingSearch ? '웹서치 점검 중...' : '웹서치 품질 점검'}
+                </button>
+              </div>
+              <p className="text-xs text-[var(--text-muted)]">실행 키와 관리자 연결은 설정에서 관리합니다.</p>
+              {!canSearchTest && (
+                <p className="text-xs text-amber-700">웹서치 점검은 주제와 Search API 키가 준비되면 사용할 수 있습니다.</p>
+              )}
+              {!hasLlmKey && (
+                <p className="text-xs text-amber-700">LLM 키 또는 모델이 없어 실행할 수 없습니다. 설정 화면에서 연결을 먼저 확인해 주세요.</p>
+              )}
+              {notice && <p className="rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
+              {error && <p className="rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+            </div>
+
+            {(loading || runProgress?.status === 'FAILED') && (
+              <div className="panel space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="section-title">실시간 실행 현황</p>
+                  <div className="flex items-center gap-2">
+                    <span className="accent-pill">{loading ? 'RUNNING' : runProgress?.status || 'IDLE'}</span>
+                    {activeRunId && (
+                      <span className="pill-option">Run {activeRunId.slice(0, 8)}</span>
+                    )}
+                  </div>
+                </div>
+                <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-border)]">
+                  <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width: `${Math.max(0, Math.min(100, runProgressPct))}%` }} />
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
+                  <p>{runProgressPct}% · {runStepLabel}</p>
+                  <p>경과시간 {formatElapsed(elapsedSec)}</p>
+                </div>
+              </div>
+            )}
+
             {searchTestError && <p className="rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{searchTestError}</p>}
             {searchTestResult && (
               <div className="panel space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Search Quality</p>
-                    <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-slate-950">웹서치 점검 결과</h3>
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Search Quality</p>
+                    <h3 className="mt-2 text-lg font-semibold tracking-[-0.03em] text-[var(--text-strong)]">웹서치 점검 결과</h3>
                   </div>
                   <span className="pill-option">{searchTestResult.sourceCount}개 소스</span>
                 </div>
@@ -841,15 +841,15 @@ export default function HomePage() {
                   </div>
                 )}
                 <div className="soft-panel">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">메인 쿼리</p>
-                  <p className="mt-2 break-all text-sm leading-6 text-slate-700">{searchTestResult.query}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">메인 쿼리</p>
+                  <p className="mt-2 break-all text-sm leading-6 text-[var(--text-base)]">{searchTestResult.query}</p>
                 </div>
                 {(searchTestResult.triedQueries || []).length > 0 && (
                   <div className="soft-panel">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">시도한 쿼리</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">시도한 쿼리</p>
                     <div className="mt-3 space-y-2">
                       {(searchTestResult.triedQueries || []).map((q, idx) => (
-                        <p key={`${q}-${idx}`} className="text-sm leading-6 text-slate-600">
+                        <p key={`${q}-${idx}`} className="text-sm leading-6 text-[var(--text-base)]">
                           {idx + 1}. {q}
                         </p>
                       ))}
@@ -858,26 +858,26 @@ export default function HomePage() {
                 )}
                 <div className="grid gap-3 md:grid-cols-2">
                   <div className="soft-panel">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">핵심 트렌드</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">{searchTestResult.summary.keyTrend}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">핵심 트렌드</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{searchTestResult.summary.keyTrend}</p>
                   </div>
                   <div className="soft-panel">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">시장 변화</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-700">{searchTestResult.summary.marketShift}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">시장 변화</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{searchTestResult.summary.marketShift}</p>
                   </div>
                 </div>
                 <div className="grid gap-3">
                   {searchTestResult.webSources.slice(0, 5).map((source) => (
                     <a key={source.url} href={source.url} target="_blank" rel="noreferrer" className="list-card block">
-                      <p className="text-sm font-semibold text-slate-900">{source.title}</p>
-                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-500">{source.snippet}</p>
+                      <p className="text-sm font-semibold text-[var(--text-strong)]">{source.title}</p>
+                      <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-muted)]">{source.snippet}</p>
                     </a>
                   ))}
                 </div>
               </div>
             )}
 
-            <p className="text-xs text-slate-500">입력값은 자동 저장되며, 실행 실패 시에도 그대로 유지됩니다.</p>
+            <p className="text-xs text-[var(--text-muted)]">입력값은 자동 저장되며, 실행 실패 시에도 그대로 유지됩니다.</p>
           </div>
 
           <WarRoomEvidenceRail

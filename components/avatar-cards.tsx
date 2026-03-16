@@ -14,18 +14,18 @@ export function AvatarCards({ cards }: { cards?: AgentCard[] }) {
   return (
     <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((avatar) => (
-        <div key={avatar.id} className="rounded-[20px] border border-slate-200 bg-white/84 p-3 shadow-[0_10px_20px_rgba(15,23,42,0.04)]">
+        <div key={avatar.id} className="list-card">
           <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-[rgba(49,130,246,0.12)] text-xs font-semibold text-blue-700">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[var(--radius-md)] bg-[var(--accent-soft)] text-xs font-semibold text-[var(--accent)]">
               {avatar.nickname.slice(0, 1)}
             </div>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
-                <p className="text-sm font-semibold text-slate-900">{avatar.nickname}</p>
+                <p className="text-sm font-semibold text-[var(--text-strong)]">{avatar.nickname}</p>
                 {avatar.roleLabel && <span className="pill-option">{avatar.roleLabel}</span>}
               </div>
-              <p className="mt-1 line-clamp-1 text-xs leading-5 text-slate-600">{avatar.specialty}</p>
-              {avatar.phaseLabel && <p className="mt-1 text-[11px] text-slate-500">{avatar.phaseLabel}</p>}
+              <p className="mt-1 line-clamp-1 text-xs leading-5 text-[var(--text-muted)]">{avatar.specialty}</p>
+              {avatar.phaseLabel && <p className="mt-1 text-[11px] text-[var(--text-muted)]">{avatar.phaseLabel}</p>}
             </div>
           </div>
         </div>

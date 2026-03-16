@@ -97,6 +97,8 @@ export function SupabaseAuthPanel() {
   const [sendingLink, setSendingLink] = useState(false);
   const [verifyingCode, setVerifyingCode] = useState(false);
   const [creatingOrganization, setCreatingOrganization] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<{ ok: boolean; counts?: Record<string, number>; errors?: string[]; syncedAt?: string } | null>(null);
   const [authMessage, setAuthMessage] = useState('');
   const [authError, setAuthError] = useState('');
   const [workspaceMessage, setWorkspaceMessage] = useState('');
@@ -340,6 +342,50 @@ export function SupabaseAuthPanel() {
     ? organizations.find((item) => item.id === profile.default_organization_id) || null
     : organizations[0] || null;
 
+  async function syncToSupabase() {
+    const client = getSupabaseBrowserClient();
+    if (!client || !session) return;
+
+    const org = defaultOrganization || organizations[0];
+    if (!org) {
+      setWorkspaceError('먼저 워크스페이스를 만들어야 합니다.');
+      return;
+    }
+
+    setSyncing(true);
+    setSyncResult(null);
+    setWorkspaceError('');
+
+    const { data: { session: currentSession } } = await client.auth.getSession();
+    const accessToken = currentSession?.access_token;
+    if (!accessToken) {
+      setWorkspaceError('세션이 만료됐습니다. 다시 로그인해주세요.');
+      setSyncing(false);
+      return;
+    }
+
+    const res = await fetch('/api/workspace/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        organizationId: org.id,
+        userId: session.user.id,
+        accessToken,
+        limit: 200
+      })
+    });
+
+    const json = await res.json() as { ok: boolean; counts?: Record<string, number>; errors?: string[]; syncedAt?: string; error?: string };
+
+    if (!json.ok) {
+      setWorkspaceError(json.error || json.errors?.join(', ') || '동기화에 실패했습니다.');
+    } else {
+      setSyncResult({ ok: true, counts: json.counts, syncedAt: json.syncedAt });
+    }
+
+    setSyncing(false);
+  }
+
   return (
     <section className="panel space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -430,9 +476,25 @@ export function SupabaseAuthPanel() {
             </p>
           </div>
           <div className="status-tile">
-            <p className="metric-label">다음 백엔드 단계</p>
-            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">공유 운영 데이터 이전</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">Run, Deliverable, Approval, Seminar 흐름을 순차적으로 Supabase로 옮길 예정입니다.</p>
+            <p className="metric-label">데이터 동기화</p>
+            {syncResult?.ok ? (
+              <div className="mt-2 space-y-1">
+                <p className="text-sm font-semibold text-emerald-700">동기화 완료</p>
+                <p className="text-xs text-[var(--text-muted)]">
+                  실행 {syncResult.counts?.runs ?? 0}건 · 플레이북 {syncResult.counts?.learningArchives ?? 0}건 · 승인 {syncResult.counts?.approvalDecisions ?? 0}건
+                </p>
+              </div>
+            ) : (
+              <p className="mt-2 text-xs text-[var(--text-muted)]">로컬 데이터를 Supabase로 업로드합니다.</p>
+            )}
+            <button
+              type="button"
+              className="button-secondary mt-2 w-full text-xs"
+              disabled={!session || !defaultOrganization || syncing}
+              onClick={() => void syncToSupabase()}
+            >
+              {syncing ? '동기화 중...' : '지금 동기화'}
+            </button>
           </div>
         </div>
       </div>

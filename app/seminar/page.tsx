@@ -74,11 +74,11 @@ const statusLabel: Record<SeminarSession['status'], string> = {
 };
 
 const statusClass: Record<SeminarSession['status'], string> = {
-  PLANNED: 'bg-[var(--surface-sub)] text-[var(--text-base)]',
-  RUNNING: 'bg-[#e7f7ee] text-[#21603d]',
-  STOPPED: 'bg-[var(--surface-sub)] text-[var(--text-muted)]',
-  COMPLETED: 'bg-[#e9f0fb] text-[#304f7a]',
-  FAILED: 'bg-[#fdecec] text-[#8a3636]'
+  PLANNED: 'status-badge status-badge-neutral',
+  RUNNING: 'status-badge status-badge-running',
+  STOPPED: 'status-badge status-badge-neutral',
+  COMPLETED: 'status-badge status-badge-info',
+  FAILED: 'status-badge status-badge-error'
 };
 
 const SEMINAR_PRESETS = [
@@ -717,13 +717,13 @@ export default function SeminarPage() {
                 <div key={round.id} className="rounded-xl border border-[#dfd2c6] bg-white px-3 py-3">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-sm font-semibold text-[#2a1a18]">Round {round.roundNumber}</span>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${
+                    <span className={
                       round.status === 'DONE'
-                        ? 'bg-[#e7f7ee] text-[#21603d]'
+                        ? 'status-badge status-badge-success'
                         : round.status === 'RUNNING'
-                          ? 'bg-[#e9f0fb] text-[#304f7a]'
-                          : 'bg-[#fdecec] text-[#8a3636]'
-                    }`}>
+                          ? 'status-badge status-badge-running'
+                          : 'status-badge status-badge-error'
+                    }>
                       {round.status}
                     </span>
                     {round.runId && (

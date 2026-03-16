@@ -169,13 +169,13 @@ function NavButton({ item, active }: { item: NavItem; active: boolean }) {
       className={[
         'relative flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors',
         active
-          ? 'bg-[rgba(49,130,246,0.1)] text-[#3182f6]'
-          : 'text-[#6b7684] hover:bg-[#f5f6f7] hover:text-[#333d4b]'
+          ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+          : 'text-[var(--text-muted)] hover:bg-[var(--surface-sub)] hover:text-[var(--text-base)]'
       ].join(' ')}
     >
       {item.icon}
       {active && (
-        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[#3182f6]" />
+        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]" />
       )}
     </Link>
   );
@@ -189,14 +189,14 @@ export function AppNav() {
       {/* Logo */}
       <Link
         href="/operations"
-        className="mb-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[rgba(49,130,246,0.1)] text-[13px] font-bold text-[#3182f6]"
+        className="mb-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--accent-soft)] text-[13px] font-bold text-[var(--accent)]"
         title="Garnet"
       >
         G
       </Link>
 
       {/* Divider */}
-      <div className="my-1 h-px w-8 bg-[#e8ebed]" />
+      <div className="my-1 h-px w-8 bg-[var(--surface-border)]" />
 
       {/* Main nav */}
       <nav className="flex flex-1 flex-col gap-1">
@@ -207,7 +207,7 @@ export function AppNav() {
 
       {/* Bottom nav */}
       <div className="flex flex-col gap-1">
-        <div className="mb-1 h-px w-8 bg-[#e8ebed]" />
+        <div className="mb-1 h-px w-8 bg-[var(--surface-border)]" />
         {bottomItems.map((item) => (
           <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
         ))}

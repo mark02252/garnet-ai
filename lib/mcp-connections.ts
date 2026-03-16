@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const mcpConnectionTransportSchema = z.enum(['builtin-local', 'stdio', 'streamable-http']);
 export const mcpConnectionAuthModeSchema = z.enum(['none', 'bearer', 'basic']);
 export const mcpConnectionSetupModeSchema = z.enum(['builtin', 'command', 'url', 'oauth', 'manual']);
-export const mcpConnectionScopeSchema = z.enum(['internal', 'workspace', 'design', 'qa', 'observability', 'delivery', 'data']);
+export const mcpConnectionScopeSchema = z.enum(['internal', 'workspace', 'design', 'qa', 'observability', 'delivery', 'data', 'research']);
 export const mcpConnectionPhaseSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 
 export const mcpConnectionSchema = z.object({
@@ -223,6 +223,94 @@ const MCP_PRESET_CONNECTIONS: McpConnectionDraft[] = [
     setupHint: '배포 센터를 만들 때 함께 연결하는 것이 가장 자연스럽습니다.',
     note: 'Wave 3 배포 운영 연결',
     recommendedScreens: ['설정', '운영 센터(예정)']
+  },
+  {
+    id: 'supabase',
+    name: 'Supabase MCP',
+    description: '팀 공유 DB를 직접 쿼리하고 마이그레이션 상태를 확인합니다.',
+    phase: 1,
+    scope: 'data',
+    transport: 'stdio',
+    setupMode: 'command',
+    authMode: 'bearer',
+    enabled: false,
+    readonly: false,
+    command: 'npx',
+    args: ['-y', '@supabase/mcp-server-supabase', '--access-token', ''],
+    url: '',
+    bearerToken: '',
+    basicUsername: '',
+    basicPassword: '',
+    documentationUrl: 'https://supabase.com/docs/guides/getting-started/mcp',
+    setupHint: 'supabase.com → Account → Access Tokens에서 Personal Access Token을 발급해 bearer token에 입력하세요.',
+    note: 'Wave 1 — 팀 DB 직접 접근. 프로젝트 ref: pwllacujwgzulkelqfrq',
+    recommendedScreens: ['설정', '데이터 스튜디오']
+  },
+  {
+    id: 'slack',
+    name: 'Slack MCP',
+    description: '승인 알림, 오늘의 브리핑, 캠페인 상태를 Slack 채널로 공유합니다.',
+    phase: 2,
+    scope: 'workspace',
+    transport: 'stdio',
+    setupMode: 'command',
+    authMode: 'bearer',
+    enabled: false,
+    readonly: false,
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-slack'],
+    url: '',
+    bearerToken: '',
+    basicUsername: '',
+    basicPassword: '',
+    documentationUrl: 'https://github.com/modelcontextprotocol/servers/tree/main/src/slack',
+    setupHint: 'Slack App을 생성하고 Bot Token(xoxb-...)을 bearer token에 입력하세요. SLACK_BOT_TOKEN 환경 변수도 필요합니다.',
+    note: 'Wave 2 — 승인 알림 및 브리핑 채널 공유',
+    recommendedScreens: ['운영 센터', '캠페인 스튜디오']
+  },
+  {
+    id: 'gdrive',
+    name: 'Google Drive MCP',
+    description: 'Drive 폴더에서 데이터셋을 자동 동기화하고 보고서를 저장합니다.',
+    phase: 2,
+    scope: 'data',
+    transport: 'stdio',
+    setupMode: 'oauth',
+    authMode: 'none',
+    enabled: false,
+    readonly: false,
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-gdrive'],
+    url: '',
+    bearerToken: '',
+    basicUsername: '',
+    basicPassword: '',
+    documentationUrl: 'https://github.com/modelcontextprotocol/servers/tree/main/src/gdrive',
+    setupHint: 'Google OAuth 2.0 인증이 필요합니다. 연결 허브 OAuth 플로우 추가 후 사용 가능합니다.',
+    note: 'Wave 2 — 데이터셋 Drive 연동',
+    recommendedScreens: ['데이터 스튜디오']
+  },
+  {
+    id: 'brave-search',
+    name: 'Brave Search MCP',
+    description: '캠페인 스튜디오에서 실시간 시장 조사와 경쟁사 분석을 제공합니다.',
+    phase: 3,
+    scope: 'research',
+    transport: 'stdio',
+    setupMode: 'command',
+    authMode: 'bearer',
+    enabled: false,
+    readonly: false,
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-brave-search'],
+    url: '',
+    bearerToken: '',
+    basicUsername: '',
+    basicPassword: '',
+    documentationUrl: 'https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search',
+    setupHint: 'brave.com/search/api에서 API Key를 발급해 bearer token에 입력하세요.',
+    note: 'Wave 3 — 캠페인 실시간 리서치',
+    recommendedScreens: ['캠페인 스튜디오']
   },
   {
     id: 'db-toolbox',

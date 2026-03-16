@@ -393,6 +393,49 @@ body {
   border-color: rgba(var(--accent-rgb), 0.2);
 }
 
+/* ── Status Badges ── */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.6;
+  white-space: nowrap;
+}
+
+.status-badge-success {
+  background: #e8f8f0;
+  color: #16794c;
+}
+
+.status-badge-warning {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-badge-error {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-badge-info {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.status-badge-running {
+  background: #ede9fe;
+  color: #5b21b6;
+}
+
+.status-badge-neutral {
+  background: var(--surface-sub);
+  color: var(--text-muted);
+}
+
 /* ── Segmented control ── */
 .segmented-wrap {
   display: inline-flex;

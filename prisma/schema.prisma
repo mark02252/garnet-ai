@@ -182,6 +182,31 @@ model ManualCampaignRoom {
   @@index([createdAt])
 }
 
+enum KpiPeriod {
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  ANNUAL
+}
+
+model KpiGoal {
+  id           String    @id @default(cuid())
+  title        String
+  brand        String?
+  region       String?
+  metric       String
+  targetValue  Float
+  currentValue Float     @default(0)
+  unit         String    @default("")
+  period       KpiPeriod @default(MONTHLY)
+  notes        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([createdAt])
+  @@index([brand])
+}
+
 model InstagramReachDaily {
   id         String   @id @default(cuid())
   accountId  String

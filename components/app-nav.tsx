@@ -89,6 +89,34 @@ function HistoryIcon() {
   );
 }
 
+function GoalsIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="5" stroke="currentColor" strokeWidth="1.7" opacity="0.5" />
+      <circle cx="12" cy="12" r="2" fill="currentColor" />
+    </svg>
+  );
+}
+
+function ContentIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M12 3l1.5 4.5H18l-3.75 2.7 1.5 4.5L12 12l-3.75 2.7 1.5-4.5L6 7.5h4.5z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M5 20h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.5" />
+    </svg>
+  );
+}
+
+function NotificationIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M13.73 21a2 2 0 01-3.46 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function SettingsIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
@@ -112,11 +140,14 @@ const navItems: NavItem[] = [
   { href: '/operations', label: '오늘의 브리핑', icon: <BriefingIcon /> },
   { href: '/', label: '캠페인 스튜디오', icon: <StudioIcon /> },
   { href: '/campaigns', label: '캠페인 룸', icon: <CampaignIcon /> },
+  { href: '/content', label: '콘텐츠 스튜디오', icon: <ContentIcon /> },
   { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
   { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
+  { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
   { href: '/dashboard', label: '성과 대시보드', icon: <DashboardIcon /> },
   { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
   { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
+  { href: '/notifications', label: '알림 인박스', icon: <NotificationIcon /> },
 ];
 
 const bottomItems: NavItem[] = [

@@ -36,8 +36,14 @@ function formatDate(value: string) {
 
 function statusTone(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {
   if (status === 'CONFIRMED') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'ARCHIVED') return 'bg-slate-100 text-slate-600';
+  if (status === 'ARCHIVED') return 'bg-[var(--surface-sub)] text-[var(--text-muted)]';
   return 'bg-amber-100 text-amber-700';
+}
+
+function statusLabel(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {
+  if (status === 'CONFIRMED') return '확정됨';
+  if (status === 'ARCHIVED') return '보관됨';
+  return '검토 필요';
 }
 
 export default function LearningPage() {
@@ -156,48 +162,66 @@ export default function LearningPage() {
     setMessage('수동 학습 카드가 생성되었습니다.');
   }
 
-  async function saveSelected() {
-    if (!selected) return;
+  async function patchItem(id: string, patch: Partial<typeof form>) {
     setSaving(true);
     setMessage('');
-
-    const res = await fetch(`/api/learning-archives/${selected.id}`, {
+    const res = await fetch(`/api/learning-archives/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        situation: form.situation,
-        recommendedResponse: form.recommendedResponse,
-        reasoning: form.reasoning,
-        signals: form.signals
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-        tags: form.tags
-          .split(',')
-          .map((value) => value.trim())
-          .filter(Boolean),
-        status: form.status
+        ...patch,
+        signals: typeof patch.signals === 'string'
+          ? patch.signals.split(',').map((v) => v.trim()).filter(Boolean)
+          : patch.signals,
+        tags: typeof patch.tags === 'string'
+          ? patch.tags.split(',').map((v) => v.trim()).filter(Boolean)
+          : patch.tags
       })
     });
-
     const data = await res.json();
     if (!res.ok) {
       setMessage(data.error || '저장 실패');
       setSaving(false);
       return;
     }
-
-    setMessage('저장되었습니다.');
     setSaving(false);
     await refresh();
-    setSelectedId(data.id || selected.id);
+    setSelectedId(data.id || id);
+    return data;
+  }
+
+  async function saveSelected() {
+    if (!selected) return;
+    await patchItem(selected.id, form);
+    setMessage('저장되었습니다.');
+  }
+
+  async function confirmSelected() {
+    if (!selected) return;
+    await patchItem(selected.id, { ...form, status: 'CONFIRMED' });
+    setMessage('플레이북으로 확정되었습니다.');
+  }
+
+  async function quickConfirm(id: string) {
+    setSaving(true);
+    setMessage('');
+    const res = await fetch(`/api/learning-archives/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: 'CONFIRMED' })
+    });
+    if (res.ok) {
+      setMessage('플레이북으로 확정되었습니다.');
+      await refresh();
+    }
+    setSaving(false);
   }
 
   return (
     <div className="space-y-5">
       <section className="dashboard-hero">
         <p className="dashboard-eyebrow">Learning Studio</p>
-        <h1 className="dashboard-title">대화 학습 카드 스튜디오</h1>
+        <h1 className="dashboard-title">플레이북 스튜디오</h1>
         <p className="dashboard-copy">
           과거 실행에서 재사용 가능한 응답 패턴을 카드로 관리하고, 검토 상태와 신호를 운영 관점에서 정리합니다.
         </p>
@@ -234,109 +258,144 @@ export default function LearningPage() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="status-tile">
           <p className="metric-label">누적 카드</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.total}</p>
-          <p className="mt-1 text-xs text-slate-500">현재 워크스페이스의 전체 카드</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.total}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">현재 워크스페이스의 전체 카드</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">확정</p>
           <p className="mt-2 text-base font-semibold text-emerald-700">{stats.confirmed}</p>
-          <p className="mt-1 text-xs text-slate-500">바로 재사용 가능한 카드</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 카드</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">보관</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.archived}</p>
-          <p className="mt-1 text-xs text-slate-500">현재 운영에서 제외된 카드</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.archived}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">현재 운영에서 제외된 카드</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">연결 실행</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.linked}</p>
-          <p className="mt-1 text-xs text-slate-500">원본 실행과 연결된 카드</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.linked}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">원본 실행과 연결된 카드</p>
         </div>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[380px_minmax(0,1fr)_320px]">
+        {/* ── Card List ── */}
         <section className="panel space-y-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Library</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Library</p>
             <h2 className="section-title">학습 카드 목록</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">상황, 응답, 상태 기준으로 카드들을 검색하고 선택할 수 있습니다.</p>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">상황, 응답, 상태 기준으로 카드들을 검색하고 선택할 수 있습니다.</p>
           </div>
 
           <div className="grid gap-3">
             <div className="soft-panel">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">검색</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">검색</label>
               <input className="input" placeholder="상황 / 응답 / 근거 검색" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="soft-panel">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">상태</label>
+              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">상태</label>
               <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
                 <option value="">전체 상태</option>
-                <option value="DRAFT">DRAFT</option>
-                <option value="CONFIRMED">CONFIRMED</option>
-                <option value="ARCHIVED">ARCHIVED</option>
+                <option value="DRAFT">검토 필요</option>
+                <option value="CONFIRMED">확정됨</option>
+                <option value="ARCHIVED">보관됨</option>
               </select>
             </div>
-            {message && <p className="text-xs text-slate-500">{message}</p>}
+            {message && (
+              <p className={`text-xs font-medium ${message.includes('실패') ? 'text-rose-600' : 'text-emerald-700'}`}>
+                {message}
+              </p>
+            )}
           </div>
 
-          <div className="max-h-[720px] space-y-3 overflow-auto pr-1">
-            {loading && <div className="soft-panel text-sm text-slate-600">학습 카드를 불러오는 중입니다.</div>}
-            {!loading && items.length === 0 && <div className="soft-panel text-sm text-slate-600">학습 카드가 없습니다.</div>}
+          <div className="max-h-[720px] space-y-2 overflow-auto pr-1">
+            {loading && <div className="soft-panel text-sm text-[var(--text-muted)]">학습 카드를 불러오는 중입니다.</div>}
+            {!loading && items.length === 0 && <div className="soft-panel text-sm text-[var(--text-muted)]">학습 카드가 없습니다.</div>}
             {items.map((item) => (
-              <button
+              <div
                 key={item.id}
-                type="button"
+                className={`list-card cursor-pointer ${selectedId === item.id ? 'list-card-active' : ''}`}
                 onClick={() => setSelectedId(item.id)}
-                className={`w-full rounded-[22px] border p-4 text-left transition ${
-                  selectedId === item.id ? 'border-sky-200 bg-sky-50/80' : 'border-slate-200 bg-white/90 hover:bg-white'
-                }`}
               >
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{item.sourceType}</p>
-                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusTone(item.status)}`}>{item.status}</span>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.sourceType}</p>
+                  <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusTone(item.status)}`}>
+                    {statusLabel(item.status)}
+                  </span>
                 </div>
-                <p className="mt-3 line-clamp-3 text-sm font-semibold leading-6 text-slate-950">{item.situation}</p>
-                <p className="mt-2 text-xs text-slate-500">{formatDate(item.updatedAt)}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(item.tags.length ? item.tags : ['태그 없음']).slice(0, 5).map((tagItem) => (
-                    <span key={`${item.id}-${tagItem}`} className="pill-option">
-                      {tagItem}
-                    </span>
+                <p className="mt-2 line-clamp-2 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.situation}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{formatDate(item.updatedAt)}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  {(item.tags.length ? item.tags : ['태그 없음']).slice(0, 4).map((tagItem) => (
+                    <span key={`${item.id}-${tagItem}`} className="pill-option">{tagItem}</span>
                   ))}
+                  {item.status === 'DRAFT' && (
+                    <button
+                      type="button"
+                      className="ml-auto rounded-[6px] bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)] hover:bg-[rgba(49,130,246,0.15)]"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void quickConfirm(item.id);
+                      }}
+                      disabled={saving}
+                    >
+                      확정
+                    </button>
+                  )}
                 </div>
-              </button>
+              </div>
             ))}
           </div>
         </section>
 
+        {/* ── Card Editor ── */}
         <section className="panel">
-          {!selected && <p className="text-sm text-slate-500">왼쪽에서 학습 카드를 선택하세요.</p>}
+          {!selected && (
+            <p className="text-sm text-[var(--text-muted)]">왼쪽에서 학습 카드를 선택하세요.</p>
+          )}
           {selected && (
             <div className="space-y-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Editor</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Editor</p>
                   <h2 className="section-title">이럴 때 이렇게 답변</h2>
-                  <p className="mt-2 text-xs text-slate-500">마지막 수정: {formatDate(selected.updatedAt)}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">마지막 수정: {formatDate(selected.updatedAt)}</p>
                   {selected.run?.id && (
-                    <Link className="mt-2 inline-flex text-xs font-medium text-sky-700 underline" href={`/runs/${selected.run.id}`}>
+                    <Link className="mt-1 inline-flex text-xs font-medium text-[var(--accent)] underline" href={`/runs/${selected.run.id}`}>
                       원본 실행 보기: {selected.run.topic}
                     </Link>
                   )}
                 </div>
-                <button type="button" className="button-primary" onClick={saveSelected} disabled={saving}>
-                  {saving ? '저장 중...' : '저장'}
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  {form.status === 'DRAFT' && (
+                    <button type="button" className="button-primary" onClick={confirmSelected} disabled={saving}>
+                      {saving ? '처리 중...' : '확정하기'}
+                    </button>
+                  )}
+                  <button type="button" className="button-secondary" onClick={saveSelected} disabled={saving}>
+                    {saving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
               </div>
+
+              {form.status === 'DRAFT' && (
+                <div className="surface-note">
+                  <strong>검토 대기 중입니다.</strong> 내용을 확인한 뒤 "확정하기"를 눌러 재사용 가능한 플레이북으로 전환하세요.
+                </div>
+              )}
 
               <div className="grid gap-4">
                 <div className="soft-panel">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">상황 정의</label>
-                  <textarea className="input min-h-[110px]" value={form.situation} onChange={(e) => setForm({ ...form, situation: e.target.value })} />
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">상황 정의</label>
+                  <textarea
+                    className="input min-h-[110px]"
+                    value={form.situation}
+                    onChange={(e) => setForm({ ...form, situation: e.target.value })}
+                  />
                 </div>
 
                 <div className="soft-panel">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">권장 응답 템플릿</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">권장 응답 템플릿</label>
                   <textarea
                     className="input min-h-[220px]"
                     value={form.recommendedResponse}
@@ -345,31 +404,45 @@ export default function LearningPage() {
                 </div>
 
                 <div className="soft-panel">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">근거 / 맥락</label>
-                  <textarea className="input min-h-[170px]" value={form.reasoning} onChange={(e) => setForm({ ...form, reasoning: e.target.value })} />
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">근거 / 맥락</label>
+                  <textarea
+                    className="input min-h-[170px]"
+                    value={form.reasoning}
+                    onChange={(e) => setForm({ ...form, reasoning: e.target.value })}
+                  />
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="soft-panel">
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">신호</label>
-                    <input className="input" value={form.signals} onChange={(e) => setForm({ ...form, signals: e.target.value })} />
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">신호</label>
+                    <input
+                      className="input"
+                      placeholder="쉼표로 구분"
+                      value={form.signals}
+                      onChange={(e) => setForm({ ...form, signals: e.target.value })}
+                    />
                   </div>
                   <div className="soft-panel">
-                    <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">태그</label>
-                    <input className="input" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} />
+                    <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">태그</label>
+                    <input
+                      className="input"
+                      placeholder="쉼표로 구분"
+                      value={form.tags}
+                      onChange={(e) => setForm({ ...form, tags: e.target.value })}
+                    />
                   </div>
                 </div>
 
                 <div className="soft-panel max-w-xs">
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">상태</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">상태 변경</label>
                   <select
                     className="input"
                     value={form.status}
                     onChange={(e) => setForm({ ...form, status: e.target.value as 'DRAFT' | 'CONFIRMED' | 'ARCHIVED' })}
                   >
-                    <option value="DRAFT">DRAFT (검토 필요)</option>
-                    <option value="CONFIRMED">CONFIRMED (재사용 추천)</option>
-                    <option value="ARCHIVED">ARCHIVED (보관)</option>
+                    <option value="DRAFT">검토 필요 (DRAFT)</option>
+                    <option value="CONFIRMED">확정됨 (CONFIRMED)</option>
+                    <option value="ARCHIVED">보관됨 (ARCHIVED)</option>
                   </select>
                 </div>
               </div>
@@ -377,45 +450,46 @@ export default function LearningPage() {
           )}
         </section>
 
+        {/* ── Right Sidebar ── */}
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Status Rail</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Status Rail</p>
               <h2 className="section-title">운영 상태</h2>
             </div>
             <div className="grid gap-3">
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">검토 대기</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{stats.draft}개</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">검토 대기</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{stats.draft}개</p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">재사용 가능</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{stats.confirmed}개</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">재사용 가능</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{stats.confirmed}개</p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">실행 연결</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{stats.linked}개</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">실행 연결</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{stats.linked}개</p>
               </div>
             </div>
           </section>
 
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Top Tags</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Top Tags</p>
               <h2 className="section-title">반복 태그</h2>
             </div>
             {topTags.length === 0 ? (
-              <div className="soft-panel text-sm text-slate-600">태그 데이터가 아직 없습니다.</div>
+              <div className="soft-panel text-sm text-[var(--text-muted)]">태그 데이터가 아직 없습니다.</div>
             ) : (
               <div className="space-y-3">
                 {topTags.map(([tagItem, count]) => (
                   <div key={tagItem} className="soft-panel">
-                    <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                    <div className="mb-1 flex items-center justify-between text-xs text-[var(--text-base)]">
                       <span>#{tagItem}</span>
                       <span>{count}회</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-200">
-                      <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.max(10, Math.min(100, count * 12))}%` }} />
+                    <div className="h-1.5 rounded-full bg-[var(--surface-border)]">
+                      <div className="h-1.5 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(10, Math.min(100, count * 12))}%` }} />
                     </div>
                   </div>
                 ))}
@@ -425,11 +499,11 @@ export default function LearningPage() {
 
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Signal Mix</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Signal Mix</p>
               <h2 className="section-title">반복 신호</h2>
             </div>
             {topSignals.length === 0 ? (
-              <div className="soft-panel text-sm text-slate-600">신호 데이터가 아직 없습니다.</div>
+              <div className="soft-panel text-sm text-[var(--text-muted)]">신호 데이터가 아직 없습니다.</div>
             ) : (
               <div className="flex flex-wrap gap-2">
                 {topSignals.map(([signalItem, count]) => (

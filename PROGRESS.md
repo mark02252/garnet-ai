@@ -8,16 +8,16 @@
 
 ## 앱 개요
 
-**Garnet**은 macOS 데스크탑 기반 All-in-One AI 마케팅 전략 워크스페이스입니다.
+**Garnet**은 macOS 데스크탑 기반 All-in-One 워크스페이스입니다.
 
 | 항목 | 내용 |
 |------|------|
 | 플랫폼 | Electron + Next.js 15.2 (App Router) |
 | 언어 | TypeScript, React 19 |
-| DB | Prisma + SQLite (로컬) |
+| DB | Prisma + SQLite (`prisma/dev.db`) |
 | AI | OpenAI / Gemini / Groq / local (runLLM 추상화) |
 | 인증 | Supabase (계획됨), Instagram Login OAuth |
-| 디자인 | Toss Business 스타일 (토스 비즈니스 참고) |
+| 디자인 | Toss Business 스타일 |
 
 ---
 
@@ -59,8 +59,7 @@
   - `text-slate-950` → `text-[var(--text-strong)]`
   - `text-slate-600/700` → `text-[var(--text-base)]`
   - `text-slate-500/400` → `text-[var(--text-muted)]`
-- 프로그레스바 `bg-sky-500` → `bg-[var(--accent)]`
-- 높이 `h-2` → `h-1.5` (더 섬세한 진행 바)
+- 프로그레스바 `bg-sky-500` → `bg-[var(--accent)]`, 높이 `h-2` → `h-1.5`
 
 #### 1단계-2: 캠페인 직접 생성 (`/app/campaigns/`)
 **커밋:** `124cbf2`
@@ -73,30 +72,27 @@ model ManualCampaignRoom { id, title, brand, region, goal, objective, notes, sta
 
 **신규 파일:**
 - `app/api/campaigns/rooms/route.ts` — POST로 ManualCampaignRoom 생성
-- `components/create-campaign-room-dialog.tsx` — 모달 폼 (title, brand, region, goal, objective, notes)
+- `components/create-campaign-room-dialog.tsx` — 모달 폼
 
 **수정 파일:**
-- `lib/campaign-rooms.ts` — `getCampaignRooms()` 에 수동 룸 병합 로직 추가
-- `app/campaigns/page.tsx` — 생성 버튼 + 디자인 토큰 적용, 빈 상태 메시지 추가
+- `lib/campaign-rooms.ts` — `getCampaignRooms()`에 수동 룸 병합 로직 추가
+- `app/campaigns/page.tsx` — 생성 버튼 + 디자인 토큰 적용
 
 #### 1단계-3: 플레이북 확정 UX (`/app/learning/page.tsx`)
 **커밋:** `3c42ef9`
 
-- **카드 목록에 인라인 "확정" 버튼** 추가 (DRAFT 카드에만 표시)
-  - 클릭 시 즉시 CONFIRMED 상태로 변경 (편집기 열지 않아도 됨)
-- **에디터에 "확정하기" primary 버튼** 추가
-  - 기존 "저장" 버튼과 분리, DRAFT 상태일 때만 표시
-- **DRAFT 안내 배너** (`surface-note`) — "확정하기 전에 내용을 검토하세요"
-- 상태 드롭다운 한글 레이블 개선 (DRAFT → "검토 필요 (DRAFT)")
-- 카드 선택 스타일: 커스텀 클래스 → `.list-card` + `.list-card-active`
-- 전체 디자인 토큰 적용
+- 카드 목록에 인라인 "확정" 버튼 추가 (DRAFT 카드에만)
+- 에디터에 "확정하기" primary 버튼 추가 (저장과 분리)
+- DRAFT 안내 배너 (`surface-note`)
+- 상태 드롭다운 한글 레이블 개선
+- 카드 선택 스타일 → `.list-card` + `.list-card-active`
 
 ---
 
 ### 2단계 — 신규 기능 3종 추가
+**커밋:** `58b2c93`
 
 #### 2단계-1: KPI 목표 관리 (`/app/goals/`)
-**커밋:** `58b2c93`
 
 **Prisma 스키마 추가:**
 ```prisma
@@ -105,60 +101,66 @@ model KpiGoal { id, title, brand, region, metric, targetValue, currentValue, uni
 ```
 
 **신규 파일:**
-- `app/api/goals/route.ts` — GET (목록) / POST (생성)
-- `app/api/goals/[id]/route.ts` — PATCH (수정/업데이트) / DELETE (삭제)
-- `app/goals/page.tsx` — KPI 보드 전체 UI
+- `app/api/goals/route.ts` — GET / POST
+- `app/api/goals/[id]/route.ts` — PATCH / DELETE
+- `app/goals/page.tsx` — KPI 보드 UI
 
 **주요 기능:**
 - 목표 생성/편집/삭제 모달
-- 달성률 프로그레스 바 (색상 연동: 100%=초록, 70%+=파랑, 40%+=노랑, 미만=빨강)
-- 인라인 현재값 업데이트 (숫자 입력 + Enter 또는 버튼)
-- 브랜드/지역/기간/단위 필터링
-- 히어로 섹션에 달성/진행/주의 현황 요약
+- 달성률 프로그레스 바 (100%=초록, 70%+=파랑, 40%+=노랑, 미만=빨강)
+- 인라인 현재값 업데이트 (숫자 입력 + Enter)
+- 브랜드/지역/기간 필터링
 
 #### 2단계-2: 콘텐츠 생성 스튜디오 (`/app/content/`)
-**커밋:** `58b2c93`
 
 **신규 파일:**
-- `app/api/content/route.ts` — AI 콘텐츠 생성 (runLLM 활용)
+- `app/api/content/route.ts` — AI 콘텐츠 생성 (runLLM)
 - `app/content/page.tsx` — 스튜디오 UI
 
-**지원 콘텐츠 타입:**
-| 타입 | 설명 |
-|------|------|
-| 인스타그램 캡션 | 캡션 + 해시태그 15개 |
-| 광고 카피 | 헤드라인 3가지 + 서브카피 + CTA |
-| 이메일 카피 | 제목 줄 + 본문 + CTA |
-| 블로그 포스트 | SEO 최적화 초안 |
-| 보도자료 | 언론 배포용 형식 |
-| SMS / 푸시 알림 | 40자 이내 짧은 문구 |
-
-**주요 기능:**
-- 브랜드, 타겟, 톤앤매너(프리셋 제공), 핵심 메시지 입력
-- 생성 중 로딩 상태 표시
-- 결과 복사 버튼 (클립보드)
-- 톤앤매너 프리셋 5종 원클릭 선택
+**지원 타입:** 인스타그램 캡션, 광고 카피, 이메일 카피, 블로그 포스트, 보도자료, SMS/푸시
 
 #### 2단계-3: 알림 인박스 (`/app/notifications/`)
-**커밋:** `58b2c93`
 
 **신규 파일:**
-- `app/api/notifications/route.ts` — DB 상태 기반 알림 계산
+- `lib/notifications.ts` — DB 상태 기반 알림 계산 함수 (공유 로직)
+- `app/api/notifications/route.ts` — GET 엔드포인트
 - `app/notifications/page.tsx` — 알림 목록 UI
 
-**알림 타입:**
+**알림 타입:** 주의(warning) / 즉시처리(action) / 정보(info) / 달성(success)
 
-| 타입 | 트리거 조건 |
-|------|------------|
-| ⚠️ 주의 | 도달 하락 추세, 실패 세미나, KPI 40% 미만 |
-| 🔔 즉시 처리 | DRAFT 플레이북 n개, 보고서 미작성 실행 |
-| ℹ️ 정보 | 진행 중인 세미나 |
-| ✅ 달성 | KPI 100% 달성, 승인 완료 |
-
-**네비게이션 아이콘 추가:**
+**네비게이션 추가 (`components/app-nav.tsx`):**
 - `GoalsIcon` → `/goals`
 - `ContentIcon` → `/content`
 - `NotificationIcon` → `/notifications`
+
+---
+
+### 3단계 — 버그 수정 및 안정화
+
+#### 3단계-1: 클라이언트 크래시 수정
+**커밋:** `0c12669`
+
+- `lib/types.ts`: `import { DeliverableType, MeetingRole } from '@prisma/client'` → `import type { ... }`
+  - Prisma(Node.js 전용)가 클라이언트 번들에 포함되어 브라우저 런타임 에러 발생
+  - `import type`으로 변경해 컴파일 시 완전 제거
+
+#### 3단계-2: 알림 페이지 서버 fetch 개선
+**커밋:** `0c12669`
+
+- `lib/notifications.ts` 신규 생성 — 알림 계산 로직 공유 함수로 추출
+- `app/notifications/page.tsx`: 절대 URL self-fetch → `computeNotifications()` 직접 호출
+
+#### 3단계-3: DATABASE_URL 경로 수정
+**커밋:** `d619b35` (`.env` 변경, git 미추적)
+
+- **문제:** `file:./dev.db` → Prisma CLI는 스키마 기준(`prisma/dev.db`), Next.js 런타임은 프로젝트 루트 기준(`./dev.db`)으로 다른 파일을 참조
+- **수정:** `.env`의 `DATABASE_URL="file:./prisma/dev.db"`로 통일
+
+#### 3단계-4: 앱 이름 통일
+**커밋:** `d619b35`
+
+- `app/layout.tsx`: 헤더 `Garnet — AI 마케팅 워크스페이스` → `Garnet`
+- `metadata.description`: `'Garnet'`으로 단순화
 
 ---
 
@@ -166,12 +168,12 @@ model KpiGoal { id, title, brand, region, metric, targetValue, currentValue, uni
 
 ```
 app/
-├── operations/        # 홈 — 오늘의 브리핑
+├── operations/        # 오늘의 브리핑 (홈)
 ├── page.tsx           # 캠페인 스튜디오
 ├── campaigns/         # 캠페인 룸 (수동 생성 포함)
-├── content/           # 콘텐츠 생성 스튜디오 ← NEW
-├── goals/             # KPI 목표 관리 ← NEW
-├── notifications/     # 알림 인박스 ← NEW
+├── content/           # 콘텐츠 생성 스튜디오
+├── goals/             # KPI 목표 관리
+├── notifications/     # 알림 인박스
 ├── seminar/           # 세미나 스튜디오
 ├── datasets/          # 데이터 스튜디오
 ├── learning/          # 플레이북
@@ -182,11 +184,11 @@ app/
 
 app/api/
 ├── run/               # 회의 실행 (메인 AI 파이프라인)
-├── campaigns/rooms/   # 캠페인 룸 생성 ← NEW
-├── content/           # 콘텐츠 AI 생성 ← NEW
-├── goals/             # KPI CRUD ← NEW
-├── goals/[id]/        # KPI 개별 PATCH/DELETE ← NEW
-├── notifications/     # 알림 계산 ← NEW
+├── campaigns/rooms/   # 캠페인 룸 생성
+├── content/           # 콘텐츠 AI 생성
+├── goals/             # KPI CRUD
+├── goals/[id]/        # KPI 개별 PATCH/DELETE
+├── notifications/     # 알림 계산 (lib/notifications.ts 활용)
 ├── learning-archives/ # 플레이북 CRUD
 ├── seminar/           # 세미나 세션 관리
 ├── datasets/          # 데이터셋 CRUD
@@ -194,19 +196,21 @@ app/api/
 └── ...
 
 components/
-├── app-nav.tsx        # 사이드바 네비게이션
-├── create-campaign-room-dialog.tsx  ← NEW
+├── app-nav.tsx                      # 사이드바 네비게이션 (11개 항목)
+├── create-campaign-room-dialog.tsx  # 캠페인 룸 생성 모달
 ├── approval-action-list.tsx
 └── ...
 
 lib/
+├── notifications.ts   # 알림 계산 공유 함수
 ├── campaign-rooms.ts  # 캠페인 룸 집계 (수동 룸 포함)
 ├── llm.ts             # LLM 추상화 (OpenAI/Gemini/Groq)
 ├── prisma.ts          # Prisma 클라이언트
 └── ...
 
 prisma/
-└── schema.prisma      # 전체 스키마
+├── schema.prisma      # 전체 스키마
+└── dev.db             # SQLite 데이터베이스 ← DATABASE_URL 기준
 ```
 
 ---
@@ -221,8 +225,8 @@ prisma/
 | `MeetingTurn` | 역할별 회의 발언 |
 | `Dataset` | CSV/JSON 데이터셋 |
 | `LearningArchive` | 플레이북 카드 (DRAFT/CONFIRMED/ARCHIVED) |
-| `ManualCampaignRoom` | 수동 생성 캠페인 룸 ← NEW |
-| `KpiGoal` | KPI 목표 설정 ← NEW |
+| `ManualCampaignRoom` | 수동 생성 캠페인 룸 |
+| `KpiGoal` | KPI 목표 설정 |
 | `InstagramReachDaily` | 일별 리치 데이터 |
 | `InstagramReachAnalysisRun` | 리치 분석 실행 결과 |
 
@@ -254,13 +258,18 @@ prisma/
 - `.accent-pill` / `.pill-option` — 뱃지/태그
 - `.section-title` / `.dashboard-title` / `.dashboard-eyebrow` — 타이포
 
+**금지 패턴 (글래스모피즘):**
+- `bg-white/80`, `bg-slate-50/70`, `backdrop-blur`
+- `shadow-[0_8px_18px_rgba(...)]`, `rounded-[22px]` 이상의 큰 반경
+
 ---
 
 ## 남은 작업 (로드맵)
 
-### 2단계 잔여
-- [ ] 메인 페이지(`/`) 런타임 오류 확인 및 수정
-- [ ] 알림 인박스 — 서버 컴포넌트 내 절대 URL fetch 개선 (직접 함수 호출로 전환)
+### 기술 부채
+- [ ] `prisma db push --force-reset` 대신 `migrate dev` 마이그레이션 관리 전환
+- [ ] 메인 `app/page.tsx` `text-slate-*` 색상 → CSS 변수 토큰 적용
+- [ ] 캠페인 스튜디오 히어로 패널 글래스모피즘 제거 (`bg-white/92`)
 
 ### 3단계 (Supabase 연동 이후)
 - [ ] 팀 협업 — 워크스페이스 멤버 초대, 권한 관리
@@ -268,22 +277,20 @@ prisma/
 - [ ] 성과 통합 대시보드 — Instagram + KPI + 실행 통합 뷰
 - [ ] 이메일 로그인 (Supabase Auth rate limit 해결 후)
 
-### 기술 부채
-- [ ] `prisma db push --force-reset` 대신 `migrate dev` 마이그레이션 관리 전환
-- [ ] 메인 페이지 `text-slate-*` 색상 토큰 적용
-- [ ] 캠페인 스튜디오 히어로 패널 글래스모피즘 제거
-
 ---
 
 ## Git 커밋 히스토리
 
 ```
+d619b35  chore: remove AI 마케팅 워크스페이스 label, unify as Garnet
+0c12669  fix: resolve client-side crash and notifications server fetch
+f0cf22e  docs: add PROGRESS.md — full development log and roadmap
 58b2c93  feat(2단계): KPI goals, content studio, notifications, nav icons
 3c42ef9  feat(learning): add explicit confirm button for DRAFT playbook cards
 124cbf2  feat(campaigns): add manual campaign room creation
 a8ccac7  refactor(operations): migrate to Toss-style design tokens
 cc0083f  Add project MCP server config (.mcp.json)
-86e5435  Initial commit — Garnet AI 마케팅 워크스페이스 v0.2.0
+86e5435  Initial commit — Garnet v0.2.0
 ```
 
 ---
@@ -291,6 +298,7 @@ cc0083f  Add project MCP server config (.mcp.json)
 ## 환경 설정
 
 - **Node.js**: 프로젝트 루트 `.env` 파일에 API 키 관리
+- **DATABASE_URL**: `file:./prisma/dev.db` (Prisma CLI + 런타임 경로 통일)
 - **Electron**: `electron/main.ts` — safeStorage, OAuth popup, auto-updater
 - **MCP**: `.mcp.json` — Claude Code에서 내부 DB 직접 접근
 - **GitHub**: `gh` CLI로 관리 (`mark02252/garnet-ai`)

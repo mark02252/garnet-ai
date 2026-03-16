@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ApprovalActionList } from '@/components/approval-action-list';
+import { NotionPublishButton } from '@/components/notion-publish-button';
 import { PageSectionTabs } from '@/components/page-section-tabs';
 import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
@@ -372,10 +373,15 @@ export default async function OperationsPage() {
             <p className="dashboard-eyebrow">Morning Briefing</p>
             <h1 className="dashboard-title">오늘의 브리핑</h1>
             <p className="dashboard-copy">전체 실행 흐름과 지금 당장 처리할 일을 한 화면에서 파악합니다.</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <div className="mt-4 flex flex-wrap items-center gap-2">
               <Link href="/" className="button-primary">캠페인 스튜디오</Link>
               <Link href="/seminar" className="button-secondary">세미나 스튜디오</Link>
               <Link href="/history" className="button-secondary">실행 아카이브</Link>
+              <NotionPublishButton
+                title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR')}`}
+                content="오늘의 브리핑 내용을 Notion으로 공유합니다."
+                contentType="briefing"
+              />
             </div>
             <PageSectionTabs
               items={[

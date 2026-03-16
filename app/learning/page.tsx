@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import { NotionPublishButton } from '@/components/notion-publish-button';
 
 type Archive = {
   id: string;
@@ -375,6 +376,13 @@ export default function LearningPage() {
                   <button type="button" className="button-secondary" onClick={saveSelected} disabled={saving}>
                     {saving ? '저장 중...' : '저장'}
                   </button>
+                  {form.status === 'CONFIRMED' && (
+                    <NotionPublishButton
+                      title={form.situation.slice(0, 60) || '플레이북'}
+                      content={`상황\n${form.situation}\n\n추천 대응\n${form.recommendedResponse}\n\n근거\n${form.reasoning}`}
+                      contentType="playbook"
+                    />
+                  )}
                 </div>
               </div>
 

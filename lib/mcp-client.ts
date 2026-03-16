@@ -86,12 +86,21 @@ function createTransport(connection: McpConnectionDraft) {
       throw new Error(`${connection.name} 연결에 실행 명령이 없습니다.`);
     }
 
+    const env = stringifyEnv(process.env);
+
+    // Bearer token이 있는 stdio 서버는 OPENAPI_MCP_HEADERS env var로 전달
+    if (connection.authMode === 'bearer' && connection.bearerToken.trim()) {
+      env.OPENAPI_MCP_HEADERS = JSON.stringify({
+        Authorization: `Bearer ${connection.bearerToken.trim()}`
+      });
+    }
+
     return {
       transport: new StdioClientTransport({
         command,
         args: connection.args || [],
         cwd: process.cwd(),
-        env: stringifyEnv(process.env),
+        env,
         stderr: 'pipe'
       }),
       stderrSupported: true

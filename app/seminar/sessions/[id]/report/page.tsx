@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CopyButton } from '@/components/copy-button';
 import { PrintButton } from '@/components/print-button';
+import { NotionPublishButton } from '@/components/notion-publish-button';
 import { SeminarReportDashboard } from '@/components/seminar-report-dashboard';
 import { ensureSeminarFinalReport } from '@/lib/seminar-scheduler';
 import { getSeminarSessionDetail } from '@/lib/seminar-storage';
@@ -46,6 +47,13 @@ export default async function SeminarSessionReportPage({ params }: { params: Pro
             </Link>
             <PrintButton suggestedName={`seminar-${id}-report.pdf`} />
             {finalReport?.content && <CopyButton text={finalReport.content} />}
+            {finalReport?.content && (
+              <NotionPublishButton
+                title={session.title || session.topic}
+                content={finalReport.content}
+                contentType="seminar-report"
+              />
+            )}
           </div>
         </div>
       </section>

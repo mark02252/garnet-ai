@@ -23,7 +23,7 @@ function formatDate(value: Date) {
 
 function statusTone(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {
   if (status === 'CONFIRMED') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'ARCHIVED') return 'bg-slate-100 text-slate-600';
+  if (status === 'ARCHIVED') return 'bg-slate-100 text-[var(--text-base)]';
   return 'bg-amber-100 text-amber-700';
 }
 
@@ -100,23 +100,23 @@ export default async function DashboardPage() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="status-tile">
           <p className="metric-label">누적 학습 카드</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{total}</p>
-          <p className="mt-1 text-xs text-slate-500">현재 저장된 전체 학습 패턴</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{total}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">현재 저장된 전체 학습 패턴</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">검증 완료</p>
           <p className="mt-2 text-base font-semibold text-emerald-700">{confirmedCount}</p>
-          <p className="mt-1 text-xs text-slate-500">바로 재사용할 수 있는 카드</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용할 수 있는 카드</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">검토 필요</p>
           <p className="mt-2 text-base font-semibold text-amber-700">{draftCount}</p>
-          <p className="mt-1 text-xs text-slate-500">사람 검토가 필요한 카드</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">사람 검토가 필요한 카드</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">보관됨</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{archivedCount}</p>
-          <p className="mt-1 text-xs text-slate-500">현재 운영에서 제외된 카드</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{archivedCount}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">현재 운영에서 제외된 카드</p>
         </div>
       </section>
 
@@ -125,23 +125,23 @@ export default async function DashboardPage() {
           <section className="panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Tag Signals</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Tag Signals</p>
                 <h2 className="section-title">상위 학습 태그</h2>
               </div>
               <span className="accent-pill">{topTags.length} tags</span>
             </div>
             {topTags.length === 0 ? (
-              <div className="soft-panel text-sm text-slate-600">아직 축적된 태그가 없습니다.</div>
+              <div className="soft-panel text-sm text-[var(--text-base)]">아직 축적된 태그가 없습니다.</div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {topTags.map(([tag, count]) => (
                   <div key={tag} className="soft-panel">
-                    <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                    <div className="mb-1 flex items-center justify-between text-xs text-[var(--text-base)]">
                       <span>#{tag}</span>
                       <span>{count}회</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-200">
-                      <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.max(10, Math.min(100, count * 12))}%` }} />
+                    <div className="h-2 rounded-full bg-[var(--surface-border)]">
+                      <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(10, Math.min(100, count * 12))}%` }} />
                     </div>
                   </div>
                 ))}
@@ -153,22 +153,22 @@ export default async function DashboardPage() {
             <div className="panel space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Recent Updates</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Recent Updates</p>
                   <h2 className="section-title">최근 업데이트된 학습 카드</h2>
                 </div>
                 <span className="pill-option">{recent.length}개</span>
               </div>
               {recent.length === 0 ? (
-                <div className="soft-panel text-sm text-slate-600">학습 카드가 없습니다.</div>
+                <div className="soft-panel text-sm text-[var(--text-base)]">학습 카드가 없습니다.</div>
               ) : (
                 <div className="grid gap-3">
                   {recent.map((item) => (
                     <Link key={item.id} href="/learning" className="list-card block">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="line-clamp-1 text-sm font-semibold text-slate-950">{item.situation}</p>
+                        <p className="line-clamp-1 text-sm font-semibold text-[var(--text-strong)]">{item.situation}</p>
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusTone(item.status)}`}>{item.status}</span>
                       </div>
-                      <p className="mt-2 text-xs text-slate-500">
+                      <p className="mt-2 text-xs text-[var(--text-muted)]">
                         {item.run?.topic || item.sourceType} · {formatDate(item.updatedAt)}
                       </p>
                     </Link>
@@ -180,23 +180,23 @@ export default async function DashboardPage() {
             <div className="panel space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Source Mix</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Source Mix</p>
                   <h2 className="section-title">학습 유입 경로</h2>
                 </div>
                 <span className="pill-option">{sourceMix.length}개 유형</span>
               </div>
               {sourceMix.length === 0 ? (
-                <div className="soft-panel text-sm text-slate-600">아직 집계된 유입 경로가 없습니다.</div>
+                <div className="soft-panel text-sm text-[var(--text-base)]">아직 집계된 유입 경로가 없습니다.</div>
               ) : (
                 <div className="space-y-3">
                   {sourceMix.map(([sourceType, count]) => (
                     <div key={sourceType} className="soft-panel">
-                      <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                      <div className="mb-1 flex items-center justify-between text-xs text-[var(--text-base)]">
                         <span>{sourceType}</span>
                         <span>{count}개</span>
                       </div>
-                      <div className="h-2 rounded-full bg-slate-200">
-                        <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.max(10, Math.min(100, count * 10))}%` }} />
+                      <div className="h-2 rounded-full bg-[var(--surface-border)]">
+                        <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(10, Math.min(100, count * 10))}%` }} />
                       </div>
                     </div>
                   ))}
@@ -208,7 +208,7 @@ export default async function DashboardPage() {
           <section className="panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Reusable Templates</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Reusable Templates</p>
                 <h2 className="section-title">바로 재사용할 응답 템플릿</h2>
               </div>
               <Link href="/learning" className="button-secondary">
@@ -216,17 +216,17 @@ export default async function DashboardPage() {
               </Link>
             </div>
             {featuredTemplates.length === 0 ? (
-              <div className="soft-panel text-sm text-slate-600">먼저 확정된 학습 카드를 만들어 주세요.</div>
+              <div className="soft-panel text-sm text-[var(--text-base)]">먼저 확정된 학습 카드를 만들어 주세요.</div>
             ) : (
               <div className="grid gap-3 md:grid-cols-2">
                 {featuredTemplates.map((item) => (
                   <article key={item.id} className="list-card">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Template</p>
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Template</p>
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusTone(item.status)}`}>{item.status}</span>
                     </div>
-                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-slate-900">{item.situation}</p>
-                    <pre className="mt-3 line-clamp-5 whitespace-pre-wrap text-xs leading-6 text-slate-600">{item.recommendedResponse}</pre>
+                    <p className="mt-3 line-clamp-2 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.situation}</p>
+                    <pre className="mt-3 line-clamp-5 whitespace-pre-wrap text-xs leading-6 text-[var(--text-base)]">{item.recommendedResponse}</pre>
                   </article>
                 ))}
               </div>
@@ -237,44 +237,44 @@ export default async function DashboardPage() {
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Ops Rail</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Ops Rail</p>
               <h2 className="section-title">운영 상태 요약</h2>
             </div>
             <div className="grid gap-3">
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">재사용률</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{reusablePct}%</p>
-                <p className="mt-1 text-xs text-slate-500">확정 카드 비율 기준</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">재사용률</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{reusablePct}%</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">확정 카드 비율 기준</p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">실행 연결도</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{linkedRunCount}개</p>
-                <p className="mt-1 text-xs text-slate-500">원본 실행과 연결된 카드 수</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">실행 연결도</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{linkedRunCount}개</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">원본 실행과 연결된 카드 수</p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">검토 대기</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">{draftCount}개</p>
-                <p className="mt-1 text-xs text-slate-500">사람 검토가 필요한 카드</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">검토 대기</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{draftCount}개</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">사람 검토가 필요한 카드</p>
               </div>
             </div>
           </section>
 
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Run Linked Cards</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Run Linked Cards</p>
               <h2 className="section-title">최근 실행 연결</h2>
             </div>
             {latestRunLinked.length === 0 ? (
-              <div className="soft-panel text-sm text-slate-600">실행과 연결된 카드가 아직 없습니다.</div>
+              <div className="soft-panel text-sm text-[var(--text-base)]">실행과 연결된 카드가 아직 없습니다.</div>
             ) : (
               <div className="space-y-3">
                 {latestRunLinked.map((item) => (
                   <article key={item.id} className="list-card">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Linked Run</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-900">{item.run?.topic || item.situation}</p>
-                    <p className="mt-2 text-xs text-slate-500">{item.run ? formatDate(item.run.createdAt) : item.sourceType}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Linked Run</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.run?.topic || item.situation}</p>
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">{item.run ? formatDate(item.run.createdAt) : item.sourceType}</p>
                     {item.run?.id && (
-                      <Link href={`/runs/${item.run.id}`} className="mt-3 inline-flex text-xs font-medium text-sky-700 underline">
+                      <Link href={`/runs/${item.run.id}`} className="mt-3 inline-flex text-xs font-medium text-[var(--accent)] underline">
                         실행 상세 보기
                       </Link>
                     )}
@@ -286,15 +286,15 @@ export default async function DashboardPage() {
 
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Next Action</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Next Action</p>
               <h2 className="section-title">운영 권장 흐름</h2>
             </div>
             <div className="grid gap-3">
               <div className="soft-panel">
-                <p className="text-sm leading-6 text-slate-700">`CONFIRMED`가 많은 태그 묶음은 별도 플레이북으로 묶어두면 세미나와 캠페인 스튜디오에서 바로 재사용하기 좋습니다.</p>
+                <p className="text-sm leading-6 text-[var(--text-base)]">`CONFIRMED`가 많은 태그 묶음은 별도 플레이북으로 묶어두면 세미나와 캠페인 스튜디오에서 바로 재사용하기 좋습니다.</p>
               </div>
               <div className="soft-panel">
-                <p className="text-sm leading-6 text-slate-700">최근 실행 연결 카드가 늘어나면, 어떤 실험이 학습으로 전환되는지 추적하기 쉬워집니다.</p>
+                <p className="text-sm leading-6 text-[var(--text-base)]">최근 실행 연결 카드가 늘어나면, 어떤 실험이 학습으로 전환되는지 추적하기 쉬워집니다.</p>
               </div>
             </div>
           </section>

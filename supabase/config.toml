@@ -232,6 +232,11 @@ pass = "env(RESEND_SMTP_PASSWORD)"
 admin_email = "env(SMTP_ADMIN_EMAIL)"
 sender_name = "Garnet"
 
+# Magic link + OTP code 통합 템플릿 (Electron 앱 OTP 로그인 지원)
+[auth.email.template.magic_link]
+subject = "Garnet 로그인 인증"
+content_path = "./supabase/templates/magic_link.html"
+
 # Uncomment to customize email template
 # [auth.email.template.invite]
 # subject = "You have been invited"

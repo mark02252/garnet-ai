@@ -227,19 +227,16 @@ export function SupabaseAuthPanel() {
     setAuthError('');
     setAuthMessage('');
 
-    const redirectTo = `${window.location.origin}/auth/callback`;
+    // emailRedirectTo 없이 호출 → 이메일에 6자리 OTP 코드 + 매직 링크 함께 발송
     const { error } = await client.auth.signInWithOtp({
       email: sanitizedEmail,
-      options: {
-        emailRedirectTo: redirectTo,
-        shouldCreateUser: true
-      }
+      options: { shouldCreateUser: true }
     });
 
     if (error) {
       setAuthError(extractErrorMessage(error));
     } else {
-      setAuthMessage('로그인 링크를 보냈습니다. 메일에서 링크를 열거나 인증 코드가 오면 아래에서 바로 확인할 수 있습니다.');
+      setAuthMessage('인증 메일을 보냈습니다. 메일의 6자리 코드를 아래 "인증 코드" 칸에 입력하거나, 메일 속 매직 링크를 클릭하세요.');
     }
 
     setSendingLink(false);
@@ -423,15 +420,16 @@ export function SupabaseAuthPanel() {
               <p className="mt-1 text-xs text-[var(--text-muted)]">현재는 이메일 기반 로그인부터 붙였습니다. 이후 SSO나 조직 초대 흐름으로 확장할 수 있습니다.</p>
             </div>
             <div>
-              <label className="mb-1 block text-sm font-medium">인증 코드 입력(선택)</label>
+              <label className="mb-1 block text-sm font-medium">인증 코드 입력</label>
               <input
                 className="input"
                 value={otpCode}
                 onChange={(event) => setOtpCode(event.target.value)}
-                placeholder="현재는 보통 비워둬도 됩니다"
+                placeholder="메일에서 받은 6자리 코드"
+                maxLength={6}
               />
               <p className="mt-1 text-xs text-[var(--text-muted)]">
-                현재 Supabase 기본 설정은 메일 속 로그인 링크를 누르는 방식입니다. 이 입력칸은 나중에 이메일 템플릿을 OTP 코드 방식으로 바꿨을 때만 사용합니다.
+                메일 보내기 후 받은 6자리 코드를 입력하고 "코드 방식으로 로그인"을 누르세요. Electron 앱 로그인에 권장합니다.
               </p>
             </div>
           </div>

@@ -222,6 +222,20 @@ model InstagramReachDaily {
   @@index([accountId, metricDate])
 }
 
+model ContentDraft {
+  id                String   @id @default(cuid())
+  contentType       String
+  brand             String   @default("")
+  target            String   @default("")
+  tone              String   @default("")
+  keyMessage        String
+  additionalContext String   @default("")
+  result            String
+  createdAt         DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 model InstagramReachAnalysisRun {
   id                  String              @id @default(cuid())
   accountId           String

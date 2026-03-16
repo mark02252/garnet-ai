@@ -1,8 +1,19 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useState, useTransition, useEffect } from 'react';
 
 type ContentType = 'instagram_caption' | 'ad_copy' | 'email_copy' | 'blog_post' | 'press_release' | 'sms_push';
+
+type ContentDraft = {
+  id: string;
+  contentType: string;
+  brand: string;
+  target: string;
+  tone: string;
+  keyMessage: string;
+  result: string;
+  createdAt: string;
+};
 
 const CONTENT_TYPES: { id: ContentType; label: string; desc: string; icon: string }[] = [
   { id: 'instagram_caption', label: '인스타그램 캡션', desc: '캡션 + 해시태그', icon: '📸' },
@@ -13,7 +24,25 @@ const CONTENT_TYPES: { id: ContentType; label: string; desc: string; icon: strin
   { id: 'sms_push', label: 'SMS / 푸시 알림', desc: '짧고 임팩트 있는 문구', icon: '📱' }
 ];
 
+const TYPE_ICONS: Record<string, string> = {
+  instagram_caption: '📸', ad_copy: '🎯', email_copy: '✉️',
+  blog_post: '📝', press_release: '📰', sms_push: '📱'
+};
+const TYPE_LABELS: Record<string, string> = {
+  instagram_caption: '인스타그램 캡션', ad_copy: '광고 카피', email_copy: '이메일 카피',
+  blog_post: '블로그 포스트', press_release: '보도자료', sms_push: 'SMS/푸시'
+};
+
 const TONE_PRESETS = ['친근하고 유쾌한', '전문적이고 신뢰감 있는', '긴박감과 희소성 강조', '감성적이고 공감되는', '간결하고 직설적인'];
+
+function formatDate(iso: string) {
+  try {
+    return new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hourCycle: 'h23'
+    }).format(new Date(iso));
+  } catch { return iso; }
+}
 
 export default function ContentPage() {
   const [contentType, setContentType] = useState<ContentType>('instagram_caption');
@@ -22,11 +51,18 @@ export default function ContentPage() {
   const [error, setError] = useState('');
   const [pending, startTransition] = useTransition();
   const [copied, setCopied] = useState(false);
+  const [history, setHistory] = useState<ContentDraft[]>([]);
+  const [selectedDraft, setSelectedDraft] = useState<ContentDraft | null>(null);
+
+  useEffect(() => {
+    fetch('/api/content').then(r => r.json()).then(setHistory).catch(() => {});
+  }, []);
 
   function handleGenerate() {
     startTransition(async () => {
       setError('');
       setResult('');
+      setSelectedDraft(null);
       const res = await fetch('/api/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -35,17 +71,39 @@ export default function ContentPage() {
       const data = await res.json();
       if (!res.ok) { setError(data.error || '생성 실패'); return; }
       setResult(data.content);
+      // 이력 갱신
+      const updated = await fetch('/api/content').then(r => r.json()).catch(() => history);
+      setHistory(updated);
     });
   }
 
-  function handleCopy() {
-    if (!result) return;
-    navigator.clipboard.writeText(result).then(() => {
+  function handleCopy(text: string) {
+    navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
   }
 
+  function loadDraft(draft: ContentDraft) {
+    setSelectedDraft(draft);
+    setResult(draft.result);
+    setContentType(draft.contentType as ContentType);
+    setForm({
+      brand: draft.brand,
+      target: draft.target,
+      tone: draft.tone,
+      keyMessage: draft.keyMessage,
+      additionalContext: ''
+    });
+  }
+
+  async function deleteDraft(id: string) {
+    await fetch(`/api/content?id=${id}`, { method: 'DELETE' });
+    setHistory(prev => prev.filter(d => d.id !== id));
+    if (selectedDraft?.id === id) { setSelectedDraft(null); setResult(''); }
+  }
+
+  const activeResult = result;
   const selectedType = CONTENT_TYPES.find((t) => t.id === contentType)!;
 
   return (
@@ -54,15 +112,16 @@ export default function ContentPage() {
       <section className="dashboard-hero">
         <p className="dashboard-eyebrow">Content Studio</p>
         <h1 className="dashboard-title">콘텐츠 생성 스튜디오</h1>
-        <p className="dashboard-copy">
-          브랜드 정보와 메시지를 입력하면 AI가 목적에 맞는 마케팅 콘텐츠를 즉시 생성합니다.
-        </p>
+        <p className="dashboard-copy">브랜드 정보와 메시지를 입력하면 AI가 목적에 맞는 콘텐츠를 즉시 생성합니다.</p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <span className="accent-pill">생성 이력 {history.length}개</span>
+          <span className="pill-option">6가지 콘텐츠 타입</span>
+        </div>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[340px_minmax(0,1fr)]">
         {/* ── Left: Input Panel ── */}
         <div className="space-y-4">
-          {/* Content type selector */}
           <section className="panel space-y-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Content Type</p>
@@ -91,7 +150,6 @@ export default function ContentPage() {
             </div>
           </section>
 
-          {/* Brief inputs */}
           <section className="panel space-y-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Brief</p>
@@ -100,7 +158,7 @@ export default function ContentPage() {
             <div className="space-y-3">
               <div>
                 <label className="mb-1.5 block text-[13px] font-semibold text-[var(--text-strong)]">브랜드 / 제품명</label>
-                <input className="input" placeholder="예: Garnet AI 마케팅 툴" value={form.brand}
+                <input className="input" placeholder="예: Garnet" value={form.brand}
                   onChange={(e) => setForm({ ...form, brand: e.target.value })} />
               </div>
               <div>
@@ -160,51 +218,33 @@ export default function ContentPage() {
           </section>
         </div>
 
-        {/* ── Right: Output Panel ── */}
+        {/* ── Right: Output + History ── */}
         <div className="space-y-4">
-          <section className="panel min-h-[400px] space-y-4">
+          {/* Output */}
+          <section className="panel min-h-[300px] space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Generated Output</p>
-                <h2 className="section-title">생성된 콘텐츠</h2>
+                <h2 className="section-title">
+                  {selectedDraft ? `저장된 콘텐츠 · ${formatDate(selectedDraft.createdAt)}` : '생성된 콘텐츠'}
+                </h2>
               </div>
-              {result && (
-                <button
-                  type="button"
-                  onClick={handleCopy}
-                  className="button-secondary flex items-center gap-1.5"
-                >
+              {activeResult && (
+                <button type="button" onClick={() => handleCopy(activeResult)} className="button-secondary flex items-center gap-1.5">
                   {copied ? (
-                    <>
-                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
-                        <path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                      </svg>
-                      복사됨
-                    </>
+                    <><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M5 12l5 5L20 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>복사됨</>
                   ) : (
-                    <>
-                      <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
-                        <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" />
-                        <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                      </svg>
-                      복사
-                    </>
+                    <><svg width="14" height="14" fill="none" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="1.8" /><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>복사</>
                   )}
                 </button>
               )}
             </div>
 
-            {error && (
-              <div className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
+            {error && <div className="rounded-[8px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
-            {!result && !pending && !error && (
+            {!activeResult && !pending && !error && (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[14px] bg-[var(--accent-soft)] text-2xl">
-                  {selectedType.icon}
-                </div>
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-[14px] bg-[var(--accent-soft)] text-2xl">{selectedType.icon}</div>
                 <p className="text-sm font-semibold text-[var(--text-strong)]">{selectedType.label}</p>
                 <p className="mt-1 text-sm text-[var(--text-muted)]">왼쪽에 브리프를 입력하고 생성 버튼을 눌러보세요.</p>
               </div>
@@ -221,31 +261,53 @@ export default function ContentPage() {
               </div>
             )}
 
-            {result && (
+            {activeResult && !pending && (
               <div className="rounded-[10px] border border-[var(--surface-border)] bg-[var(--surface-sub)] p-4">
-                <pre className="whitespace-pre-wrap text-sm leading-7 text-[var(--text-base)]">{result}</pre>
+                <pre className="whitespace-pre-wrap text-sm leading-7 text-[var(--text-base)]">{activeResult}</pre>
               </div>
             )}
           </section>
 
-          {/* Usage tips */}
-          <section className="panel space-y-3">
+          {/* History */}
+          <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Tips</p>
-              <h2 className="section-title">더 좋은 결과를 위한 팁</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">History</p>
+              <h2 className="section-title">생성 이력</h2>
             </div>
-            <div className="grid gap-2 md:grid-cols-2">
-              {[
-                { tip: '핵심 메시지를 구체적으로 입력할수록 결과가 정확해집니다.' },
-                { tip: '타겟 오디언스를 나이, 직업, 관심사까지 구체적으로 적어보세요.' },
-                { tip: '여러 번 생성해 가장 마음에 드는 결과를 조합할 수 있습니다.' },
-                { tip: '생성된 결과를 기반으로 내용을 직접 편집해 사용하세요.' }
-              ].map((item, i) => (
-                <div key={i} className="soft-panel">
-                  <p className="text-xs leading-5 text-[var(--text-base)]">{item.tip}</p>
-                </div>
-              ))}
-            </div>
+            {history.length === 0 ? (
+              <div className="surface-note text-sm text-[var(--text-muted)]">아직 생성된 콘텐츠가 없습니다. 첫 번째 콘텐츠를 만들어보세요.</div>
+            ) : (
+              <div className="space-y-2">
+                {history.map((draft) => (
+                  <div
+                    key={draft.id}
+                    className={`list-card ${selectedDraft?.id === draft.id ? 'list-card-active' : ''}`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <button type="button" className="min-w-0 flex-1 text-left" onClick={() => loadDraft(draft)}>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="text-base">{TYPE_ICONS[draft.contentType] || '📄'}</span>
+                          <span className="pill-option">{TYPE_LABELS[draft.contentType] || draft.contentType}</span>
+                          {draft.brand && <span className="pill-option">{draft.brand}</span>}
+                          <span className="text-xs text-[var(--text-muted)]">{formatDate(draft.createdAt)}</span>
+                        </div>
+                        <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[var(--text-base)]">{draft.keyMessage}</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => deleteDraft(draft.id)}
+                        className="shrink-0 rounded-[6px] p-1 text-[var(--text-muted)] hover:bg-rose-50 hover:text-rose-600"
+                        title="삭제"
+                      >
+                        <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+                          <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </section>
         </div>
       </div>

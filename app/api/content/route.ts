@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runLLM } from '@/lib/llm';
+import { prisma } from '@/lib/prisma';
 
 const CONTENT_PROMPTS: Record<string, { label: string; system: string }> = {
   instagram_caption: {
@@ -62,6 +63,14 @@ const CONTENT_PROMPTS: Record<string, { label: string; system: string }> = {
   }
 };
 
+export async function GET() {
+  const drafts = await prisma.contentDraft.findMany({
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+  return NextResponse.json(drafts);
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { contentType, brand, target, tone, keyMessage, additionalContext } = await req.json();
@@ -86,9 +95,30 @@ export async function POST(req: NextRequest) {
 
     const { system } = CONTENT_PROMPTS[contentType];
     const result = await runLLM(system, userPrompt, 0.75, 2000);
-    return NextResponse.json({ content: result, contentType });
+
+    const draft = await prisma.contentDraft.create({
+      data: {
+        contentType,
+        brand: brand || '',
+        target: target || '',
+        tone: tone || '',
+        keyMessage,
+        additionalContext: additionalContext || '',
+        result
+      }
+    });
+
+    return NextResponse.json({ content: result, contentType, id: draft.id });
   } catch (err) {
     const msg = err instanceof Error ? err.message : '생성 실패';
     return NextResponse.json({ error: msg }, { status: 500 });
   }
+}
+
+export async function DELETE(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const id = searchParams.get('id');
+  if (!id) return NextResponse.json({ error: 'id 필요' }, { status: 400 });
+  await prisma.contentDraft.delete({ where: { id } });
+  return NextResponse.json({ ok: true });
 }

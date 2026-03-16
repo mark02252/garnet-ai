@@ -177,27 +177,38 @@
 
 ## 다음 우선순위
 
-### 디자인 시스템 마무리 (P1 — 이번 작업에서 확인된 잔여 항목)
-1. `globals.css` — `.status-badge-success/warning/error/info/running` 클래스 추가
-2. `lib/design-tokens.ts` 생성 — `getStatusColor()` 유틸리티로 tone 함수 통합
-3. `components/app-nav.tsx` — hex 색상(`#3182f6`, `#6b7684`) → CSS 변수로 교체
-4. `app/seminar/page.tsx` — 라운드 상태 hex 색상 정리
-5. `globals.css` — `.data-table` 클래스 추가 후 `datasets/page.tsx` 적용
+### 🔴 내일 최우선 — MCP 연결 확장
+> 상세 계획: `docs/2026-03-16-mcp-connection-plan.md`
+
+1. `lib/mcp-connections.ts` — Supabase, Slack, Google Drive, Brave Search 4개 항목 신규 추가
+2. **Supabase MCP** (`@supabase/mcp-server-supabase`) 실제 연결 테스트
+   - Personal Access Token 발급 후 `aimd-local`과 함께 활성화
+   - `workspace_runs` 등 공유 테이블 직접 쿼리 확인
+3. **Notion MCP** (`@notionhq/notion-mcp-server`) OAuth 플로우 구현
+   - 세미나 보고서, 플레이북 카드 Notion 발행 버튼 추가
+4. **Playwright MCP** (`@playwright/mcp`) 명령어 연결 후 smoke test 실행 확인
+   - `/api/mcp/playwright/smoke` 엔드포인트 활성화 확인
+5. 각 화면에 MCP 연동 액션 버튼 추가 (Notion 발행, Slack 공유 등)
+
+### 🟡 디자인 시스템 마무리 (P1 잔여)
+6. `globals.css` — `.status-badge-*` 클래스 추가 + `lib/design-tokens.ts` 생성
+7. `components/app-nav.tsx` — hex 색상 CSS 변수로 교체
+8. `app/seminar/page.tsx` — 라운드 상태 hex 색상 정리
+9. `globals.css` — `.data-table` 클래스 추가 후 `datasets/page.tsx` 적용
 
 ### 기능 개발
-6. Supabase 이메일 로그인 재시도 후 실제 세션 연결 확인
-7. 워크스페이스 생성 정상 동작 확인
-8. `/api/supabase/bootstrap` 기반 실제 업로드/동기화 액션 붙이기
-9. 공유 운영 데이터(`Run`, `LearningArchive`, `ApprovalDecision`, `RunProgress`) 1차 이전 완료
-10. `Instagram Login` 우선 전환 설계 및 구현
-11. 추천 액션 엔진 추가
-12. Notion/Figma/Playwright 확장 연결
+10. Supabase 이메일 로그인 재시도 후 실제 세션 연결 확인
+11. 워크스페이스 생성 정상 동작 확인
+12. `/api/supabase/bootstrap` 기반 실제 업로드/동기화 액션 붙이기
+13. `Instagram Login` 우선 전환 설계 및 구현
+14. 추천 액션 엔진 추가
 
 ## 다음 대화에서 먼저 보면 좋은 것
 - 이 문서
-- [/Users/rnr/Documents/New project/docs/2026-03-16-design-system-audit.md](/Users/rnr/Documents/New%20project/docs/2026-03-16-design-system-audit.md) ← 최신: 디자인 시스템 감사 결과
-- [/Users/rnr/Documents/New project/docs/2026-03-16-supabase-adoption-plan.md](/Users/rnr/Documents/New%20project/docs/2026-03-16-supabase-adoption-plan.md)
-- [/Users/rnr/Documents/New project/docs/2026-03-12-mcp-expansion-roadmap.md](/Users/rnr/Documents/New%20project/docs/2026-03-12-mcp-expansion-roadmap.md)
+- [docs/2026-03-16-mcp-connection-plan.md](2026-03-16-mcp-connection-plan.md) ← 최신: 내일 MCP 연결 계획
+- [docs/2026-03-16-design-system-audit.md](2026-03-16-design-system-audit.md) ← 디자인 시스템 감사 결과
+- [docs/2026-03-16-supabase-adoption-plan.md](2026-03-16-supabase-adoption-plan.md)
+- [docs/2026-03-12-mcp-expansion-roadmap.md](2026-03-12-mcp-expansion-roadmap.md)
 
 ## 운영 메모
 - 큰 UI 수정 후에는 `npx tsc --noEmit --pretty false`, `npm run build:electron`, `npm run build:next` 를 기본 검증으로 본다.

@@ -372,7 +372,7 @@ function finalizeRoom(room: MutableCampaignRoom): CampaignRoom {
 }
 
 export async function getCampaignRooms(limit = 8) {
-  const [runs, learningArchives, sessions, approvedDecisionKeys] = await Promise.all([
+  const [runs, learningArchives, sessions, approvedDecisionKeys, manualRooms] = await Promise.all([
     prisma.run.findMany({
       orderBy: { createdAt: 'desc' },
       take: 72,
@@ -398,7 +398,8 @@ export async function getCampaignRooms(limit = 8) {
       }
     }),
     listSeminarSessions(32),
-    listApprovedDecisionKeys(['RUN_REPORT', 'SEMINAR_REPORT'])
+    listApprovedDecisionKeys(['RUN_REPORT', 'SEMINAR_REPORT']),
+    prisma.manualCampaignRoom.findMany({ orderBy: { createdAt: 'desc' }, take: 24 })
   ]);
 
   const rooms = new Map<string, MutableCampaignRoom>();
@@ -513,6 +514,40 @@ export async function getCampaignRooms(limit = 8) {
       });
     }
     addSignalTags(room, safeParseTags(archive.tags));
+  }
+
+  // Inject manually created rooms that don't already appear in the auto-aggregated map
+  for (const manual of manualRooms) {
+    const key = buildCampaignKey({
+      brand: manual.brand,
+      region: manual.region,
+      goal: manual.goal,
+      campaignName: manual.title
+    });
+    if (!rooms.has(key)) {
+      const room: MutableCampaignRoom = {
+        id: `manual-${manual.id}`,
+        title: manual.title,
+        brand: manual.brand,
+        region: manual.region,
+        objective: manual.objective || manual.goal,
+        summary: manual.notes || `${manual.brand} · ${manual.region} · ${manual.goal}`,
+        status: 'READY',
+        statusLabel: statusLabel('READY'),
+        latestActivityAt: manual.createdAt.toISOString(),
+        latestActivityLabel: formatDate(manual.createdAt),
+        counts: { briefs: 0, reports: 0, simulations: 0, playbooks: 0 },
+        completion: { reporting: 0, playbook: 0 },
+        approvals: [],
+        signalTags: [],
+        nextAction: '첫 번째 브리프를 생성해 이 캠페인 룸을 채워 나가세요.',
+        primaryHref: '/',
+        _latestTimestamp: manual.createdAt.getTime(),
+        _confirmedPlaybooks: 0,
+        _tagCounts: new Map<string, number>()
+      };
+      rooms.set(key, room);
+    }
   }
 
   return [...rooms.values()]

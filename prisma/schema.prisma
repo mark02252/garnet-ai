@@ -160,6 +160,28 @@ model LearningArchive {
   @@index([createdAt])
 }
 
+enum CampaignRoomManualStatus {
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+model ManualCampaignRoom {
+  id        String                    @id @default(cuid())
+  title     String
+  brand     String
+  region    String
+  goal      String
+  objective String?
+  notes     String?
+  status    CampaignRoomManualStatus  @default(ACTIVE)
+  createdAt DateTime                  @default(now())
+  updatedAt DateTime                  @updatedAt
+
+  @@index([brand])
+  @@index([createdAt])
+}
+
 model InstagramReachDaily {
   id         String   @id @default(cuid())
   accountId  String

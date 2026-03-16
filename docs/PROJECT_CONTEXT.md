@@ -34,7 +34,7 @@
 - 실행 보고서와 세미나 보고서는 모두 PDF 저장 흐름을 지원한다.
 
 ### 3. 운영 허브
-- `/operations` 는 개발 상태판이 아니라 `오늘의 마케팅 브리핑` 화면으로 재설계되었다.
+- `/operations` 는 개발 상태판이 아니라 `오늘의 브리핑` 화면으로 재설계되었다. (마케팅 한정 명칭 제거)
 - `/campaigns` 는 캠페인 중심 운영을 보는 `캠페인 룸` 이다.
 - `/campaigns/[id]` 는 개별 캠페인의 실행, 세미나, 플레이북, 승인 상태를 보는 상세 룸이다.
 - 승인 대기함은 실제 액션을 실행할 수 있으며, `보고서 확정`, `세미나 결과 회수`, `플레이북 확정` 흐름이 있다.
@@ -85,7 +85,7 @@
 - 2026-03-13 기준으로 `0.2.0` 배포본을 다시 패키징했고, 이전 설치 앱에서 업데이트 가능하도록 수정했다.
 
 ## 현재 정보 구조
-- `/operations`: 오늘의 브리핑
+- `/operations`: 오늘의 브리핑 (이전: "오늘의 마케팅 브리핑" → 범용 운영 허브로 명칭 변경)
 - `/social`: 개발 예정인 SNS 인사이트 실험 공간
 - `/campaigns`: 캠페인 룸
 - `/campaigns/[id]`: 캠페인 상세 룸
@@ -176,22 +176,28 @@
 - [/Users/rnr/Documents/New project/lib/run-progress.ts](/Users/rnr/Documents/New%20project/lib/run-progress.ts)
 
 ## 다음 우선순위
-1. 오후에 Supabase 이메일 로그인 재시도 후 실제 세션 연결 확인
-2. 워크스페이스 생성 정상 동작 확인
-3. `/api/supabase/bootstrap` 기반 실제 업로드/동기화 액션 붙이기
-4. 공유 운영 데이터(`Run`, `LearningArchive`, `ApprovalDecision`, `RunProgress`) 1차 이전 완료
-5. Storage 분리 설계 및 첨부/데이터셋 원본 이전
-6. `Instagram Login` 우선 전환 설계 및 구현
-7. 추천 액션 엔진 추가
-8. 캠페인 단위 데이터 모델 고도화
-9. 세미나를 더 강한 전략 시뮬레이터로 발전
-10. Notion/Figma/Playwright 확장 연결
+
+### 디자인 시스템 마무리 (P1 — 이번 작업에서 확인된 잔여 항목)
+1. `globals.css` — `.status-badge-success/warning/error/info/running` 클래스 추가
+2. `lib/design-tokens.ts` 생성 — `getStatusColor()` 유틸리티로 tone 함수 통합
+3. `components/app-nav.tsx` — hex 색상(`#3182f6`, `#6b7684`) → CSS 변수로 교체
+4. `app/seminar/page.tsx` — 라운드 상태 hex 색상 정리
+5. `globals.css` — `.data-table` 클래스 추가 후 `datasets/page.tsx` 적용
+
+### 기능 개발
+6. Supabase 이메일 로그인 재시도 후 실제 세션 연결 확인
+7. 워크스페이스 생성 정상 동작 확인
+8. `/api/supabase/bootstrap` 기반 실제 업로드/동기화 액션 붙이기
+9. 공유 운영 데이터(`Run`, `LearningArchive`, `ApprovalDecision`, `RunProgress`) 1차 이전 완료
+10. `Instagram Login` 우선 전환 설계 및 구현
+11. 추천 액션 엔진 추가
+12. Notion/Figma/Playwright 확장 연결
 
 ## 다음 대화에서 먼저 보면 좋은 것
 - 이 문서
-- [/Users/rnr/Documents/New project/README.md](/Users/rnr/Documents/New%20project/README.md)
-- [/Users/rnr/Documents/New project/docs/2026-03-12-mcp-expansion-roadmap.md](/Users/rnr/Documents/New%20project/docs/2026-03-12-mcp-expansion-roadmap.md)
+- [/Users/rnr/Documents/New project/docs/2026-03-16-design-system-audit.md](/Users/rnr/Documents/New%20project/docs/2026-03-16-design-system-audit.md) ← 최신: 디자인 시스템 감사 결과
 - [/Users/rnr/Documents/New project/docs/2026-03-16-supabase-adoption-plan.md](/Users/rnr/Documents/New%20project/docs/2026-03-16-supabase-adoption-plan.md)
+- [/Users/rnr/Documents/New project/docs/2026-03-12-mcp-expansion-roadmap.md](/Users/rnr/Documents/New%20project/docs/2026-03-12-mcp-expansion-roadmap.md)
 
 ## 운영 메모
 - 큰 UI 수정 후에는 `npx tsc --noEmit --pretty false`, `npm run build:electron`, `npm run build:next` 를 기본 검증으로 본다.

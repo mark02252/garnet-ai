@@ -23,7 +23,7 @@ function formatDate(value: Date) {
 
 function statusTone(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {
   if (status === 'CONFIRMED') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'ARCHIVED') return 'bg-slate-100 text-[var(--text-base)]';
+  if (status === 'ARCHIVED') return 'bg-[var(--surface-sub)] text-[var(--text-base)]';
   return 'bg-amber-100 text-amber-700';
 }
 
@@ -66,9 +66,9 @@ export default async function DashboardPage() {
     <div className="space-y-5">
       <section className="dashboard-hero">
         <p className="dashboard-eyebrow">Learning Dashboard</p>
-        <h1 className="dashboard-title">대화 학습 운영 대시보드</h1>
+        <h1 className="dashboard-title">플레이북 운영 대시보드</h1>
         <p className="dashboard-copy">
-          어떤 요청 패턴이 재사용 가능한 학습 카드로 축적되고 있는지, 지금 검토가 필요한 카드가 무엇인지, 최근 어떤 실행이 학습으로 연결됐는지 한 화면에서 파악합니다.
+          어떤 실행 패턴이 재사용 가능한 플레이북으로 축적되고 있는지, 지금 검토가 필요한 카드가 무엇인지, 최근 어떤 실행이 자산으로 연결됐는지 한 화면에서 파악합니다.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/learning" className="button-primary">

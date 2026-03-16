@@ -9,7 +9,7 @@ export const dynamic = 'force-dynamic';
 function statusTone(status: 'ACTIVE' | 'NEEDS_REVIEW' | 'READY') {
   if (status === 'ACTIVE') return 'bg-emerald-100 text-emerald-700';
   if (status === 'NEEDS_REVIEW') return 'bg-amber-100 text-amber-700';
-  return 'bg-sky-100 text-sky-700';
+  return 'bg-[var(--accent-soft)] text-[var(--accent)]';
 }
 
 export default async function CampaignsPage() {

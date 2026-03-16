@@ -73,10 +73,10 @@ export function ApprovalActionList({
       {items.map((item) => {
         const completed = completedIds.includes(item.id);
         return (
-          <div key={item.id} className={compact ? 'list-card' : 'rounded-[18px] border border-slate-200/80 bg-white/84 px-4 py-3'}>
-            {showRoomTitle && item.roomTitle && <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{item.roomTitle}</p>}
-            <p className={`font-semibold text-slate-900 ${showRoomTitle && item.roomTitle ? 'mt-2 text-sm' : 'text-sm'}`}>{item.label}</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">{item.description}</p>
+          <div key={item.id} className={compact ? 'list-card' : 'list-card'}>
+            {showRoomTitle && item.roomTitle && <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.roomTitle}</p>}
+            <p className={`font-semibold text-[var(--text-strong)] ${showRoomTitle && item.roomTitle ? 'mt-2 text-sm' : 'text-sm'}`}>{item.label}</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{item.description}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               <Link href={item.href} className="button-secondary px-3 py-2 text-xs">
                 내용 보기

@@ -35,9 +35,9 @@ function readinessTone(active: boolean) {
 
 function stepTone(state: 'pending' | 'running' | 'completed' | 'failed') {
   if (state === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-  if (state === 'running') return 'border-sky-200 bg-sky-50 text-sky-700';
+  if (state === 'running') return 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]';
   if (state === 'failed') return 'border-rose-200 bg-rose-50 text-rose-700';
-  return 'border-slate-200 bg-white text-[var(--text-muted)]';
+  return 'border-[var(--surface-border)] bg-[var(--surface)] text-[var(--text-muted)]';
 }
 
 export function WarRoomEvidenceRail({

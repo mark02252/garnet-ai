@@ -49,7 +49,7 @@ function percentage(part: number, total: number) {
 
 function seminarTone(status: SeminarSession['status']) {
   if (status === 'RUNNING') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'COMPLETED') return 'bg-sky-100 text-sky-700';
+  if (status === 'COMPLETED') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
   if (status === 'PLANNED') return 'bg-amber-100 text-amber-700';
   if (status === 'FAILED') return 'bg-rose-100 text-rose-700';
   return 'bg-[#f5f6f7] text-[#6b7684]';
@@ -72,7 +72,7 @@ function timelineBadge(type: TimelineItem['type']) {
 }
 
 function timelineTone(type: TimelineItem['type']) {
-  if (type === 'run') return 'bg-sky-100 text-sky-700';
+  if (type === 'run') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
   if (type === 'seminar') return 'bg-emerald-100 text-emerald-700';
   if (type === 'dataset') return 'bg-violet-100 text-violet-700';
   if (type === 'learning') return 'bg-amber-100 text-amber-700';
@@ -370,8 +370,8 @@ export default async function OperationsPage() {
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div>
             <p className="dashboard-eyebrow">Morning Briefing</p>
-            <h1 className="dashboard-title">오늘의 마케팅 브리핑</h1>
-            <p className="dashboard-copy">우선순위와 승인 대기만 빠르게 정리했습니다.</p>
+            <h1 className="dashboard-title">오늘의 브리핑</h1>
+            <p className="dashboard-copy">전체 실행 흐름과 지금 당장 처리할 일을 한 화면에서 파악합니다.</p>
             <div className="mt-4 flex flex-wrap gap-2">
               <Link href="/" className="button-primary">캠페인 스튜디오</Link>
               <Link href="/seminar" className="button-secondary">세미나 스튜디오</Link>
@@ -508,7 +508,7 @@ export default async function OperationsPage() {
                           ? 'bg-emerald-100 text-emerald-700'
                           : room.status === 'NEEDS_REVIEW'
                             ? 'bg-amber-100 text-amber-700'
-                            : 'bg-sky-100 text-sky-700'
+                            : 'bg-[var(--accent-soft)] text-[var(--accent)]'
                       }`}
                     >
                       {room.statusLabel}

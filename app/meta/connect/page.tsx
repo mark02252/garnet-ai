@@ -210,9 +210,9 @@ function MetaConnectContent() {
           <div className="grid gap-3 md:grid-cols-2">
             {accounts.map((account) => (
               <div key={account.instagramBusinessAccountId} className="list-card">
-                <p className="text-sm font-semibold text-slate-950">@{account.username}</p>
-                <p className="mt-1 text-xs text-slate-500">{account.pageName || '연결된 Instagram Professional 계정'}</p>
-                <p className="mt-2 text-[11px] text-slate-400">IG Account ID: {account.instagramBusinessAccountId}</p>
+                <p className="text-sm font-semibold text-[var(--text-strong)]">@{account.username}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{account.pageName || '연결된 Instagram Professional 계정'}</p>
+                <p className="mt-2 text-[11px] text-[var(--text-muted)]">IG Account ID: {account.instagramBusinessAccountId}</p>
               </div>
             ))}
           </div>

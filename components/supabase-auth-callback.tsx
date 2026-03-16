@@ -92,11 +92,11 @@ export function SupabaseAuthCallback() {
 
   return (
     <section className="panel space-y-4">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Supabase Auth</p>
-      <h2 className="text-[1.6rem] font-semibold tracking-[-0.04em] text-slate-950">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Supabase Auth</p>
+      <h2 className="text-[1.6rem] font-semibold tracking-[-0.04em] text-[var(--text-strong)]">
         {status === 'processing' ? '로그인 확인 중' : status === 'success' ? '로그인 완료' : '로그인 확인 실패'}
       </h2>
-      <p className="text-sm leading-7 text-slate-600">{message}</p>
+      <p className="text-sm leading-7 text-[var(--text-base)]">{message}</p>
       <div className="flex flex-wrap items-center gap-2">
         <Link href="/settings" className="button-primary">
           설정으로 돌아가기

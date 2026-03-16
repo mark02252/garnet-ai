@@ -657,48 +657,48 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
   return (
     <section className="panel space-y-6">
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
-        <div className="rounded-[28px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.96)_0%,rgba(246,249,253,0.92)_100%)] p-6 shadow-[0_22px_44px_rgba(15,23,42,0.08)]">
+        <div className="panel">
           <div className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
             AI Connection Center
           </div>
-          <h3 className="mt-4 text-[1.55rem] font-semibold tracking-[-0.04em] text-slate-950">AI 연결 센터</h3>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+          <h3 className="mt-4 text-[1.55rem] font-semibold tracking-[-0.04em] text-[var(--text-strong)]">AI 연결 센터</h3>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-[var(--text-base)]">
             어려운 개발자용 용어 대신, 앱 안에 쌓인 회의 기록, 데이터셋, 학습 카드, 성과 요약을 버튼 한 번으로 바로 확인할 수 있게 정리했습니다.
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             <div className="metric-card">
-              <p className="text-xs text-slate-400">연결 상태</p>
-              <p className="mt-2 text-base font-semibold text-slate-950">{inspect ? '정상 연결' : '확인 중'}</p>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="text-xs text-[var(--text-muted)]">연결 상태</p>
+              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{inspect ? '정상 연결' : '확인 중'}</p>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
                 {inspect?.durationMs ? `${inspect.durationMs}ms 응답` : `${connection?.name || '로컬 서버'} 점검 중`}
               </p>
             </div>
             <div className="metric-card">
-              <p className="text-xs text-slate-400">{internalShowcaseAvailable ? '누적 실행' : '도구 수'}</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
+              <p className="text-xs text-[var(--text-muted)]">{internalShowcaseAvailable ? '누적 실행' : '도구 수'}</p>
+              <p className="mt-2 text-2xl font-semibold text-[var(--text-strong)]">
                 {internalShowcaseAvailable ? overview?.counts?.runs || 0 : inspect?.tools?.length || 0}
               </p>
             </div>
             <div className="metric-card">
-              <p className="text-xs text-slate-400">{internalShowcaseAvailable ? '데이터셋' : '리소스 수'}</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
+              <p className="text-xs text-[var(--text-muted)]">{internalShowcaseAvailable ? '데이터셋' : '리소스 수'}</p>
+              <p className="mt-2 text-2xl font-semibold text-[var(--text-strong)]">
                 {internalShowcaseAvailable ? overview?.counts?.datasets || 0 : inspect?.resources?.length || 0}
               </p>
             </div>
             <div className="metric-card">
-              <p className="text-xs text-slate-400">{internalShowcaseAvailable ? '검증된 학습 카드' : '프롬프트 수'}</p>
-              <p className="mt-2 text-2xl font-semibold text-slate-950">
+              <p className="text-xs text-[var(--text-muted)]">{internalShowcaseAvailable ? '검증된 학습 카드' : '프롬프트 수'}</p>
+              <p className="mt-2 text-2xl font-semibold text-[var(--text-strong)]">
                 {internalShowcaseAvailable ? overview?.counts?.confirmedLearningCards || 0 : inspect?.prompts?.length || 0}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+        <div className="panel">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-950">바로 볼 수 있는 정보</p>
-              <p className="mt-1 text-sm text-slate-500">필요한 항목을 선택하면 결과가 바로 아래 카드로 정리됩니다.</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">바로 볼 수 있는 정보</p>
+              <p className="mt-1 text-sm text-[var(--text-muted)]">필요한 항목을 선택하면 결과가 바로 아래 카드로 정리됩니다.</p>
             </div>
             <button type="button" className="button-secondary" onClick={() => void refreshInspect()} disabled={refreshing}>
               {refreshing ? '갱신 중...' : '새로고침'}
@@ -707,58 +707,58 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
             <button
               type="button"
-              className="rounded-[24px] border border-slate-200 bg-slate-50/90 p-4 text-left transition hover:border-slate-300 hover:bg-white"
+              className="list-card text-left hover:bg-[var(--surface-sub)] transition"
               onClick={() => void loadRunsShowcase()}
               disabled={toolLoading || !internalShowcaseAvailable}
             >
-              <p className="text-sm font-semibold text-slate-950">최근 전략 회의</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">가장 최근에 실행된 회의 흐름과 주제를 빠르게 확인합니다.</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">최근 전략 회의</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">가장 최근에 실행된 회의 흐름과 주제를 빠르게 확인합니다.</p>
             </button>
             <button
               type="button"
-              className="rounded-[24px] border border-slate-200 bg-slate-50/90 p-4 text-left transition hover:border-slate-300 hover:bg-white"
+              className="list-card text-left hover:bg-[var(--surface-sub)] transition"
               onClick={() => void loadDatasetsShowcase()}
               disabled={toolLoading || !internalShowcaseAvailable}
             >
-              <p className="text-sm font-semibold text-slate-950">데이터셋 현황</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">저장된 자료와 AI 분석 준비 상태를 한 번에 봅니다.</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">데이터셋 현황</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">저장된 자료와 AI 분석 준비 상태를 한 번에 봅니다.</p>
             </button>
             <button
               type="button"
-              className="rounded-[24px] border border-slate-200 bg-slate-50/90 p-4 text-left transition hover:border-slate-300 hover:bg-white"
+              className="list-card text-left hover:bg-[var(--surface-sub)] transition"
               onClick={() => void loadLearningShowcase()}
               disabled={toolLoading || !internalShowcaseAvailable}
             >
-              <p className="text-sm font-semibold text-slate-950">검증된 응답 패턴</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">이미 검증된 학습 카드만 모아서 바로 참고합니다.</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">검증된 응답 패턴</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">이미 검증된 학습 카드만 모아서 바로 참고합니다.</p>
             </button>
             <button
               type="button"
-              className="rounded-[24px] border border-slate-200 bg-slate-50/90 p-4 text-left transition hover:border-slate-300 hover:bg-white"
+              className="list-card text-left hover:bg-[var(--surface-sub)] transition"
               onClick={() => void loadInstagramShowcase()}
               disabled={toolLoading || !internalShowcaseAvailable}
             >
-              <p className="text-sm font-semibold text-slate-950">인스타그램 성과</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">최근 도달 추세와 요약된 성과 메모를 바로 확인합니다.</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">인스타그램 성과</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">최근 도달 추세와 요약된 성과 메모를 바로 확인합니다.</p>
             </button>
           </div>
           {!internalShowcaseAvailable && (
-            <p className="mt-4 text-xs text-slate-500">외부 MCP 연결은 빠른 보기 대신, 아래 고급 보기와 연결 점검 결과를 중심으로 확인합니다.</p>
+            <p className="mt-4 text-xs text-[var(--text-muted)]">외부 MCP 연결은 빠른 보기 대신, 아래 고급 보기와 연결 점검 결과를 중심으로 확인합니다.</p>
           )}
         </div>
       </div>
 
-      {loading && <p className="text-sm text-slate-500">AI 연결 상태를 불러오는 중...</p>}
+      {loading && <p className="text-sm text-[var(--text-muted)]">AI 연결 상태를 불러오는 중...</p>}
       {error && <p className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
 
       {!loading && (
         <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-          <div className="rounded-[28px] border border-white/70 bg-white/84 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
+          <div className="panel">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Showcase</p>
-                <h4 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.03em] text-slate-950">{showcase?.title || '한 번에 보기'}</h4>
-                <p className="mt-2 text-sm leading-6 text-slate-500">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Showcase</p>
+                <h4 className="mt-2 text-[1.2rem] font-semibold tracking-[-0.03em] text-[var(--text-strong)]">{showcase?.title || '한 번에 보기'}</h4>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                   {showcase?.subtitle || '왼쪽의 버튼을 누르면 필요한 정보를 보기 쉬운 카드 형태로 정리해 드립니다.'}
                 </p>
               </div>
@@ -766,36 +766,36 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {(showcase?.cards || []).map((card, index) => (
-                <article key={`${card.title}-${index}`} className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{card.eyebrow}</p>
-                  <p className="mt-3 text-base font-semibold text-slate-950">{card.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{card.detail}</p>
-                  {card.meta && <p className="mt-3 text-xs text-slate-400">{card.meta}</p>}
+                <article key={`${card.title}-${index}`} className="soft-panel">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">{card.eyebrow}</p>
+                  <p className="mt-3 text-base font-semibold text-[var(--text-strong)]">{card.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{card.detail}</p>
+                  {card.meta && <p className="mt-3 text-xs text-[var(--text-muted)]">{card.meta}</p>}
                 </article>
               ))}
             </div>
             {showcase && showcase.cards.length === 0 && (
-              <div className="mt-5 rounded-[24px] border border-dashed border-slate-200 bg-slate-50/70 px-4 py-6 text-sm text-slate-500">
+              <div className="mt-5 rounded-[12px] border border-dashed border-[var(--surface-border)] bg-[var(--surface-sub)] px-4 py-6 text-sm text-[var(--text-muted)]">
                 아직 표시할 데이터가 없습니다. 상단의 빠른 보기 항목을 선택하거나 데이터를 먼저 쌓아보세요.
               </div>
             )}
             {showcase?.raw && (
-              <details className="mt-5 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-slate-700">원본 결과 보기</summary>
-                <pre className="mt-3 max-h-[260px] overflow-auto whitespace-pre-wrap text-[11px] text-slate-600">{showcase.raw}</pre>
+              <details className="mt-5 soft-panel">
+                <summary className="cursor-pointer text-sm font-semibold text-[var(--text-base)]">원본 결과 보기</summary>
+                <pre className="mt-3 max-h-[260px] overflow-auto whitespace-pre-wrap text-[11px] text-[var(--text-base)]">{showcase.raw}</pre>
               </details>
             )}
           </div>
 
           <div className="space-y-4">
-            <div className="rounded-[28px] border border-white/70 bg-white/84 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-              <p className="text-sm font-semibold text-slate-950">최근 확인 기록</p>
+            <div className="panel">
+              <p className="text-sm font-semibold text-[var(--text-strong)]">최근 확인 기록</p>
               <div className="mt-4 space-y-3">
-                {traces.length === 0 && <p className="text-sm text-slate-500">아직 불러온 기록이 없습니다.</p>}
+                {traces.length === 0 && <p className="text-sm text-[var(--text-muted)]">아직 불러온 기록이 없습니다.</p>}
                 {traces.map((trace) => (
-                  <div key={trace.id} className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
+                  <div key={trace.id} className="soft-panel">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-slate-900">{trace.title}</p>
+                      <p className="text-sm font-semibold text-[var(--text-strong)]">{trace.title}</p>
                       <span
                         className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                           trace.status === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'
@@ -804,26 +804,26 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
                         {trace.status === 'success' ? '완료' : '오류'}
                       </span>
                     </div>
-                    <p className="mt-2 text-sm leading-6 text-slate-500">{trace.summary}</p>
-                    <p className="mt-2 text-[11px] text-slate-400">{trace.createdAt}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{trace.summary}</p>
+                    <p className="mt-2 text-[11px] text-[var(--text-muted)]">{trace.createdAt}</p>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-white/70 bg-white/84 p-6 shadow-[0_18px_40px_rgba(15,23,42,0.06)]">
-              <p className="text-sm font-semibold text-slate-950">현재 연결 정보</p>
+            <div className="panel">
+              <p className="text-sm font-semibold text-[var(--text-strong)]">현재 연결 정보</p>
               <div className="mt-4 space-y-3">
-                <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Server</p>
-                  <p className="mt-2 text-base font-semibold text-slate-950">
+                <div className="soft-panel">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Server</p>
+                  <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
                     {inspect?.server?.name || 'unknown'} {inspect?.server?.version ? `v${inspect.server.version}` : ''}
                   </p>
-                  {connection && <p className="mt-2 text-xs text-slate-500">{connection.name} · {connection.transport}</p>}
+                  {connection && <p className="mt-2 text-xs text-[var(--text-muted)]">{connection.name} · {connection.transport}</p>}
                 </div>
-                <div className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">What You Can Do</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
+                <div className="soft-panel">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">What You Can Do</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">
                     {internalShowcaseAvailable
                       ? '회의 실행, 데이터셋, 학습 카드, 인스타 성과 정보를 앱 안에서 바로 불러와 확인하고, 필요하면 고급 모드에서 세부 실행까지 이어갈 수 있습니다.'
                       : '선택한 외부 MCP 연결의 도구, 리소스, 프롬프트가 정상적으로 보이는지 먼저 점검하고, 이후 화면별 발행/검증 기능으로 순차 확장할 수 있습니다.'}
@@ -835,13 +835,13 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
         </div>
       )}
 
-      <details className="rounded-[28px] border border-white/70 bg-white/80 p-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)]">
-        <summary className="cursor-pointer text-sm font-semibold text-slate-800">전문가용 고급 실행 보기</summary>
-        <p className="mt-3 text-sm leading-6 text-slate-500">개발자나 운영 담당자가 원할 때만 raw MCP 도구, 리소스, 프롬프트를 직접 테스트할 수 있는 영역입니다.</p>
+      <details className="panel">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--text-strong)]">전문가용 고급 실행 보기</summary>
+        <p className="mt-3 text-sm leading-6 text-[var(--text-muted)]">개발자나 운영 담당자가 원할 때만 raw MCP 도구, 리소스, 프롬프트를 직접 테스트할 수 있는 영역입니다.</p>
 
         <div className="mt-5 grid gap-4 xl:grid-cols-2">
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-            <p className="text-sm font-semibold text-slate-900">고급 도구 실행</p>
+          <div className="soft-panel">
+            <p className="text-sm font-semibold text-[var(--text-strong)]">고급 도구 실행</p>
             <div className="mt-3 space-y-3">
               <select
                 className="input"
@@ -858,17 +858,17 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
                   </option>
                 ))}
               </select>
-              {selectedToolMeta?.description && <p className="text-xs text-slate-500">{selectedToolMeta.description}</p>}
+              {selectedToolMeta?.description && <p className="text-xs text-[var(--text-muted)]">{selectedToolMeta.description}</p>}
               <textarea className="input min-h-[140px] font-mono text-xs" value={toolArgs} onChange={(e) => setToolArgs(e.target.value)} />
               <button type="button" className="button-primary" onClick={() => void runTool()} disabled={!selectedTool || toolLoading}>
                 {toolLoading ? '실행 중...' : '도구 실행'}
               </button>
-              {toolResult && <pre className="max-h-[240px] overflow-auto rounded-[22px] border border-slate-200 bg-white p-3 text-[11px] text-slate-600">{toolResult}</pre>}
+              {toolResult && <pre className="soft-panel max-h-[240px] overflow-auto p-3 text-[11px] text-[var(--text-base)]">{toolResult}</pre>}
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-            <p className="text-sm font-semibold text-slate-900">고급 리소스 읽기</p>
+          <div className="soft-panel">
+            <p className="text-sm font-semibold text-[var(--text-strong)]">고급 리소스 읽기</p>
             <div className="mt-3 space-y-3">
               <select className="input" value={selectedResource} onChange={(e) => setSelectedResource(e.target.value)}>
                 {(inspect?.resources || []).map((resource) => (
@@ -880,13 +880,13 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
               <button type="button" className="button-primary" onClick={() => void readResource()} disabled={!selectedResource || resourceLoading}>
                 {resourceLoading ? '읽는 중...' : '리소스 읽기'}
               </button>
-              {resourceResult && <pre className="max-h-[240px] overflow-auto rounded-[22px] border border-slate-200 bg-white p-3 text-[11px] text-slate-600">{resourceResult}</pre>}
+              {resourceResult && <pre className="soft-panel max-h-[240px] overflow-auto p-3 text-[11px] text-[var(--text-base)]">{resourceResult}</pre>}
             </div>
           </div>
         </div>
 
-        <div className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-          <p className="text-sm font-semibold text-slate-900">고급 프롬프트 미리보기</p>
+        <div className="mt-4 soft-panel">
+          <p className="text-sm font-semibold text-[var(--text-strong)]">고급 프롬프트 미리보기</p>
           <div className="mt-3 space-y-3">
             <select
               className="input"
@@ -903,19 +903,19 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
                 </option>
               ))}
             </select>
-            {selectedPromptMeta?.description && <p className="text-xs text-slate-500">{selectedPromptMeta.description}</p>}
+            {selectedPromptMeta?.description && <p className="text-xs text-[var(--text-muted)]">{selectedPromptMeta.description}</p>}
             <textarea className="input min-h-[120px] font-mono text-xs" value={promptArgs} onChange={(e) => setPromptArgs(e.target.value)} />
             <button type="button" className="button-primary" onClick={() => void getPrompt()} disabled={!selectedPrompt || promptLoading}>
               {promptLoading ? '불러오는 중...' : '프롬프트 보기'}
             </button>
-            {promptResult && <pre className="max-h-[240px] overflow-auto rounded-[22px] border border-slate-200 bg-white p-3 text-[11px] text-slate-600">{promptResult}</pre>}
+            {promptResult && <pre className="soft-panel max-h-[240px] overflow-auto p-3 text-[11px] text-[var(--text-base)]">{promptResult}</pre>}
           </div>
         </div>
 
         {inspect?.stderr && inspect.stderr.length > 0 && (
-          <details className="mt-4 rounded-[24px] border border-slate-200 bg-slate-50/80 p-4">
-            <summary className="cursor-pointer text-sm font-semibold text-slate-700">기술 로그 보기</summary>
-            <pre className="mt-3 max-h-[220px] overflow-auto whitespace-pre-wrap text-[11px] text-slate-600">{inspect.stderr.join('\n')}</pre>
+          <details className="mt-4 soft-panel">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--text-base)]">기술 로그 보기</summary>
+            <pre className="mt-3 max-h-[220px] overflow-auto whitespace-pre-wrap text-[11px] text-[var(--text-base)]">{inspect.stderr.join('\n')}</pre>
           </details>
         )}
       </details>

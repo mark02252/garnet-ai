@@ -68,9 +68,9 @@ export function SupabaseAuthChip() {
   return (
     <Link
       href="/settings"
-      className="hidden items-center gap-2 rounded-full border border-white/60 bg-white/70 px-3 py-1.5 text-xs font-medium text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.06)] backdrop-blur md:flex"
+      className="hidden items-center gap-2 rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-1.5 text-xs font-medium text-[var(--text-base)] md:flex"
     >
-      <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : state.configured ? 'bg-amber-400' : 'bg-slate-300'}`} />
+      <span className={`inline-block h-2 w-2 rounded-full ${isConnected ? 'bg-emerald-500' : state.configured ? 'bg-amber-400' : 'bg-[var(--surface-border)]'}`} />
       {label}
     </Link>
   );

@@ -120,9 +120,9 @@ export function PlaywrightSmokePack({ connection }: PlaywrightSmokePackProps) {
     <section className="panel space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">QA Automation</p>
-          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-slate-950">Playwright 자동 점검</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">QA Automation</p>
+          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--text-strong)]">Playwright 자동 점검</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
             비개발자도 버튼만 눌러서 주요 화면이 정상적으로 열리는지 확인할 수 있는 빠른 점검 패널입니다. 현재는 홈, 설정, 데이터,
             세미나 4개 흐름을 먼저 검증합니다.
           </p>
@@ -135,32 +135,32 @@ export function PlaywrightSmokePack({ connection }: PlaywrightSmokePackProps) {
       <div className="grid gap-4 xl:grid-cols-[1fr_1.1fr]">
         <div className="soft-panel space-y-4">
           <div>
-            <p className="text-sm font-semibold text-slate-950">점검 대상 주소</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+            <p className="text-sm font-semibold text-[var(--text-strong)]">점검 대상 주소</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
               개발 중에는 보통 `http://127.0.0.1:3000` 을 그대로 두면 됩니다. 필요하면 다른 포트나 프리뷰 주소로 바꿔서 점검할 수
               있습니다.
             </p>
           </div>
-          <label className="space-y-2 text-sm text-slate-600">
+          <label className="space-y-2 text-sm text-[var(--text-base)]">
             <span>Base URL</span>
             <input
               value={baseUrl}
               onChange={(event) => setBaseUrl(event.target.value)}
               placeholder="http://127.0.0.1:3000"
-              className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 shadow-sm outline-none transition focus:border-sky-300 focus:ring-2 focus:ring-sky-100"
+              className="input w-full"
             />
           </label>
-          <div className="rounded-[22px] border border-slate-200 bg-white/90 px-4 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">현재 연결</p>
-            <p className="mt-2 text-sm font-semibold text-slate-950">{connection?.name || 'Playwright MCP 연결 없음'}</p>
-            <p className="mt-1 text-sm leading-6 text-slate-500">
+          <div className="soft-panel">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">현재 연결</p>
+            <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{connection?.name || 'Playwright MCP 연결 없음'}</p>
+            <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">
               {connection
                 ? readiness?.detail || connection.description
                 : '먼저 MCP 연결 허브에서 Playwright MCP를 켜고 저장해 주세요.'}
             </p>
             {connection && (
               <div className="mt-3 flex flex-wrap gap-2">
-                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-600">
+                <span className="rounded-full bg-[var(--surface-sub)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-base)]">
                   {connection.transport}
                 </span>
                 <span
@@ -199,9 +199,9 @@ export function PlaywrightSmokePack({ connection }: PlaywrightSmokePackProps) {
               <div key={scenario.id} className="soft-panel space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">{scenario.path}</p>
-                    <h4 className="mt-2 text-lg font-semibold text-slate-950">{scenario.title}</h4>
-                    <p className="mt-1 text-sm leading-6 text-slate-500">{scenario.description}</p>
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{scenario.path}</p>
+                    <h4 className="mt-2 text-lg font-semibold text-[var(--text-strong)]">{scenario.title}</h4>
+                    <p className="mt-1 text-sm leading-6 text-[var(--text-muted)]">{scenario.description}</p>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <span
@@ -210,7 +210,7 @@ export function PlaywrightSmokePack({ connection }: PlaywrightSmokePackProps) {
                           ? passed
                             ? 'bg-emerald-100 text-emerald-700'
                             : 'bg-rose-100 text-rose-700'
-                          : 'bg-slate-100 text-slate-500'
+                          : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'
                       }`}
                     >
                       {result ? (passed ? '통과' : '확인 필요') : '미실행'}
@@ -227,12 +227,12 @@ export function PlaywrightSmokePack({ connection }: PlaywrightSmokePackProps) {
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-[0.9fr_1.1fr]">
-                  <div className="rounded-[20px] border border-slate-200 bg-white/88 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">확인 기준</p>
-                    <p className="mt-2 text-sm text-slate-950">{previewUrl}</p>
-                    <p className="mt-3 text-xs text-slate-500">기대 문구: {scenario.expectedText.join(' / ')}</p>
+                  <div className="soft-panel">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">확인 기준</p>
+                    <p className="mt-2 text-sm text-[var(--text-strong)]">{previewUrl}</p>
+                    <p className="mt-3 text-xs text-[var(--text-muted)]">기대 문구: {scenario.expectedText.join(' / ')}</p>
                     {result?.fetchedAt && (
-                      <p className="mt-3 text-xs text-slate-500">
+                      <p className="mt-3 text-xs text-[var(--text-muted)]">
                         최근 점검: {formatDate(result.fetchedAt)}
                         {result.durationMs ? ` · ${result.durationMs}ms` : ''}
                       </p>
@@ -240,9 +240,9 @@ export function PlaywrightSmokePack({ connection }: PlaywrightSmokePackProps) {
                     {result?.error && <p className="mt-3 text-sm text-rose-700">{result.error}</p>}
                   </div>
 
-                  <div className="rounded-[20px] border border-slate-200 bg-white/88 px-4 py-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">점검 메모</p>
-                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  <div className="soft-panel">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">점검 메모</p>
+                    <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-[var(--text-base)]">
                       {result?.snapshotExcerpt ||
                         '아직 점검 결과가 없습니다. 버튼을 누르면 Playwright가 실제 화면을 열고 주요 문구가 보이는지 자동으로 검사합니다.'}
                     </p>

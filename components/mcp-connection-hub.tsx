@@ -35,7 +35,7 @@ function phaseOrder(phase: 0 | 1 | 2 | 3) {
 function readinessToneClass(tone: 'ready' | 'setup' | 'planned') {
   if (tone === 'ready') return 'bg-emerald-100 text-emerald-700';
   if (tone === 'setup') return 'bg-amber-100 text-amber-700';
-  return 'bg-slate-100 text-slate-600';
+  return 'bg-[var(--surface-sub)] text-[var(--text-base)]';
 }
 
 export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpConnectionHubProps) {
@@ -165,16 +165,16 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
   }
 
   if (loading) {
-    return <section className="panel text-sm text-slate-500">연결 허브를 불러오는 중...</section>;
+    return <section className="panel text-sm text-[var(--text-muted)]">연결 허브를 불러오는 중...</section>;
   }
 
   return (
     <section className="panel space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Connection Hub</p>
-          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-slate-950">MCP 연결 허브</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Connection Hub</p>
+          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--text-strong)]">MCP 연결 허브</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
             앞으로 붙일 Notion, Figma, Playwright, Sentry 같은 외부 MCP를 한 곳에서 관리합니다. 지금은 연결 레지스트리와 점검
             기반을 먼저 만들고, Wave 순서대로 실제 연결을 확장합니다.
           </p>
@@ -197,8 +197,8 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
           {groupedConnections.map((group) => (
             <div key={group.phase} className="soft-panel">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-950">{getMcpConnectionPhaseLabel(group.phase)}</p>
-                <span className="text-xs text-slate-400">{group.connections.length}개 연결</span>
+                <p className="text-sm font-semibold text-[var(--text-strong)]">{getMcpConnectionPhaseLabel(group.phase)}</p>
+                <span className="text-xs text-[var(--text-muted)]">{group.connections.length}개 연결</span>
               </div>
               <div className="mt-3 space-y-2">
                 {group.connections.map((connection) => {
@@ -211,14 +211,14 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                       key={connection.id}
                       type="button"
                       onClick={() => setSelectedId(connection.id)}
-                      className={`w-full rounded-[22px] border px-4 py-3 text-left transition ${
-                        selected ? 'border-sky-200 bg-sky-50/80' : 'border-slate-200 bg-white/88 hover:bg-white'
+                      className={`w-full rounded-[14px] border px-4 py-3 text-left transition ${
+                        selected ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--surface-border)] bg-[var(--surface)] hover:bg-[var(--surface-sub)]'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-sm font-semibold text-slate-950">{connection.name}</p>
-                          <p className="mt-1 text-xs leading-5 text-slate-500">{connection.description}</p>
+                          <p className="text-sm font-semibold text-[var(--text-strong)]">{connection.name}</p>
+                          <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">{connection.description}</p>
                         </div>
                         {active && <span className="accent-pill">활성</span>}
                       </div>
@@ -226,10 +226,10 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                         <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${readinessToneClass(readiness.tone)}`}>
                           {readiness.label}
                         </span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                        <span className="rounded-full bg-[var(--surface-sub)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
                           {connection.transport}
                         </span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">
+                        <span className="rounded-full bg-[var(--surface-sub)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
                           {connection.scope}
                         </span>
                       </div>
@@ -250,9 +250,9 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
           <div className="soft-panel space-y-4">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">{selectedConnection.id}</p>
-                <h4 className="mt-2 text-[1.15rem] font-semibold text-slate-950">{selectedConnection.name}</h4>
-                <p className="mt-2 text-sm leading-6 text-slate-500">{selectedConnection.description}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">{selectedConnection.id}</p>
+                <h4 className="mt-2 text-[1.15rem] font-semibold text-[var(--text-strong)]">{selectedConnection.name}</h4>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">{selectedConnection.description}</p>
               </div>
               <button
                 type="button"
@@ -265,22 +265,22 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
 
             <div className="grid gap-3 md:grid-cols-3">
               <div className="status-tile">
-                <p className="text-xs text-slate-400">Wave</p>
-                <p className="mt-2 font-semibold text-slate-950">{getMcpConnectionPhaseLabel(selectedConnection.phase)}</p>
+                <p className="text-xs text-[var(--text-muted)]">Wave</p>
+                <p className="mt-2 font-semibold text-[var(--text-strong)]">{getMcpConnectionPhaseLabel(selectedConnection.phase)}</p>
               </div>
               <div className="status-tile">
-                <p className="text-xs text-slate-400">권장 화면</p>
-                <p className="mt-2 text-sm font-semibold text-slate-950">{selectedConnection.recommendedScreens.join(' · ') || '미지정'}</p>
+                <p className="text-xs text-[var(--text-muted)]">권장 화면</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{selectedConnection.recommendedScreens.join(' · ') || '미지정'}</p>
               </div>
               <div className="status-tile">
-                <p className="text-xs text-slate-400">준비 상태</p>
-                <p className="mt-2 text-sm font-semibold text-slate-950">{describeMcpConnectionReadiness(selectedConnection).detail}</p>
+                <p className="text-xs text-[var(--text-muted)]">준비 상태</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{describeMcpConnectionReadiness(selectedConnection).detail}</p>
               </div>
             </div>
 
             <div className="grid gap-4 lg:grid-cols-2">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">연결 사용 여부</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">연결 사용 여부</label>
                 <button
                   type="button"
                   className={`pill-option ${selectedConnection.enabled ? 'pill-option-active' : ''}`}
@@ -297,10 +297,10 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">문서</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">문서</label>
                 {selectedConnection.documentationUrl ? (
                   <a
-                    className="inline-flex rounded-full border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-[var(--accent)]"
+                    className="inline-flex rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--accent)]"
                     href={selectedConnection.documentationUrl}
                     target="_blank"
                     rel="noreferrer"
@@ -308,7 +308,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                     공식 문서 열기
                   </a>
                 ) : (
-                  <p className="text-sm text-slate-500">내부 연결이라 별도 문서가 필요하지 않습니다.</p>
+                  <p className="text-sm text-[var(--text-muted)]">내부 연결이라 별도 문서가 필요하지 않습니다.</p>
                 )}
               </div>
             </div>
@@ -316,7 +316,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
             {selectedConnection.transport === 'stdio' && (
               <div className="grid gap-3 lg:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">실행 명령</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">실행 명령</label>
                   <input
                     className="input"
                     value={selectedConnection.command}
@@ -330,7 +330,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">인자</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">인자</label>
                   <input
                     className="input"
                     value={selectedConnection.args.join(' ')}
@@ -352,7 +352,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
             {selectedConnection.transport === 'streamable-http' && (
               <div className="space-y-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">Endpoint URL</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Endpoint URL</label>
                   <input
                     className="input"
                     value={selectedConnection.url}
@@ -369,7 +369,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
 
                 {selectedConnection.setupMode !== 'oauth' && selectedConnection.authMode === 'bearer' && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-slate-600">Bearer Token</label>
+                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Bearer Token</label>
                     <input
                       className="input"
                       type="password"
@@ -387,7 +387,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                 {selectedConnection.setupMode !== 'oauth' && selectedConnection.authMode === 'basic' && (
                   <div className="grid gap-3 lg:grid-cols-2">
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Username</label>
+                      <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Username</label>
                       <input
                         className="input"
                         value={selectedConnection.basicUsername}
@@ -400,7 +400,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                       />
                     </div>
                     <div>
-                      <label className="mb-1 block text-xs font-medium text-slate-600">Password / Access Key</label>
+                      <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Password / Access Key</label>
                       <input
                         className="input"
                         type="password"
@@ -423,7 +423,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
             </div>
 
             {selectedConnection.note && (
-              <div className="rounded-[22px] border border-slate-200 bg-white/80 px-4 py-3 text-sm text-slate-500">{selectedConnection.note}</div>
+              <div className="soft-panel text-sm text-[var(--text-muted)]">{selectedConnection.note}</div>
             )}
 
             <div className="flex flex-wrap items-center gap-2">
@@ -436,7 +436,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                 {checkingId === selectedConnection.id ? '연결 점검 중...' : '연결 점검'}
               </button>
               {!canInspectMcpConnection(selectedConnection) && (
-                <span className="text-xs text-slate-500">이 연결은 아직 점검할 준비가 되지 않았습니다.</span>
+                <span className="text-xs text-[var(--text-muted)]">이 연결은 아직 점검할 준비가 되지 않았습니다.</span>
               )}
             </div>
           </div>

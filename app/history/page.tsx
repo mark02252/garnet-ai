@@ -98,9 +98,9 @@ export default function HistoryPage() {
     <div className="space-y-5">
       <section className="dashboard-hero">
         <p className="dashboard-eyebrow">Execution Archive</p>
-        <h1 className="dashboard-title">캠페인 실행 아카이브</h1>
+        <h1 className="dashboard-title">실행 아카이브</h1>
         <p className="dashboard-copy">
-          브리프, 태그, 날짜 기준으로 과거 전략 회의와 산출물을 빠르게 탐색하고, 어떤 유형의 실행이 반복되는지 한눈에 파악할 수 있습니다.
+          브리프, 태그, 날짜 기준으로 과거 전략 실행과 산출물을 빠르게 탐색하고, 어떤 유형의 실행이 반복되는지 한눈에 파악할 수 있습니다.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <Link href="/" className="button-primary">

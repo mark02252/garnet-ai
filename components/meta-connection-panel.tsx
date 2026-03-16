@@ -77,7 +77,7 @@ type InstagramReachApiResponse = {
 function trendLabel(direction: 'UP' | 'DOWN' | 'FLAT' | undefined) {
   if (direction === 'UP') return { label: '상승 추세', tone: 'text-emerald-700' };
   if (direction === 'DOWN') return { label: '하락 추세', tone: 'text-rose-700' };
-  return { label: '보합 추세', tone: 'text-slate-700' };
+  return { label: '보합 추세', tone: 'text-[var(--text-base)]' };
 }
 
 type MetaConnectionPanelProps = {
@@ -380,7 +380,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
   if (loading) {
     return (
       <section className="panel">
-        <p className="text-sm text-slate-500">{isSocialMode ? '인스타그램 연결 정보를 불러오는 중...' : '인스타그램 연결 설정을 불러오는 중...'}</p>
+        <p className="text-sm text-[var(--text-muted)]">{isSocialMode ? '인스타그램 연결 정보를 불러오는 중...' : '인스타그램 연결 설정을 불러오는 중...'}</p>
       </section>
     );
   }
@@ -393,7 +393,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="section-title">{isSocialMode ? '인스타그램 인사이트' : '인스타그램 채널 연결'}</h3>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
             {isSocialMode
               ? '연결, 분석 실행, 최근 추세 확인까지 한 화면에서 관리합니다.'
               : '관리자용 연결 정보와 기본 분석 계정을 관리하는 영역입니다.'}
@@ -416,19 +416,19 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             </p>
             <div className="dashboard-chip-grid">
               <div className="dashboard-chip">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">연결 방식</p>
-                <p className="mt-2 text-sm font-semibold text-slate-950">{getConnectionModeLabel(draft.loginMode)}</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">{getConnectionModeSummary(draft.loginMode)}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">연결 방식</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{getConnectionModeLabel(draft.loginMode)}</p>
+                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{getConnectionModeSummary(draft.loginMode)}</p>
               </div>
               <div className="dashboard-chip">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">로그인 상태</p>
-                <p className="mt-2 text-sm font-semibold text-slate-950">{hasSavedToken ? '연결됨' : '로그인 필요'}</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">마지막 연결 {formatConnectedAt(draft.lastConnectedAt)}</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">로그인 상태</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{hasSavedToken ? '연결됨' : '로그인 필요'}</p>
+                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">마지막 연결 {formatConnectedAt(draft.lastConnectedAt)}</p>
               </div>
               <div className="dashboard-chip">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">분석 대상 계정</p>
-                <p className="mt-2 text-sm font-semibold text-slate-950">{hasDefaultAccount ? '기본 계정 선택됨' : '계정 선택 필요'}</p>
-                <p className="mt-2 text-xs leading-5 text-slate-500">연결된 계정 {draft.connectedAccounts.length}개</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">분석 대상 계정</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{hasDefaultAccount ? '기본 계정 선택됨' : '계정 선택 필요'}</p>
+                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">연결된 계정 {draft.connectedAccounts.length}개</p>
               </div>
             </div>
           </section>
@@ -443,18 +443,18 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
         <div className="grid gap-3 md:grid-cols-3">
           <div className="status-tile">
             <p className="metric-label">연결 방식</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{getConnectionModeLabel(draft.loginMode)}</p>
-            <p className="mt-1 text-xs text-slate-500">{getConnectionModeSummary(draft.loginMode)}</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{getConnectionModeLabel(draft.loginMode)}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{getConnectionModeSummary(draft.loginMode)}</p>
           </div>
           <div className="status-tile">
             <p className="metric-label">계정 로그인 상태</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{hasSavedToken ? '연결됨' : '연결 전'}</p>
-            <p className="mt-1 text-xs text-slate-500">마지막 연결: {formatConnectedAt(draft.lastConnectedAt)}</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{hasSavedToken ? '연결됨' : '연결 전'}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">마지막 연결: {formatConnectedAt(draft.lastConnectedAt)}</p>
           </div>
           <div className="status-tile">
             <p className="metric-label">기본 분석 계정</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{hasDefaultAccount ? '선택 완료' : '미선택'}</p>
-            <p className="mt-1 text-xs text-slate-500">{draft.instagramBusinessAccountId || '선택된 계정이 없습니다.'}</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{hasDefaultAccount ? '선택 완료' : '미선택'}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{draft.instagramBusinessAccountId || '선택된 계정이 없습니다.'}</p>
           </div>
         </div>
       )}
@@ -503,11 +503,11 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       {error && <p className="text-xs text-rose-700">{error}</p>}
 
       {showAdminFields && (
-        <div className="space-y-4 rounded-[22px] border border-slate-200/80 bg-slate-50/80 p-4">
+        <div className="space-y-4 soft-panel">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-950">관리자용 연결 설정</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="text-sm font-semibold text-[var(--text-strong)]">관리자용 연결 설정</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
                 사내 앱 운영자는 한 번만 준비해 두고, 이후 사용자는 로그인과 계정 선택만 진행하면 됩니다.
               </p>
             </div>
@@ -520,8 +520,8 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
               className={draft.loginMode === 'instagram_login' ? 'list-card list-card-active text-left' : 'list-card text-left'}
               onClick={() => handleSwitchMode('instagram_login')}
             >
-              <p className="text-sm font-semibold text-slate-950">인스타그램 로그인</p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
+              <p className="text-sm font-semibold text-[var(--text-strong)]">인스타그램 로그인</p>
+              <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
                 단일 계정 분석에 가장 단순합니다. 공식 문서 기준으로 Instagram Professional 계정 인사이트에 맞는 기본 흐름입니다.
               </p>
             </button>
@@ -530,8 +530,8 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
               className={draft.loginMode === 'meta_business' ? 'list-card list-card-active text-left' : 'list-card text-left'}
               onClick={() => handleSwitchMode('meta_business')}
             >
-              <p className="text-sm font-semibold text-slate-950">Meta 비즈니스 연결</p>
-              <p className="mt-2 text-xs leading-5 text-slate-500">
+              <p className="text-sm font-semibold text-[var(--text-strong)]">Meta 비즈니스 연결</p>
+              <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
                 페이지와 비즈니스 자산 선택이 필요한 고급 연결 방식입니다.
               </p>
             </button>
@@ -546,13 +546,13 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
                 onChange={(e) => setDraft((prev) => ({ ...prev, appId: e.target.value }))}
                 placeholder="Meta 개발자 앱 대시보드의 숫자형 App ID"
               />
-              <p className="mt-1 text-[11px] leading-5 text-slate-500">
+              <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
                 인스타그램 계정 ID나 비즈니스 계정 ID가 아니라, Meta for Developers 앱의 숫자형 `App ID`를 넣어야 합니다.
               </p>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">
-                App Secret {draft.loginMode === 'instagram_login' ? <span className="text-slate-400">(고급 연결용)</span> : null}
+                App Secret {draft.loginMode === 'instagram_login' ? <span className="text-[var(--text-muted)]">(고급 연결용)</span> : null}
               </label>
               <input
                 className="input"
@@ -612,8 +612,8 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
           </div>
 
           <div className="soft-panel">
-            <p className="text-sm font-semibold text-slate-950">로그인 권한 범위</p>
-            <p className="mt-1 text-xs leading-5 text-slate-500">
+            <p className="text-sm font-semibold text-[var(--text-strong)]">로그인 권한 범위</p>
+            <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
               {formatScopeList(draft.scopes)}.{' '}
               {draft.loginMode === 'instagram_login'
                 ? '공식 문서 기준으로 이 흐름은 Facebook Page 연결 없이도 시작할 수 있습니다.'
@@ -637,8 +637,8 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       {draft.connectedAccounts.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h4 className="text-sm font-semibold text-slate-950">연결된 인스타그램 계정</h4>
-            <span className="text-xs text-slate-400">기본 계정을 하나 선택해 두면 이후 분석에 사용하기 쉽습니다.</span>
+            <h4 className="text-sm font-semibold text-[var(--text-strong)]">연결된 인스타그램 계정</h4>
+            <span className="text-xs text-[var(--text-muted)]">기본 계정을 하나 선택해 두면 이후 분석에 사용하기 쉽습니다.</span>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             {draft.connectedAccounts.map((account) => {
@@ -652,11 +652,11 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="text-sm font-semibold text-slate-950">@{account.username}</p>
-                      <p className="mt-1 text-xs text-slate-500">
+                      <p className="text-sm font-semibold text-[var(--text-strong)]">@{account.username}</p>
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
                         {account.pageName || (draft.loginMode === 'instagram_login' ? '연결된 Instagram Professional 계정' : '연결된 Meta 페이지')}
                       </p>
-                      <p className="mt-2 text-[11px] text-slate-400">IG Account ID: {account.instagramBusinessAccountId}</p>
+                      <p className="mt-2 text-[11px] text-[var(--text-muted)]">IG Account ID: {account.instagramBusinessAccountId}</p>
                     </div>
                     <span className={active ? 'accent-pill' : 'pill-option'}>{active ? '기본 계정' : '선택'}</span>
                   </div>
@@ -668,14 +668,14 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       )}
 
       {isSocialMode && (
-        <div className="space-y-4 rounded-[22px] border border-slate-200/80 bg-slate-50/80 p-4">
+        <div className="space-y-4 soft-panel">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-950">도달 분석 실행</p>
-              <p className="mt-1 text-xs text-slate-500">선택한 인스타그램 계정 기준으로 최근 구간을 불러와 저장합니다.</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">도달 분석 실행</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">선택한 인스타그램 계정 기준으로 최근 구간을 불러와 저장합니다.</p>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-slate-500">조회 기간</label>
+              <label className="text-xs font-medium text-[var(--text-muted)]">조회 기간</label>
               <input
                 className="input w-24"
                 type="number"
@@ -707,14 +707,14 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
                 <p className={`mt-2 text-base font-semibold ${trendLabel(latestAnalysis.trendDirection).tone}`}>
                   {trendLabel(latestAnalysis.trendDirection).label}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">{formatConnectedAt(latestAnalysis.createdAt)}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{formatConnectedAt(latestAnalysis.createdAt)}</p>
               </div>
               <div className="status-tile">
                 <p className="metric-label">최신 도달</p>
-                <p className="mt-2 text-base font-semibold text-slate-950">
+                <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
                   {Math.round(latestAnalysis.latestReach).toLocaleString()}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
                   전일 대비{' '}
                   {latestAnalysis.dayOverDayChangePct == null
                     ? '비교 불가'
@@ -723,17 +723,17 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
               </div>
               <div className="status-tile">
                 <p className="metric-label">7일 평균 / 이상치</p>
-                <p className="mt-2 text-base font-semibold text-slate-950">
+                <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
                   {latestAnalysis.sevenDayAverage == null
                     ? '데이터 부족'
                     : Math.round(latestAnalysis.sevenDayAverage).toLocaleString()}
                 </p>
-                <p className="mt-1 text-xs text-slate-500">이상치 {latestAnalysis.anomalyCount}건</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">이상치 {latestAnalysis.anomalyCount}건</p>
               </div>
               <div className="md:col-span-3">
                 <div className="soft-panel">
-                  <p className="text-sm font-semibold text-slate-950">최근 분석 요약</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{latestAnalysis.summary}</p>
+                  <p className="text-sm font-semibold text-[var(--text-strong)]">최근 분석 요약</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{latestAnalysis.summary}</p>
                 </div>
               </div>
             </div>

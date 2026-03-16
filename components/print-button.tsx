@@ -46,7 +46,7 @@ export function PrintButton({ suggestedName }: PrintButtonProps) {
       >
         PDF 저장
       </button>
-      {message && <p className="max-w-[260px] text-right text-xs text-slate-500">{message}</p>}
+      {message && <p className="max-w-[260px] text-right text-xs text-[var(--text-muted)]">{message}</p>}
     </div>
   );
 }

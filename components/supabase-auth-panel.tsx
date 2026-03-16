@@ -344,19 +344,19 @@ export function SupabaseAuthPanel() {
     <section className="panel space-y-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Cloud Backend</p>
-          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-slate-950">팀 계정과 협업 백엔드</h3>
-          <p className="mt-2 text-sm leading-6 text-slate-500">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Cloud Backend</p>
+          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--text-strong)]">팀 계정과 협업 백엔드</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
             개인 Mac 안에 있던 운영 데이터를 Supabase 기반 팀 워크스페이스로 옮기기 위한 첫 단계입니다. 로그인은 먼저 붙이고,
             조직/공유 데이터는 원격 마이그레이션이 적용되는 순간 이어집니다.
           </p>
         </div>
         <div className="status-tile min-w-[220px]">
           <p className="metric-label">현재 연결</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
             {!isConfigured ? '설정 필요' : session ? '로그인됨' : loading ? '확인 중' : '로그인 대기'}
           </p>
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1 text-xs text-[var(--text-muted)]">
             {session?.user.email || '사내 구성원이 같은 데이터와 승인 흐름을 공유하게 됩니다.'}
           </p>
         </div>
@@ -374,7 +374,7 @@ export function SupabaseAuthPanel() {
                 onChange={(event) => setEmail(event.target.value)}
                 placeholder="team@company.com"
               />
-              <p className="mt-1 text-xs text-slate-500">현재는 이메일 기반 로그인부터 붙였습니다. 이후 SSO나 조직 초대 흐름으로 확장할 수 있습니다.</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">현재는 이메일 기반 로그인부터 붙였습니다. 이후 SSO나 조직 초대 흐름으로 확장할 수 있습니다.</p>
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">인증 코드 입력(선택)</label>
@@ -384,7 +384,7 @@ export function SupabaseAuthPanel() {
                 onChange={(event) => setOtpCode(event.target.value)}
                 placeholder="현재는 보통 비워둬도 됩니다"
               />
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-[var(--text-muted)]">
                 현재 Supabase 기본 설정은 메일 속 로그인 링크를 누르는 방식입니다. 이 입력칸은 나중에 이메일 템플릿을 OTP 코드 방식으로 바꿨을 때만 사용합니다.
               </p>
             </div>
@@ -419,20 +419,20 @@ export function SupabaseAuthPanel() {
         <div className="space-y-3">
           <div className="status-tile">
             <p className="metric-label">프로젝트 URL</p>
-            <p className="mt-2 break-all text-sm font-semibold text-slate-950">pwllacujwgzulkelqfrq.supabase.co</p>
-            <p className="mt-1 text-xs text-slate-500">제공해주신 hosted Supabase 프로젝트 기준으로 연결돼 있습니다.</p>
+            <p className="mt-2 break-all text-sm font-semibold text-[var(--text-strong)]">pwllacujwgzulkelqfrq.supabase.co</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">제공해주신 hosted Supabase 프로젝트 기준으로 연결돼 있습니다.</p>
           </div>
           <div className="status-tile">
             <p className="metric-label">기본 워크스페이스</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{defaultOrganization?.name || '아직 없음'}</p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{defaultOrganization?.name || '아직 없음'}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               {defaultOrganization ? `${defaultOrganization.slug} · ${defaultOrganization.role}` : '첫 워크스페이스를 만들면 승인/브리핑 데이터 공유를 시작합니다.'}
             </p>
           </div>
           <div className="status-tile">
             <p className="metric-label">다음 백엔드 단계</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">공유 운영 데이터 이전</p>
-            <p className="mt-1 text-xs text-slate-500">Run, Deliverable, Approval, Seminar 흐름을 순차적으로 Supabase로 옮길 예정입니다.</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">공유 운영 데이터 이전</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">Run, Deliverable, Approval, Seminar 흐름을 순차적으로 Supabase로 옮길 예정입니다.</p>
           </div>
         </div>
       </div>
@@ -443,8 +443,8 @@ export function SupabaseAuthPanel() {
       {session && organizations.length === 0 && !workspaceError && (
         <div className="soft-panel space-y-3">
           <div>
-            <h4 className="text-sm font-semibold text-slate-950">첫 팀 워크스페이스 만들기</h4>
-            <p className="mt-1 text-xs text-slate-500">회사나 브랜드 단위 이름을 한 번만 정하면 이후 승인, 브리핑, 히스토리를 이 단위에 묶을 수 있습니다.</p>
+            <h4 className="text-sm font-semibold text-[var(--text-strong)]">첫 팀 워크스페이스 만들기</h4>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">회사나 브랜드 단위 이름을 한 번만 정하면 이후 승인, 브리핑, 히스토리를 이 단위에 묶을 수 있습니다.</p>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
             <div>
@@ -480,9 +480,9 @@ export function SupabaseAuthPanel() {
             <div key={organization.id} className="list-card list-card-active">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{organization.slug}</p>
-                  <p className="mt-1 text-base font-semibold text-slate-950">{organization.name}</p>
-                  <p className="mt-1 text-sm text-slate-500">역할: {organization.role}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{organization.slug}</p>
+                  <p className="mt-1 text-base font-semibold text-[var(--text-strong)]">{organization.name}</p>
+                  <p className="mt-1 text-sm text-[var(--text-muted)]">역할: {organization.role}</p>
                 </div>
                 <span className="accent-pill">{organization.id === defaultOrganization?.id ? '기본' : '연결됨'}</span>
               </div>

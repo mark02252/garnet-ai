@@ -47,7 +47,7 @@ function riskColor(value: string) {
 
 function learningTone(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {
   if (status === 'CONFIRMED') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'ARCHIVED') return 'bg-slate-100 text-[var(--text-base)]';
+  if (status === 'ARCHIVED') return 'bg-[var(--surface-sub)] text-[var(--text-base)]';
   return 'bg-amber-100 text-amber-700';
 }
 

@@ -833,25 +833,25 @@ export default function SettingsPage() {
       <section className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
         <div className="status-tile">
           <p className="metric-label">현재 운영 모드</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
             {runtime.runProfile === 'free' ? '자동 선택 운영' : `${PROVIDER_LABELS[runtime.llmProvider]} 직접 운영`}
           </p>
-          <p className="mt-1 text-xs text-slate-500">적용 모델: {appliedModel || '미선택'}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">적용 모델: {appliedModel || '미선택'}</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">활성 에이전트</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{activeDomainAgentCount}명 활성</p>
-          <p className="mt-1 text-xs text-slate-500">실행 정책에 수동 선택된 에이전트 {managedAgentExecution.selectedAgents?.length || 0}명</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{activeDomainAgentCount}명 활성</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">실행 정책에 수동 선택된 에이전트 {managedAgentExecution.selectedAgents?.length || 0}명</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">공통 비즈니스 컨텍스트</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{businessContextSignals}개 신호 저장</p>
-          <p className="mt-1 text-xs text-slate-500">{managedBusinessContext.currentPriority || '우선순위를 설정하면 모든 응답의 기준이 더 선명해집니다.'}</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{businessContextSignals}개 신호 저장</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{managedBusinessContext.currentPriority || '우선순위를 설정하면 모든 응답의 기준이 더 선명해집니다.'}</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">업데이트 상태</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{updateSummary}</p>
-          <p className="mt-1 text-xs text-slate-500">{mainUpdateMessage}</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{updateSummary}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">{mainUpdateMessage}</p>
         </div>
       </section>
 
@@ -859,7 +859,7 @@ export default function SettingsPage() {
 
       <section className="panel space-y-3">
         <h3 className="section-title">AI 실행 환경</h3>
-        <p className="text-xs text-slate-500">입력 후 `실행 키 설정 적용`을 눌러야 캠페인 스튜디오와 세미나 실행에 반영됩니다.</p>
+        <p className="text-xs text-[var(--text-muted)]">입력 후 `실행 키 설정 적용`을 눌러야 캠페인 스튜디오와 세미나 실행에 반영됩니다.</p>
         <div className="grid gap-2 md:grid-cols-3">
           <div
             className={`rounded-xl border px-3 py-2 text-xs ${
@@ -875,7 +875,7 @@ export default function SettingsPage() {
                 ? 'border-rose-300 bg-rose-50 text-rose-700'
                 : modelCheckSuccess
                   ? 'border-emerald-300 bg-emerald-50 text-emerald-800'
-                  : 'border-slate-200 bg-slate-50 text-slate-500'
+                  : 'border-[var(--surface-border)] bg-[var(--surface-sub)] text-[var(--text-muted)]'
             }`}
           >
             <p className="font-semibold">2) 모델 검증</p>
@@ -891,7 +891,7 @@ export default function SettingsPage() {
           </div>
           <div
             className={`rounded-xl border px-3 py-2 text-xs ${
-              lastAppliedAt ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-slate-200 bg-slate-50 text-slate-500'
+              lastAppliedAt ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-[var(--surface-border)] bg-[var(--surface-sub)] text-[var(--text-muted)]'
             }`}
           >
             <p className="font-semibold">3) 실행 반영</p>
@@ -925,7 +925,7 @@ export default function SettingsPage() {
           >
             {hasUnsavedChanges ? '미적용 변경 있음' : '저장됨'}
           </span>
-          {lastAppliedAt && <span className="text-xs text-slate-500">최근 적용: {lastAppliedAt}</span>}
+          {lastAppliedAt && <span className="text-xs text-[var(--text-muted)]">최근 적용: {lastAppliedAt}</span>}
         </div>
         {applyMessage && <p className="text-xs text-emerald-700">{applyMessage}</p>}
         {runtimeSaveMessage && <p className="text-xs text-emerald-700">{runtimeSaveMessage}</p>}
@@ -946,7 +946,7 @@ export default function SettingsPage() {
               <option value="free">무료모드 (자동 선택)</option>
               <option value="manual">수동모드 (직접 선택)</option>
             </select>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               무료모드: OpenClaw → Groq → Gemini → Local 순으로 자동 선택합니다. (fallback 최대 4개)
             </p>
           </div>
@@ -964,7 +964,7 @@ export default function SettingsPage() {
               <option value="local">Local(OpenAI 호환)</option>
             </select>
             {runtime.runProfile === 'free' && (
-              <p className="mt-1 text-xs text-slate-500">무료모드에서는 실행 시 자동 선택되며, 이 값은 모델 검증/입력 편의를 위한 선택값입니다.</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">무료모드에서는 실행 시 자동 선택되며, 이 값은 모델 검증/입력 편의를 위한 선택값입니다.</p>
             )}
           </div>
           <div>
@@ -1065,7 +1065,7 @@ export default function SettingsPage() {
               <button type="button" onClick={onCheckOpenClaw} disabled={checkingOpenclaw} className="button-secondary">
                 {checkingOpenclaw ? 'OpenClaw 점검 중...' : 'OpenClaw 설치/작동 점검'}
               </button>
-              <p className="text-xs text-slate-500">사내 배포 전 각 Mac에서 OpenClaw 사용 가능 여부를 확인하세요.</p>
+              <p className="text-xs text-[var(--text-muted)]">사내 배포 전 각 Mac에서 OpenClaw 사용 가능 여부를 확인하세요.</p>
             </div>
           </div>
         )}
@@ -1078,15 +1078,15 @@ export default function SettingsPage() {
         </div>
 
         <div className="soft-panel">
-          <p className="text-sm font-semibold text-slate-950">사용 모델 선택</p>
-          <p className="mt-1 text-xs text-slate-500">현재 적용 모델: {appliedModel || '미선택'}</p>
+          <p className="text-sm font-semibold text-[var(--text-strong)]">사용 모델 선택</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">현재 적용 모델: {appliedModel || '미선택'}</p>
           {runtime.llmProvider === 'openclaw' && (
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               OpenClaw는 모델 라우팅을 OpenClaw 내부 설정에서 관리합니다. 여기서는 사용 가능 모델 확인만 제공합니다.
             </p>
           )}
           {availableModels.length === 0 ? (
-            <p className="mt-1 text-xs text-slate-500">검증 버튼을 눌러 사용 가능한 모델을 불러오세요.</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">검증 버튼을 눌러 사용 가능한 모델을 불러오세요.</p>
           ) : (
             <div className="mt-2 space-y-2">
               <div className="flex flex-wrap gap-2">
@@ -1115,7 +1115,7 @@ export default function SettingsPage() {
                     선택 모델 적용
                   </button>
                 )}
-                {pendingModel && <p className="text-xs text-slate-500">선택됨: {pendingModel}</p>}
+                {pendingModel && <p className="text-xs text-[var(--text-muted)]">선택됨: {pendingModel}</p>}
                 {modelApplyStatus && <p className="text-xs text-emerald-700">적용됨: {modelApplyStatus.model} ({modelApplyStatus.appliedAt})</p>}
               </div>
             </div>
@@ -1127,7 +1127,7 @@ export default function SettingsPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h3 className="section-title">AI 운영 현황</h3>
-            <p className="mt-1 text-xs text-slate-500">현재 선택한 엔진 기준으로 사용 가능 상태와 한도 정보를 보여줍니다.</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">현재 선택한 엔진 기준으로 사용 가능 상태와 한도 정보를 보여줍니다.</p>
           </div>
           <button
             type="button"
@@ -1177,7 +1177,7 @@ export default function SettingsPage() {
 
         {runtime.llmProvider === 'openai' && (
           <div className="space-y-2">
-            {!quota && <p className="text-sm text-slate-500">OpenAI 한도 정보를 불러오는 중...</p>}
+            {!quota && <p className="text-sm text-[var(--text-muted)]">OpenAI 한도 정보를 불러오는 중...</p>}
             {quota && !quota.available && (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {quota.message || 'OpenAI 한도 정보를 조회할 수 없습니다.'}
@@ -1187,17 +1187,17 @@ export default function SettingsPage() {
               <div className="grid gap-2 sm:grid-cols-3">
                 <div className="status-tile">
                   <p className="metric-label">이번 달 사용액</p>
-                  <p className="mt-1 font-semibold text-slate-950">${quota.usedUsd?.toFixed(2)}</p>
+                  <p className="mt-1 font-semibold text-[var(--text-strong)]">${quota.usedUsd?.toFixed(2)}</p>
                 </div>
                 <div className="status-tile">
                   <p className="metric-label">월 예산</p>
-                  <p className="mt-1 font-semibold text-slate-950">
+                  <p className="mt-1 font-semibold text-[var(--text-strong)]">
                     {quota.budgetUsd != null ? `$${quota.budgetUsd.toFixed(2)}` : '미설정'}
                   </p>
                 </div>
                 <div className="status-tile">
                   <p className="metric-label">잔여(예산 기준)</p>
-                  <p className="mt-1 font-semibold text-slate-950">
+                  <p className="mt-1 font-semibold text-[var(--text-strong)]">
                     {quota.remainingUsd != null ? `$${quota.remainingUsd.toFixed(2)}` : '계산 불가'}
                   </p>
                 </div>
@@ -1208,7 +1208,7 @@ export default function SettingsPage() {
 
         {runtime.llmProvider === 'gemini' && (
           <div className="space-y-2">
-            {!geminiUsage && <p className="text-sm text-slate-500">Gemini 요청 예측치를 불러오는 중...</p>}
+            {!geminiUsage && <p className="text-sm text-[var(--text-muted)]">Gemini 요청 예측치를 불러오는 중...</p>}
             {geminiUsage && !geminiUsage.available && (
               <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
                 {geminiUsage.message || 'Gemini 요청 예측치를 조회할 수 없습니다.'}
@@ -1217,15 +1217,15 @@ export default function SettingsPage() {
             {geminiUsage?.available && (
               <div className="soft-panel">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-slate-950">오늘 남은 Gemini 요청 예측치</p>
+                  <p className="text-sm font-semibold text-[var(--text-strong)]">오늘 남은 Gemini 요청 예측치</p>
                   <span className="accent-pill">
                     예측치
                   </span>
                 </div>
-                <p className="mt-1 text-sm text-slate-700">
+                <p className="mt-1 text-sm text-[var(--text-base)]">
                   {geminiUsage.estimatedRemaining} / {geminiUsage.dailyLimit} 요청 남음 (사용 {geminiUsage.estimatedUsed})
                 </p>
-                <p className="mt-1 text-xs text-slate-500">{geminiUsage.note}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{geminiUsage.note}</p>
               </div>
             )}
           </div>
@@ -1246,7 +1246,7 @@ export default function SettingsPage() {
 
       <section className="panel space-y-3">
         <h3 className="section-title">도메인 에이전트 운영</h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--text-muted)]">
           JSON 대신 카드 기반 관리자에서 도메인별 에이전트를 켜고 끌 수 있습니다.
         </p>
         <div className="flex flex-wrap gap-2">
@@ -1273,9 +1273,9 @@ export default function SettingsPage() {
               <div key={profile.id} className={active ? 'list-card list-card-active' : 'list-card'}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{profile.id}</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{profile.name}</p>
-                    {profile.roleSummary && <p className="mt-1 text-sm text-slate-500">{profile.roleSummary}</p>}
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{profile.id}</p>
+                    <p className="mt-1 text-base font-semibold text-[var(--text-strong)]">{profile.name}</p>
+                    {profile.roleSummary && <p className="mt-1 text-sm text-[var(--text-muted)]">{profile.roleSummary}</p>}
                   </div>
                   <button
                     type="button"
@@ -1285,7 +1285,7 @@ export default function SettingsPage() {
                     {active ? '활성' : '비활성'}
                   </button>
                 </div>
-                <p className="mt-3 text-xs text-slate-400">전문분야</p>
+                <p className="mt-3 text-xs text-[var(--text-muted)]">전문분야</p>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {profile.specialty.map((item) => (
                     <span key={`${profile.id}-${item}`} className="pill-option">
@@ -1295,12 +1295,12 @@ export default function SettingsPage() {
                 </div>
                 {profile.frameworks?.length ? (
                   <>
-                    <p className="mt-3 text-xs text-slate-400">프레임워크</p>
-                    <p className="mt-1 text-xs text-slate-500">{profile.frameworks.join(' · ')}</p>
+                    <p className="mt-3 text-xs text-[var(--text-muted)]">프레임워크</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">{profile.frameworks.join(' · ')}</p>
                   </>
                 ) : null}
-                <p className="mt-3 text-xs text-slate-400">기대 산출물</p>
-                <p className="mt-1 text-sm text-slate-700">{profile.expectedOutput}</p>
+                <p className="mt-3 text-xs text-[var(--text-muted)]">기대 산출물</p>
+                <p className="mt-1 text-sm text-[var(--text-base)]">{profile.expectedOutput}</p>
               </div>
             );
           })}
@@ -1322,7 +1322,7 @@ export default function SettingsPage() {
 
       <section className="panel space-y-3">
         <h3 className="section-title">비즈니스 컨텍스트</h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--text-muted)]">
           회사 단계, 현재 우선순위, 제약조건을 저장하면 모든 에이전트 프롬프트에 공통 컨텍스트로 주입됩니다.
         </p>
         <div className="grid gap-3 md:grid-cols-2">
@@ -1369,7 +1369,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium text-slate-500">제약조건</p>
+          <p className="text-xs font-medium text-[var(--text-muted)]">제약조건</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {CONSTRAINT_OPTIONS.map((item) => {
               const active = (managedBusinessContext.constraints || []).includes(item);
@@ -1387,7 +1387,7 @@ export default function SettingsPage() {
           </div>
         </div>
         <div>
-          <p className="text-xs font-medium text-slate-500">응답 기대치</p>
+          <p className="text-xs font-medium text-[var(--text-muted)]">응답 기대치</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {RESPONSE_EXPECTATION_OPTIONS.map((item) => {
               const active = (managedBusinessContext.responseExpectation || []).includes(item);
@@ -1421,7 +1421,7 @@ export default function SettingsPage() {
 
       <section className="panel space-y-3">
         <h3 className="section-title">응답 설계 정책</h3>
-        <p className="text-sm text-slate-500">
+        <p className="text-sm text-[var(--text-muted)]">
           기본 선택 도메인, 강제 투입 에이전트, `multi_agent_synthesis` 같은 실행 모드를 정의합니다.
         </p>
         <div className="grid gap-3 md:grid-cols-2">
@@ -1455,8 +1455,8 @@ export default function SettingsPage() {
                     type="button"
                     className={`rounded-xl border px-3 py-2 text-sm transition ${
                       active
-                        ? 'border-sky-200 bg-sky-50 text-sky-700 shadow-sm'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                        : 'border-[var(--surface-border)] bg-[var(--surface)] text-[var(--text-base)] hover:bg-[var(--surface-sub)]'
                     }`}
                     onClick={() => updateAgentExecutionField('taskMode', value as AgentExecutionConfig['taskMode'])}
                   >
@@ -1471,7 +1471,7 @@ export default function SettingsPage() {
           선택 에이전트가 비어 있으면 해당 도메인의 상위 에이전트를 자동 투입합니다.
         </div>
         {executionAgentCatalog.length === 0 && (
-          <p className="text-xs text-slate-500">먼저 위 도메인 에이전트 풀에서 에이전트를 활성화한 뒤 선택하세요.</p>
+          <p className="text-xs text-[var(--text-muted)]">먼저 위 도메인 에이전트 풀에서 에이전트를 활성화한 뒤 선택하세요.</p>
         )}
         <div className="grid gap-3 lg:grid-cols-2">
           {executionAgentCatalog.map((profile) => {
@@ -1485,9 +1485,9 @@ export default function SettingsPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">{profile.id}</p>
-                    <p className="mt-1 text-base font-semibold text-slate-950">{profile.name}</p>
-                    <p className="mt-1 text-xs text-slate-500">{profile.specialty.slice(0, 3).join(' · ')}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">{profile.id}</p>
+                    <p className="mt-1 text-base font-semibold text-[var(--text-strong)]">{profile.name}</p>
+                    <p className="mt-1 text-xs text-[var(--text-muted)]">{profile.specialty.slice(0, 3).join(' · ')}</p>
                   </div>
                   <span className={active ? 'accent-pill' : 'pill-option'}>
                     {active ? '선택됨' : '선택'}
@@ -1516,29 +1516,29 @@ export default function SettingsPage() {
 
       <section className="panel space-y-4">
         <h3 className="section-title">앱 업데이트</h3>
-        <p className="text-sm text-slate-500">새 버전이 있으면 여기서 확인하고, 다운로드 후 앱 재시작으로 설치할 수 있습니다.</p>
+        <p className="text-sm text-[var(--text-muted)]">새 버전이 있으면 여기서 확인하고, 다운로드 후 앱 재시작으로 설치할 수 있습니다.</p>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="status-tile">
             <p className="metric-label">현재 상태</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{updateSummary}</p>
-            <p className="mt-1 text-xs text-slate-500">{updateStatus?.currentVersion ? `현재 버전 ${updateStatus.currentVersion}` : '아직 점검하지 않았습니다.'}</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{updateSummary}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">{updateStatus?.currentVersion ? `현재 버전 ${updateStatus.currentVersion}` : '아직 점검하지 않았습니다.'}</p>
           </div>
           <div className="status-tile">
             <p className="metric-label">다음 액션</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
               {updateStatus?.status === 'available'
                 ? '다운로드'
                 : updateStatus?.status === 'downloaded'
                   ? '설치'
                   : '확인'}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               {updateStatus?.availableVersion ? `새 버전 ${updateStatus.availableVersion} 준비` : '업데이트 확인 버튼으로 새 버전을 조회하세요.'}
             </p>
           </div>
           <div className="status-tile">
             <p className="metric-label">배포 채널</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
               {updateConfigSource === 'saved'
                 ? '앱 저장값'
                 : updateConfigSource === 'env'
@@ -1547,7 +1547,7 @@ export default function SettingsPage() {
                     ? '내장 설정'
                     : '미설정'}
             </p>
-            <p className="mt-1 text-xs text-slate-500">상세 피드 주소 변경은 개발 점검 모드에서 관리합니다.</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">상세 피드 주소 변경은 개발 점검 모드에서 관리합니다.</p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -1571,7 +1571,7 @@ export default function SettingsPage() {
             {installingUpdate ? '설치 준비 중...' : '다운로드 후 설치'}
           </button>
         </div>
-        <div className="rounded-[20px] border border-slate-200 bg-slate-50/90 px-4 py-3 text-sm text-slate-600">
+        <div className="soft-panel text-sm text-[var(--text-base)]">
           {updateStatus ? (
             <span>
               {updateStatus.message}
@@ -1587,9 +1587,9 @@ export default function SettingsPage() {
       <section className="panel space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Advanced</p>
-            <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-slate-950">개발 점검 모드</h3>
-            <p className="mt-2 text-sm leading-6 text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Advanced</p>
+            <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--text-strong)]">개발 점검 모드</h3>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
               MCP 연결 허브, AI 연결 센터, Playwright 자동 점검, 업데이트 피드 관리, 로컬 복구 명령은 평소 운영에 필요하지 않아
               별도 모드에 모아두었습니다.
             </p>
@@ -1606,20 +1606,20 @@ export default function SettingsPage() {
         <div className="grid gap-3 lg:grid-cols-3">
           <div className="status-tile">
             <p className="metric-label">현재 연결</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{activeConnectionName}</p>
-            <p className="mt-1 text-xs text-slate-500">개발 점검 모드에서만 MCP 연결과 자동화 검사를 다룹니다.</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{activeConnectionName}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">개발 점검 모드에서만 MCP 연결과 자동화 검사를 다룹니다.</p>
           </div>
           <div className="status-tile">
             <p className="metric-label">Playwright QA</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">{playwrightConnection?.enabled ? '연결 준비됨' : '비활성'}</p>
-            <p className="mt-1 text-xs text-slate-500">홈, 설정, 데이터, 세미나 흐름을 자동으로 점검할 수 있습니다.</p>
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{playwrightConnection?.enabled ? '연결 준비됨' : '비활성'}</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">홈, 설정, 데이터, 세미나 흐름을 자동으로 점검할 수 있습니다.</p>
           </div>
           <div className="status-tile">
             <p className="metric-label">환경 진단</p>
-            <p className="mt-2 text-base font-semibold text-slate-950">
+            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
               {envStatus?.ok ? '정상' : developerMode ? '확인 필요' : '숨김'}
             </p>
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
               {envStatus?.ok ? '현재 실행 환경 키 상태가 정상입니다.' : '세부 누락 항목은 개발 점검 모드 안에서만 표시합니다.'}
             </p>
           </div>
@@ -1646,11 +1646,11 @@ export default function SettingsPage() {
 
             <div className="grid gap-4 xl:grid-cols-2">
               <section className="soft-panel space-y-3">
-                <h4 className="text-lg font-semibold text-slate-950">업데이트 피드 관리</h4>
-                <p className="text-sm leading-6 text-slate-500">
+                <h4 className="text-lg font-semibold text-[var(--text-strong)]">업데이트 피드 관리</h4>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
                   배포 채널 주소 변경이나 테스트용 피드 전환은 이 영역에서만 조정합니다.
                 </p>
-                <label className="space-y-2 text-sm text-slate-600">
+                <label className="space-y-2 text-sm text-[var(--text-base)]">
                   <span>업데이트 피드 URL</span>
                   <input
                     className="input"
@@ -1663,7 +1663,7 @@ export default function SettingsPage() {
                   <button type="button" className="button-secondary" onClick={onSaveUpdateConfig} disabled={savingUpdateConfig}>
                     {savingUpdateConfig ? '저장 중...' : 'URL 저장'}
                   </button>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-[var(--text-muted)]">
                     현재 소스:{' '}
                     {updateConfigSource === 'saved'
                       ? '앱 저장값'
@@ -1677,14 +1677,14 @@ export default function SettingsPage() {
               </section>
 
               <section className="soft-panel space-y-3">
-                <h4 className="text-lg font-semibold text-slate-950">로컬 복구 도구</h4>
-                <p className="text-sm leading-6 text-slate-500">
+                <h4 className="text-lg font-semibold text-[var(--text-strong)]">로컬 복구 도구</h4>
+                <p className="text-sm leading-6 text-[var(--text-muted)]">
                   `./638.js` 또는 `next-font-manifest` 같은 오류는 대부분 Next 캐시 손상입니다. 로컬 개발 환경 복구가 필요할 때만 사용하세요.
                 </p>
                 <button type="button" onClick={onCopyRecoveryCommand} className="button-secondary">
                   복구 명령 복사
                 </button>
-                <p className="text-xs text-slate-500">
+                <p className="text-xs text-[var(--text-muted)]">
                   터미널 실행: <code>npm run dev:clean</code>
                   {copied ? ' (복사됨)' : ''}
                 </p>

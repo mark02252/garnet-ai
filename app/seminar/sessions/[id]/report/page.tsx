@@ -35,8 +35,8 @@ export default async function SeminarSessionReportPage({ params }: { params: Pro
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="dashboard-eyebrow">Session Report</p>
-            <h1 className="brand-title mt-3 text-[1.9rem] text-slate-950">{session.title || session.topic}</h1>
-            <p className="mt-2 text-sm text-slate-500">
+            <h1 className="brand-title mt-3 text-[1.9rem] text-[var(--text-strong)]">{session.title || session.topic}</h1>
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
               상태: {session.status} | 라운드: {session.completedRounds}/{session.maxRounds} | 간격: {session.intervalMinutes}분
             </p>
           </div>
@@ -58,21 +58,21 @@ export default async function SeminarSessionReportPage({ params }: { params: Pro
             .sort((a, b) => b.roundNumber - a.roundNumber)
             .map((round) => (
               <div key={round.id} className="list-card text-xs">
-                <p className="font-semibold text-slate-950">Round {round.roundNumber}</p>
-                <p className="text-slate-500">{round.status}</p>
+                <p className="font-semibold text-[var(--text-strong)]">Round {round.roundNumber}</p>
+                <p className="text-[var(--text-muted)]">{round.status}</p>
                 {round.runId && (
                   <div className="mt-1 flex flex-wrap gap-2">
-                    <Link className="text-sky-700 underline" href={`/runs/${round.runId}`}>
+                    <Link className="text-[var(--accent)] underline" href={`/runs/${round.runId}`}>
                       실행 결과
                     </Link>
-                    <Link className="text-sky-700 underline" href={`/runs/${round.runId}/report`}>
+                    <Link className="text-[var(--accent)] underline" href={`/runs/${round.runId}/report`}>
                       산출물 보고서
                     </Link>
                   </div>
                 )}
               </div>
             ))}
-          {rounds.length === 0 && <p className="text-sm text-slate-500">표시할 라운드가 없습니다.</p>}
+          {rounds.length === 0 && <p className="text-sm text-[var(--text-muted)]">표시할 라운드가 없습니다.</p>}
         </div>
       </section>
 

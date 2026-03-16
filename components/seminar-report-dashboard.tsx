@@ -12,8 +12,8 @@ type SeminarReportDashboardProps = {
 
 function priorityTone(priority: string) {
   if (priority === 'NOW') return 'bg-emerald-100 text-emerald-700';
-  if (priority === 'NEXT') return 'bg-sky-100 text-sky-700';
-  return 'bg-slate-100 text-slate-600';
+  if (priority === 'NEXT') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
+  return 'bg-[var(--surface-sub)] text-[var(--text-base)]';
 }
 
 export function SeminarReportDashboard({ reportText, structured, compact = false }: SeminarReportDashboardProps) {
@@ -22,7 +22,7 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
   if (!parsed) {
     return (
       <div className="soft-panel">
-        <pre className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
+        <pre className="whitespace-pre-wrap text-sm leading-7 text-[var(--text-base)]">
           {reportText || '세션이 완료되면 통합 보고서가 생성됩니다.'}
         </pre>
       </div>
@@ -42,18 +42,18 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
     <div className="space-y-4">
       <section className={compact ? 'soft-panel space-y-4' : 'dashboard-hero'}>
         <div>
-          <p className={compact ? 'text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400' : 'dashboard-eyebrow'}>
+          <p className={compact ? 'text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]' : 'dashboard-eyebrow'}>
             Seminar Report
           </p>
-          <h2 className={compact ? 'mt-2 text-xl font-semibold tracking-[-0.03em] text-slate-950' : 'dashboard-title'}>
+          <h2 className={compact ? 'mt-2 text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]' : 'dashboard-title'}>
             {parsed.sessionName || parsed.topic || '세미나 통합 보고서'}
           </h2>
-          <p className={compact ? 'mt-2 text-sm leading-6 text-slate-500' : 'dashboard-copy'}>
+          <p className={compact ? 'mt-2 text-sm leading-6 text-[var(--text-muted)]' : 'dashboard-copy'}>
             {parsed.topic || '주제 미입력'}
             {parsed.operationWindow ? ` · ${parsed.operationWindow}` : ''}
           </p>
           {parsed.summaryHeadline && (
-            <p className={compact ? 'mt-3 text-sm leading-6 text-slate-700' : 'mt-4 max-w-3xl text-[15px] leading-7 text-slate-600'}>
+            <p className={compact ? 'mt-3 text-sm leading-6 text-[var(--text-base)]' : 'mt-4 max-w-3xl text-[15px] leading-7 text-[var(--text-base)]'}>
               {parsed.summaryHeadline}
             </p>
           )}
@@ -80,23 +80,23 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="status-tile">
           <p className="metric-label">참조 출처</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{parsed.totalUniqueSources}</p>
-          <p className="mt-1 text-xs text-slate-500">총 {parsed.totalSourceReferences}회 인용</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.totalUniqueSources}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">총 {parsed.totalSourceReferences}회 인용</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">핵심 태그</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{parsed.totalUniqueTags}</p>
-          <p className="mt-1 text-xs text-slate-500">반복 언급된 주제 수</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.totalUniqueTags}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">반복 언급된 주제 수</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">산출물 유형</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{parsed.totalDeliverableTypes}</p>
-          <p className="mt-1 text-xs text-slate-500">세션에서 사용된 결과물 종류</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.totalDeliverableTypes}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">세션에서 사용된 결과물 종류</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">즉시 액션</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{parsed.actionItems.length}</p>
-          <p className="mt-1 text-xs text-slate-500">우선순위 보드 기준</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.actionItems.length}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">우선순위 보드 기준</p>
         </div>
       </section>
 
@@ -106,8 +106,8 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
           <div className="grid gap-3">
             {(strategy.length ? strategy : [{ label: '전략 방향', value: '아직 요약되지 않았습니다.' }]).map((item) => (
               <div key={`${item.label}-${item.value}`} className="soft-panel">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{item.label}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">{item.value}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.label}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.value}</p>
               </div>
             ))}
           </div>
@@ -119,19 +119,19 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
             {(actionItems.length ? actionItems : []).map((action, idx) => (
               <div key={`${action.title}-${idx}`} className="list-card">
                 <div className="flex items-start justify-between gap-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Action {idx + 1}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Action {idx + 1}</p>
                   <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${priorityTone(action.priority)}`}>
                     {action.priority}
                   </span>
                 </div>
-                <p className="mt-2 text-sm font-medium leading-6 text-slate-800">{action.title}</p>
+                <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-strong)]">{action.title}</p>
               </div>
             ))}
             {!actionItems.length &&
               (actions.length ? actions : ['즉시 실행 액션 없음']).map((action, idx) => (
                 <div key={`${action}-${idx}`} className="list-card">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Action {idx + 1}</p>
-                  <p className="mt-2 text-sm font-medium leading-6 text-slate-800">{action}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Action {idx + 1}</p>
+                  <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-strong)]">{action}</p>
                 </div>
               ))}
           </div>
@@ -149,13 +149,13 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
               <div key={`round-card-${round.roundNumber}`} className="soft-panel">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Round {round.roundNumber}</p>
-                    <p className="mt-2 text-sm font-semibold leading-6 text-slate-950">{round.pmSummary}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Round {round.roundNumber}</p>
+                    <p className="mt-2 text-sm font-semibold leading-6 text-[var(--text-strong)]">{round.pmSummary}</p>
                   </div>
                   <span className="pill-option">{round.deliverableType}</span>
                 </div>
                 {(round.objective || round.campaignName) && (
-                  <p className="mt-3 text-sm leading-6 text-slate-600">
+                  <p className="mt-3 text-sm leading-6 text-[var(--text-base)]">
                     {round.objective || round.campaignName}
                   </p>
                 )}
@@ -163,14 +163,14 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
                   <div className="mt-3 grid gap-2">
                     {round.direction && (
                       <div className="soft-card">
-                        <p className="text-xs text-slate-400">Direction</p>
-                        <p className="mt-1 text-sm leading-6 text-slate-700">{round.direction}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Direction</p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-base)]">{round.direction}</p>
                       </div>
                     )}
                     {round.expectedImpact && (
                       <div className="soft-card">
-                        <p className="text-xs text-slate-400">Impact</p>
-                        <p className="mt-1 text-sm leading-6 text-slate-700">{round.expectedImpact}</p>
+                        <p className="text-xs text-[var(--text-muted)]">Impact</p>
+                        <p className="mt-1 text-sm leading-6 text-[var(--text-base)]">{round.expectedImpact}</p>
                       </div>
                     )}
                   </div>
@@ -189,7 +189,7 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
                     {round.actions.length > 0 && (
                       <div className="space-y-1">
                         {round.actions.map((action) => (
-                          <p key={`${round.roundNumber}-${action}`} className="text-xs leading-5 text-slate-500">
+                          <p key={`${round.roundNumber}-${action}`} className="text-xs leading-5 text-[var(--text-muted)]">
                             {action}
                           </p>
                         ))}
@@ -209,8 +209,8 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
           <div className="grid gap-3">
             {(roundLogs.length ? roundLogs : ['라운드 로그가 없습니다.']).map((line, idx) => (
               <div key={`${line}-${idx}`} className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Round Note {idx + 1}</p>
-                <p className="mt-2 text-sm leading-6 text-slate-700">{line}</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Round Note {idx + 1}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{line}</p>
               </div>
             ))}
           </div>
@@ -220,16 +220,16 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
           <h3 className="section-title">산출물/태그 분포</h3>
           <div className="space-y-4">
             <div className="soft-panel">
-              <p className="text-sm font-semibold text-slate-950">산출물 비중</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">산출물 비중</p>
               <div className="mt-3 space-y-2">
                 {(deliverableMix.length ? deliverableMix : [{ label: '집계 없음', count: 0 }]).map((item) => (
                   <div key={`${item.label}-${item.count}`}>
-                    <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                    <div className="mb-1 flex items-center justify-between text-xs text-[var(--text-base)]">
                       <span>{item.label}</span>
                       <span>{item.count}회</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-200">
-                      <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.max(8, Math.min(100, item.count * 16))}%` }} />
+                    <div className="h-2 rounded-full bg-[var(--surface-border)]">
+                      <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(8, Math.min(100, item.count * 16))}%` }} />
                     </div>
                   </div>
                 ))}
@@ -237,7 +237,7 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
             </div>
 
             <div className="soft-panel">
-              <p className="text-sm font-semibold text-slate-950">태그 빈도</p>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">태그 빈도</p>
               <div className="mt-3 flex flex-wrap gap-2">
                 {(topTags.length ? topTags : [{ label: '태그 없음', count: 0 }]).map((item) => (
                   <span key={`${item.label}-${item.count}`} className="pill-option">
@@ -262,9 +262,9 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
                 rel={source.url ? 'noreferrer' : undefined}
                 className="list-card"
               >
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{source.count}회 참조</p>
-                <p className="mt-2 text-sm font-semibold leading-6 text-slate-900">{source.title}</p>
-                {source.url && <p className="mt-2 text-xs text-sky-700">{source.url}</p>}
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{source.count}회 참조</p>
+                <p className="mt-2 text-sm font-semibold leading-6 text-[var(--text-strong)]">{source.title}</p>
+                {source.url && <p className="mt-2 text-xs text-[var(--accent)]">{source.url}</p>}
               </a>
             ))}
           </div>
@@ -272,8 +272,8 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
       )}
 
       <details className="panel">
-        <summary className="cursor-pointer text-sm font-semibold text-slate-800">원본 보고서 보기</summary>
-        <pre className="mt-4 whitespace-pre-wrap rounded-[22px] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-700">
+        <summary className="cursor-pointer text-sm font-semibold text-[var(--text-strong)]">원본 보고서 보기</summary>
+        <pre className="soft-panel mt-4 whitespace-pre-wrap text-sm leading-7 text-[var(--text-base)]">
           {parsed.raw}
         </pre>
       </details>

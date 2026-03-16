@@ -74,9 +74,9 @@ const statusLabel: Record<SeminarSession['status'], string> = {
 };
 
 const statusClass: Record<SeminarSession['status'], string> = {
-  PLANNED: 'bg-slate-100 text-slate-600',
+  PLANNED: 'bg-[var(--surface-sub)] text-[var(--text-base)]',
   RUNNING: 'bg-[#e7f7ee] text-[#21603d]',
-  STOPPED: 'bg-slate-100 text-slate-500',
+  STOPPED: 'bg-[var(--surface-sub)] text-[var(--text-muted)]',
   COMPLETED: 'bg-[#e9f0fb] text-[#304f7a]',
   FAILED: 'bg-[#fdecec] text-[#8a3636]'
 };
@@ -438,7 +438,7 @@ export default function SeminarPage() {
         <form onSubmit={onCreate} className="panel space-y-4">
           <h3 className="section-title">세션 생성</h3>
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">세션명</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">세션명</label>
             <input
               className="input"
               value={form.title}
@@ -448,7 +448,7 @@ export default function SeminarPage() {
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-slate-600">회의 브리프 *</label>
+            <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">회의 브리프 *</label>
             <textarea
               className="input min-h-[120px]"
               value={form.brief}
@@ -457,14 +457,14 @@ export default function SeminarPage() {
                 '예)\n2분기 신규 고객 유입 전략 세미나\n브랜드: 브랜드명\n지역: 전국\n목표: 리드 전환율 15% 개선'
               }
             />
-            <p className="mt-1 text-xs text-slate-500">첫 줄을 주제로 인식합니다. 브랜드/지역/목표는 선택적으로 줄바꿈 입력하세요.</p>
+            <p className="mt-1 text-xs text-[var(--text-muted)]">첫 줄을 주제로 인식합니다. 브랜드/지역/목표는 선택적으로 줄바꿈 입력하세요.</p>
           </div>
 
           <details className="soft-panel">
-            <summary className="cursor-pointer text-sm font-semibold text-slate-800">상세 입력 (선택)</summary>
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--text-strong)]">상세 입력 (선택)</summary>
             <div className="mt-3 space-y-3">
               <div>
-                <label className="mb-1 block text-xs font-medium text-slate-600">주제 직접 입력</label>
+                <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">주제 직접 입력</label>
                 <input
                   className="input"
                   value={form.topic}
@@ -474,15 +474,15 @@ export default function SeminarPage() {
               </div>
               <div className="grid gap-3 md:grid-cols-3">
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">브랜드</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">브랜드</label>
                   <input className="input" value={form.brand} onChange={(e) => setForm((prev) => ({ ...prev, brand: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">지역</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">지역</label>
                   <input className="input" value={form.region} onChange={(e) => setForm((prev) => ({ ...prev, region: e.target.value }))} />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-medium text-slate-600">목표</label>
+                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">목표</label>
                   <input className="input" value={form.goal} onChange={(e) => setForm((prev) => ({ ...prev, goal: e.target.value }))} />
                 </div>
               </div>
@@ -490,20 +490,20 @@ export default function SeminarPage() {
           </details>
 
           <div>
-            <p className="mb-2 text-xs font-medium text-slate-600">운영 모드</p>
+            <p className="mb-2 text-xs font-medium text-[var(--text-base)]">운영 모드</p>
             <div className="grid gap-2 md:grid-cols-2">
               {SEMINAR_PRESETS.map((preset) => (
                 <button
                   key={preset.key}
                   type="button"
                   onClick={() => applyPreset(preset.key)}
-                  className={`rounded-[22px] border px-4 py-3 text-left transition ${
-                    form.presetKey === preset.key ? 'border-sky-200 bg-sky-50/80' : 'border-slate-200 bg-white/90 hover:bg-white'
+                  className={`rounded-[14px] border px-4 py-3 text-left transition ${
+                    form.presetKey === preset.key ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--surface-border)] bg-[var(--surface)] hover:bg-[var(--surface-sub)]'
                   }`}
                 >
-                  <p className="text-sm font-semibold text-slate-950">{preset.label}</p>
-                  <p className="mt-1 text-xs text-slate-600">{preset.desc}</p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="text-sm font-semibold text-[var(--text-strong)]">{preset.label}</p>
+                  <p className="mt-1 text-xs text-[var(--text-base)]">{preset.desc}</p>
+                  <p className="mt-1 text-xs text-[var(--text-muted)]">
                     {preset.durationHours}시간 / {preset.intervalMinutes}분
                   </p>
                 </button>
@@ -513,7 +513,7 @@ export default function SeminarPage() {
 
           <div className="grid gap-3 md:grid-cols-2">
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">총 운영 시간(시간)</label>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">총 운영 시간(시간)</label>
               <input
                 type="number"
                 min={1}
@@ -530,7 +530,7 @@ export default function SeminarPage() {
               />
             </div>
             <div>
-              <label className="mb-1 block text-xs font-medium text-slate-600">라운드 간격(분)</label>
+              <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">라운드 간격(분)</label>
               <input
                 type="number"
                 min={10}
@@ -781,7 +781,7 @@ export default function SeminarPage() {
                 compact
               />
             </div>
-            <p className="mt-2 text-[11px] text-slate-500">
+            <p className="mt-2 text-[11px] text-[var(--text-muted)]">
               요약 대시보드 기준으로 먼저 보여주고, 원문 전체는 `통합 보고서 열기`에서 확인할 수 있습니다.
             </p>
           </div>

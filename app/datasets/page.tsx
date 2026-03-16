@@ -361,9 +361,9 @@ export default function DatasetsPage() {
             </div>
           </div>
 
-          <div className="min-w-[220px] rounded-[22px] border border-slate-200 bg-white/92 p-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">오늘 포인트</p>
-            <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">질문 문장을 짧게 구체화할수록 AI 분석 결과가 더 좋아집니다.</p>
+          <div className="soft-card min-w-[220px]">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">오늘 포인트</p>
+            <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">질문 문장을 짧게 구체화할수록 AI 분석 결과가 더 좋아집니다.</p>
           </div>
         </div>
         <PageSectionTabs
@@ -379,23 +379,23 @@ export default function DatasetsPage() {
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <div className="status-tile">
           <p className="metric-label">총 데이터셋</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.total}</p>
-          <p className="mt-1 text-xs text-slate-500">현재 워크스페이스에 저장된 데이터</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.total}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">현재 워크스페이스에 저장된 데이터</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">분석 완료</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.analyzedCount}</p>
-          <p className="mt-1 text-xs text-slate-500">AI 분석 결과가 있는 데이터셋</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.analyzedCount}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">AI 분석 결과가 있는 데이터셋</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">표 형식 데이터</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.csvCount}</p>
-          <p className="mt-1 text-xs text-slate-500">CSV/XLSX 기반 분석 가능 데이터</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.csvCount}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">CSV/XLSX 기반 분석 가능 데이터</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">최근 업데이트</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{stats.latestUpdatedAt}</p>
-          <p className="mt-1 text-xs text-slate-500">가장 최근 수정된 데이터셋 기준</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.latestUpdatedAt}</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">가장 최근 수정된 데이터셋 기준</p>
         </div>
       </section>
 
@@ -404,9 +404,9 @@ export default function DatasetsPage() {
           <section id="upload" className="panel space-y-4 scroll-mt-24">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Upload Studio</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Upload Studio</p>
                 <h2 className="section-title">데이터 입력</h2>
-                <p className="mt-2 text-sm leading-6 text-slate-600">파일을 넣고 이름과 메모만 저장하면 됩니다.</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">파일을 넣고 이름과 메모만 저장하면 됩니다.</p>
               </div>
               <span className="accent-pill">{uploadedFileName || '파일 대기'}</span>
             </div>
@@ -414,11 +414,11 @@ export default function DatasetsPage() {
             <form onSubmit={onSubmit} className="space-y-4">
               <div className="grid gap-3 md:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">데이터셋 이름</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">데이터셋 이름</label>
                   <input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">유형</label>
+                  <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">유형</label>
                   <select
                     className="input"
                     value={form.type}
@@ -439,8 +439,8 @@ export default function DatasetsPage() {
                 }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={onDropFile}
-                className={`flex min-h-[136px] cursor-pointer flex-col items-center justify-center rounded-[24px] border-2 border-dashed px-5 py-5 text-center transition ${
-                  dragging ? 'border-sky-400 bg-sky-50' : 'border-slate-200 bg-slate-50/80'
+                className={`flex min-h-[136px] cursor-pointer flex-col items-center justify-center rounded-[14px] border-2 border-dashed px-5 py-5 text-center transition ${
+                  dragging ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--surface-border)] bg-[var(--surface-sub)]'
                 }`}
               >
                 <input
@@ -449,12 +449,12 @@ export default function DatasetsPage() {
                   className="hidden"
                   onChange={onUploadFile}
                 />
-                <p className="text-sm font-semibold text-slate-950">여기에 파일을 끌어다 놓으세요</p>
-                <p className="mt-2 text-xs text-slate-500">또는 클릭해서 CSV / XLSX / JSON / TXT 파일 선택</p>
+                <p className="text-sm font-semibold text-[var(--text-strong)]">여기에 파일을 끌어다 놓으세요</p>
+                <p className="mt-2 text-xs text-[var(--text-muted)]">또는 클릭해서 CSV / XLSX / JSON / TXT 파일 선택</p>
               </label>
 
               <div>
-                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-slate-400">설명 / 메모</label>
+                <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">설명 / 메모</label>
                 <input className="input" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
               </div>
 
@@ -468,15 +468,15 @@ export default function DatasetsPage() {
             <div id="library" className="panel space-y-4 scroll-mt-24">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Dataset Library</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Dataset Library</p>
                   <h2 className="section-title">라이브러리</h2>
                 </div>
                 <span className="pill-option">{filtered.length}개</span>
               </div>
               <input className="input" placeholder="이름 / 메모 / 유형 검색" value={query} onChange={(e) => setQuery(e.target.value)} />
               <div className="max-h-[420px] space-y-3 overflow-auto pr-1">
-                {initialLoading && <div className="soft-panel text-sm text-slate-600">데이터셋을 불러오는 중입니다.</div>}
-                {!initialLoading && filtered.length === 0 && <div className="soft-panel text-sm text-slate-600">저장된 데이터셋이 없습니다.</div>}
+                {initialLoading && <div className="soft-panel text-sm text-[var(--text-base)]">데이터셋을 불러오는 중입니다.</div>}
+                {!initialLoading && filtered.length === 0 && <div className="soft-panel text-sm text-[var(--text-base)]">저장된 데이터셋이 없습니다.</div>}
                 {filtered.map((dataset) => {
                   const active = dataset.id === selectedId;
                   return (
@@ -484,16 +484,16 @@ export default function DatasetsPage() {
                       key={dataset.id}
                       type="button"
                       onClick={() => setSelectedId(dataset.id)}
-                      className={`w-full rounded-[18px] border p-3.5 text-left transition ${
-                        active ? 'border-sky-200 bg-sky-50/80' : 'border-slate-200 bg-white/90 hover:bg-white'
+                      className={`w-full rounded-[14px] border p-3.5 text-left transition ${
+                        active ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--surface-border)] bg-[var(--surface)] hover:bg-[var(--surface-sub)]'
                       }`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-slate-950">{dataset.name}</p>
+                        <p className="text-sm font-semibold text-[var(--text-strong)]">{dataset.name}</p>
                         <span className="pill-option">{dataset.type}</span>
                       </div>
-                      <p className="mt-2 text-xs text-slate-500">{formatDate(dataset.updatedAt)}</p>
-                      {dataset.notes && <p className="mt-2 line-clamp-2 text-xs leading-5 text-slate-600">{dataset.notes}</p>}
+                      <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(dataset.updatedAt)}</p>
+                      {dataset.notes && <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-base)]">{dataset.notes}</p>}
                     </button>
                   );
                 })}
@@ -503,7 +503,7 @@ export default function DatasetsPage() {
             <div id="analysis" className="panel space-y-4 scroll-mt-24">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">AI Analysis</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">AI Analysis</p>
                   <h2 className="section-title">AI 분석</h2>
                 </div>
                 <span className="accent-pill">{selected ? 'dataset ready' : 'select dataset'}</span>
@@ -524,21 +524,21 @@ export default function DatasetsPage() {
               <button onClick={runAnalysis} type="button" disabled={!selected || analyzing} className="button-primary">
                 {analyzing ? 'AI 분석 중...' : 'AI 분석 실행'}
               </button>
-              {message && <p className="text-sm text-slate-600">{message}</p>}
+              {message && <p className="text-sm text-[var(--text-base)]">{message}</p>}
 
               <div className="soft-panel">
                 <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-slate-950">추천 액션</p>
+                  <p className="text-sm font-semibold text-[var(--text-strong)]">추천 액션</p>
                   <span className="pill-option">{actionCards.length}개</span>
                 </div>
                 {actionCards.length === 0 ? (
-                  <p className="mt-2 text-sm text-slate-600">분석 실행 후 우선 실행 액션이 자동 추출됩니다.</p>
+                  <p className="mt-2 text-sm text-[var(--text-base)]">분석 실행 후 우선 실행 액션이 자동 추출됩니다.</p>
                 ) : (
                   <div className="mt-3 grid gap-3 md:grid-cols-2">
                     {actionCards.map((action, index) => (
                       <div key={`${action}-${index}`} className="list-card">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Action {index + 1}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-700">{action}</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Action {index + 1}</p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{action}</p>
                       </div>
                     ))}
                   </div>
@@ -551,14 +551,14 @@ export default function DatasetsPage() {
             <section className="panel">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Draft Preview</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Draft Preview</p>
                   <h2 className="section-title">업로드 미리보기</h2>
                 </div>
                 <span className="pill-option">{draftCsvPreview.rows.length} rows</span>
               </div>
-              <div className="mt-3 max-h-[280px] overflow-auto rounded-[22px] border border-slate-200">
+              <div className="mt-3 max-h-[280px] overflow-auto rounded-[12px] border border-[var(--surface-border)]">
                 <table className="min-w-full table-fixed text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600">
+                  <thead className="bg-[var(--surface-sub)] text-[var(--text-base)]">
                     <tr>
                       {draftCsvPreview.headers.map((header) => (
                         <th key={header} className="px-3 py-2 font-semibold">
@@ -569,9 +569,9 @@ export default function DatasetsPage() {
                   </thead>
                   <tbody>
                     {draftCsvPreview.rows.map((row, index) => (
-                      <tr key={index} className="border-t border-slate-100">
+                      <tr key={index} className="border-t border-[var(--surface-border)]">
                         {draftCsvPreview.headers.map((header) => (
-                          <td key={`${index}-${header}`} className="max-w-[340px] whitespace-pre-wrap break-words px-3 py-2 text-slate-700">
+                          <td key={`${index}-${header}`} className="max-w-[340px] whitespace-pre-wrap break-words px-3 py-2 text-[var(--text-base)]">
                             {row[header]}
                           </td>
                         ))}
@@ -587,14 +587,14 @@ export default function DatasetsPage() {
             <section className="panel">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Selected Preview</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Selected Preview</p>
                   <h2 className="section-title">선택 데이터 미리보기</h2>
                 </div>
                 <span className="pill-option">{selectedCsvPreview.rows.length} rows</span>
               </div>
-              <div className="mt-3 max-h-[280px] overflow-auto rounded-[22px] border border-slate-200">
+              <div className="mt-3 max-h-[280px] overflow-auto rounded-[12px] border border-[var(--surface-border)]">
                 <table className="min-w-full table-fixed text-left text-xs">
-                  <thead className="bg-slate-50 text-slate-600">
+                  <thead className="bg-[var(--surface-sub)] text-[var(--text-base)]">
                     <tr>
                       {selectedCsvPreview.headers.map((header) => (
                         <th key={header} className="px-3 py-2 font-semibold">
@@ -605,9 +605,9 @@ export default function DatasetsPage() {
                   </thead>
                   <tbody>
                     {selectedCsvPreview.rows.map((row, index) => (
-                      <tr key={index} className="border-t border-slate-100">
+                      <tr key={index} className="border-t border-[var(--surface-border)]">
                         {selectedCsvPreview.headers.map((header) => (
-                          <td key={`${index}-${header}`} className="max-w-[340px] whitespace-pre-wrap break-words px-3 py-2 text-slate-700">
+                          <td key={`${index}-${header}`} className="max-w-[340px] whitespace-pre-wrap break-words px-3 py-2 text-[var(--text-base)]">
                             {row[header]}
                           </td>
                         ))}
@@ -623,12 +623,12 @@ export default function DatasetsPage() {
             <div className="panel">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Raw Data</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Raw Data</p>
                   <h2 className="section-title">원본</h2>
                 </div>
                 <span className="pill-option">{selected?.type || form.type}</span>
               </div>
-              <pre className="mt-3 max-h-[300px] overflow-auto rounded-[22px] bg-slate-950 p-4 text-xs leading-6 text-slate-100">
+              <pre className="mt-3 max-h-[300px] overflow-auto rounded-[12px] bg-slate-950 p-4 text-xs leading-6 text-slate-100">
                 {selected?.rawData || form.rawData || '선택된 데이터셋이 없습니다.'}
               </pre>
             </div>
@@ -636,12 +636,12 @@ export default function DatasetsPage() {
             <div className="panel">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">AI Result</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">AI Result</p>
                   <h2 className="section-title">AI 결과</h2>
                 </div>
                 <span className="accent-pill">{selected?.analysis ? 'ready' : 'pending'}</span>
               </div>
-              <pre className="mt-3 max-h-[300px] overflow-auto whitespace-pre-wrap rounded-[22px] bg-slate-50 p-4 text-sm leading-7 text-slate-700">
+              <pre className="soft-panel mt-3 max-h-[300px] overflow-auto whitespace-pre-wrap text-sm leading-7 text-[var(--text-base)]">
                 {selected?.analysis || '분석 결과가 없습니다. 질문을 입력하고 "AI 분석 실행"을 눌러주세요.'}
               </pre>
             </div>
@@ -651,31 +651,31 @@ export default function DatasetsPage() {
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           <section id="insights" className="panel space-y-4 scroll-mt-24">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Insight Rail</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Insight Rail</p>
               <h2 className="section-title">핵심 수치</h2>
             </div>
             <div className="grid gap-3">
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">총 비용</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">총 비용</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
                   {activeMetrics ? activeMetrics.totalCost.toLocaleString('ko-KR') : '-'}
                 </p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">총 클릭</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">총 클릭</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
                   {activeMetrics ? activeMetrics.totalClick.toLocaleString('ko-KR') : '-'}
                 </p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">총 전환</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">총 전환</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
                   {activeMetrics ? activeMetrics.totalConv.toLocaleString('ko-KR') : '-'}
                 </p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">CAC / CVR</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">CAC / CVR</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
                   {activeMetrics ? `${activeMetrics.cac.toFixed(0)} / ${activeMetrics.cvr.toFixed(2)}%` : '-'}
                 </p>
               </div>
@@ -684,43 +684,43 @@ export default function DatasetsPage() {
 
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Selected Dataset</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Selected Dataset</p>
               <h2 className="section-title">현재 선택 정보</h2>
             </div>
             {selected ? (
               <div className="space-y-3">
                 <div className="soft-panel">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Name</p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{selected.name}</p>
-                  <p className="mt-2 text-xs text-slate-500">{selected.notes || '메모 없음'}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Name</p>
+                  <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{selected.name}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{selected.notes || '메모 없음'}</p>
                 </div>
                 <div className="grid gap-3">
                   <div className="list-card">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">유형</p>
-                    <p className="mt-2 text-sm text-slate-700">{selected.type}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">유형</p>
+                    <p className="mt-2 text-sm text-[var(--text-base)]">{selected.type}</p>
                   </div>
                   <div className="list-card">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">업데이트</p>
-                    <p className="mt-2 text-sm text-slate-700">{formatDate(selected.updatedAt)}</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">업데이트</p>
+                    <p className="mt-2 text-sm text-[var(--text-base)]">{formatDate(selected.updatedAt)}</p>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="soft-panel text-sm text-slate-600">왼쪽 라이브러리에서 데이터셋을 선택하면 요약 정보가 표시됩니다.</div>
+              <div className="soft-panel text-sm text-[var(--text-base)]">왼쪽 라이브러리에서 데이터셋을 선택하면 요약 정보가 표시됩니다.</div>
             )}
           </section>
 
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Question Guide</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Question Guide</p>
               <h2 className="section-title">질문 팁</h2>
             </div>
             <div className="grid gap-3">
               <div className="soft-panel">
-                <p className="text-sm leading-6 text-slate-700">채널별 `CAC`, `CVR`, `ROAS`, `예산 재배분`처럼 비교 기준을 명확히 넣으면 결과가 더 좋아집니다.</p>
+                <p className="text-sm leading-6 text-[var(--text-base)]">채널별 `CAC`, `CVR`, `ROAS`, `예산 재배분`처럼 비교 기준을 명확히 넣으면 결과가 더 좋아집니다.</p>
               </div>
               <div className="soft-panel">
-                <p className="text-sm leading-6 text-slate-700">수치 원인 분석과 액션 도출을 같이 요청하면, 단순 리포트보다 바로 실행 가능한 답을 얻기 쉽습니다.</p>
+                <p className="text-sm leading-6 text-[var(--text-base)]">수치 원인 분석과 액션 도출을 같이 요청하면, 단순 리포트보다 바로 실행 가능한 답을 얻기 쉽습니다.</p>
               </div>
             </div>
           </section>

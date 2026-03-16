@@ -15,7 +15,7 @@ function typeTone(type: Notification['type']) {
   if (type === 'warning') return { badge: 'bg-rose-100 text-rose-700', border: 'border-l-rose-400', dot: 'bg-rose-500' };
   if (type === 'action') return { badge: 'bg-amber-100 text-amber-700', border: 'border-l-amber-400', dot: 'bg-amber-500' };
   if (type === 'success') return { badge: 'bg-emerald-100 text-emerald-700', border: 'border-l-emerald-400', dot: 'bg-emerald-500' };
-  return { badge: 'bg-sky-100 text-sky-700', border: 'border-l-sky-400', dot: 'bg-[var(--accent)]' };
+  return { badge: 'bg-[var(--accent-soft)] text-[var(--accent)]', border: 'border-l-sky-400', dot: 'bg-[var(--accent)]' };
 }
 
 function typeLabel(type: Notification['type']) {

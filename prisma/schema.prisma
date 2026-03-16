@@ -1,0 +1,197 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum MeetingRole {
+  STRATEGIST
+  CONTENT_DIRECTOR
+  PERFORMANCE_MARKETER
+  OPERATIONS_MANAGER
+  PM
+}
+
+enum DeliverableType {
+  CAMPAIGN_PLAN
+  CONTENT_PACKAGE
+  EXPERIMENT_DESIGN
+}
+
+model Run {
+  id           String       @id @default(uuid())
+  topic        String
+  brand        String?
+  region       String?
+  goal         String?
+  createdAt    DateTime     @default(now())
+  webSources   WebSource[]
+  meetingTurns MeetingTurn[]
+  attachments  RunAttachment[]
+  deliverable  Deliverable?
+  memoryLog    MemoryLog?
+  learningArchives LearningArchive[]
+
+  @@index([createdAt])
+  @@index([topic])
+  @@index([brand])
+}
+
+model RunAttachment {
+  id        String   @id @default(cuid())
+  runId     String
+  name      String
+  mimeType  String
+  content   String
+  createdAt DateTime @default(now())
+  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+}
+
+model WebSource {
+  id        String   @id @default(cuid())
+  runId     String
+  title     String
+  snippet   String
+  url       String
+  provider  String
+  fetchedAt DateTime
+  run       Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([fetchedAt])
+}
+
+model MeetingTurn {
+  id        String      @id @default(cuid())
+  runId     String
+  role      MeetingRole
+  nickname  String
+  content   String
+  createdAt DateTime    @default(now())
+  run       Run         @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, createdAt])
+  @@index([role])
+}
+
+model Deliverable {
+  id        String          @id @default(cuid())
+  runId     String          @unique
+  type      DeliverableType
+  content   String
+  createdAt DateTime        @default(now())
+  run       Run             @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([type])
+}
+
+model MemoryLog {
+  id             String   @id @default(cuid())
+  runId          String   @unique
+  hypothesis     String
+  direction      String
+  expectedImpact String
+  risks          String
+  outcome        String?
+  failureReason  String?
+  tags           String
+  createdAt      DateTime @default(now())
+  run            Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt])
+}
+
+enum DatasetType {
+  CSV
+  XLSX
+  JSON
+  TEXT
+}
+
+model Dataset {
+  id        String      @id @default(cuid())
+  name      String
+  type      DatasetType
+  notes     String?
+  rawData   String
+  analysis  String?
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([createdAt])
+  @@index([name])
+  @@index([type])
+}
+
+enum LearningStatus {
+  DRAFT
+  CONFIRMED
+  ARCHIVED
+}
+
+enum ReachTrendDirection {
+  UP
+  DOWN
+  FLAT
+}
+
+model LearningArchive {
+  id                  String         @id @default(cuid())
+  runId               String?
+  sourceType          String
+  situation           String
+  recommendedResponse String
+  reasoning           String
+  signals             String
+  tags                String
+  status              LearningStatus @default(DRAFT)
+  lastUsedAt          DateTime?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  run                 Run?           @relation(fields: [runId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model InstagramReachDaily {
+  id         String   @id @default(cuid())
+  accountId  String
+  metricDate DateTime
+  reach      Int
+  rawValue   String?
+  fetchedAt  DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([accountId, metricDate])
+  @@index([metricDate])
+  @@index([accountId, metricDate])
+}
+
+model InstagramReachAnalysisRun {
+  id                  String              @id @default(cuid())
+  accountId           String
+  since               DateTime
+  until               DateTime
+  days                Int
+  averageReach        Float
+  latestReach         Int
+  previousReach       Int?
+  dayOverDayChangePct Float?
+  sevenDayAverage     Float?
+  trendDirection      ReachTrendDirection
+  anomalyCount        Int                 @default(0)
+  summary             String
+  rawJson             String
+  createdAt           DateTime            @default(now())
+
+  @@index([accountId, createdAt])
+  @@index([createdAt])
+}

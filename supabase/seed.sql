@@ -1,0 +1,2 @@
+-- Seed intentionally left minimal for Phase 1.
+-- Use `npm run supabase:db:reset` after adding test users or shared demo data.

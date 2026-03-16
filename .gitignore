@@ -1,0 +1,49 @@
+# Dependencies
+node_modules
+
+# Next.js
+.next
+.next-build
+out
+
+# Electron build output
+dist
+dist-electron
+
+# Environment variables (never commit secrets)
+.env
+.env.local
+.env.production
+
+# Database files
+*.db
+*.db-journal
+prisma/dev.db
+prisma/dev.db-wal
+prisma/dev.db-shm
+
+# TypeScript build info
+tsconfig.tsbuildinfo
+*.tsbuildinfo
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+
+# Playwright / test artifacts
+.playwright-cli/
+playwright-report/
+test-results/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/settings.json
+.idea/
+
+# Vendor / bundled binaries
+vendor_prisma/
+superpowers/

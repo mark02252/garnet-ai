@@ -1,0 +1,712 @@
+import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
+import path from 'node:path';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { autoUpdater } from 'electron-updater';
+
+let mainWindow: BrowserWindow | null = null;
+let nextServerStarted = false;
+let updateAvailableVersion = '';
+let configuredUpdateUrl = '';
+
+type UpdateConfig = {
+  updateUrl?: string;
+};
+
+const isDev = process.env.NODE_ENV === 'development';
+const devUrl = process.env.ELECTRON_START_URL || 'http://localhost:3000';
+const appPort = process.env.PORT || '3123';
+
+function ensureShellPath() {
+  const home = process.env.HOME || '';
+  const extraDirs = [
+    '/opt/homebrew/bin',
+    '/usr/local/bin',
+    '/opt/local/bin',
+    '/usr/bin',
+    '/bin',
+    home ? path.join(home, '.local', 'bin') : '',
+    home ? path.join(home, '.npm-global', 'bin') : '',
+    home ? path.join(home, 'bin') : ''
+  ].filter(Boolean);
+  const current = (process.env.PATH || '').split(path.delimiter).filter(Boolean);
+  process.env.PATH = [...new Set([...extraDirs, ...current])].join(path.delimiter);
+}
+
+function getUpdateConfigPath() {
+  return path.join(app.getPath('userData'), 'update-config.json');
+}
+
+function getRuntimeConfigPath() {
+  return path.join(app.getPath('userData'), 'runtime-config.bin');
+}
+
+function sanitizeConfigKey(key: string) {
+  return key.replace(/[^a-zA-Z0-9_-]+/g, '_').slice(0, 80) || 'default';
+}
+
+function getAppConfigPath(key: string) {
+  return path.join(app.getPath('userData'), 'app-config', `${sanitizeConfigKey(key)}.bin`);
+}
+
+function hasSecureRuntimeStorage() {
+  try {
+    return safeStorage.isEncryptionAvailable();
+  } catch {
+    return false;
+  }
+}
+
+function normalizeUpdateUrl(value?: string) {
+  const raw = (value || '').trim();
+  if (!raw) return '';
+  return raw.replace(/\/+$/, '');
+}
+
+function isValidUpdateUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'http:' || url.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+async function readUpdateConfig(): Promise<UpdateConfig> {
+  try {
+    const raw = await readFile(getUpdateConfigPath(), 'utf-8');
+    const parsed = JSON.parse(raw) as UpdateConfig;
+    return {
+      updateUrl: normalizeUpdateUrl(parsed.updateUrl)
+    };
+  } catch {
+    return {};
+  }
+}
+
+async function writeUpdateConfig(config: UpdateConfig) {
+  const filepath = getUpdateConfigPath();
+  await mkdir(path.dirname(filepath), { recursive: true });
+  await writeFile(
+    filepath,
+    JSON.stringify(
+      {
+        updateUrl: normalizeUpdateUrl(config.updateUrl)
+      },
+      null,
+      2
+    ),
+    'utf-8'
+  );
+}
+
+async function readRuntimeConfig() {
+  try {
+    const encrypted = await readFile(getRuntimeConfigPath());
+    if (!encrypted.length) return '';
+    if (!hasSecureRuntimeStorage()) {
+      throw new Error('OS 보안 저장소를 사용할 수 없습니다.');
+    }
+    return safeStorage.decryptString(encrypted);
+  } catch (error) {
+    const e = error as NodeJS.ErrnoException;
+    if (e.code === 'ENOENT') return '';
+    throw error;
+  }
+}
+
+async function writeRuntimeConfig(runtimeJson: string) {
+  if (!hasSecureRuntimeStorage()) {
+    throw new Error('OS 보안 저장소를 사용할 수 없습니다.');
+  }
+
+  const filepath = getRuntimeConfigPath();
+  await mkdir(path.dirname(filepath), { recursive: true });
+  await writeFile(filepath, safeStorage.encryptString(runtimeJson));
+}
+
+async function readAppConfig(key: string) {
+  try {
+    const encrypted = await readFile(getAppConfigPath(key));
+    if (!encrypted.length) return '';
+    if (!hasSecureRuntimeStorage()) {
+      throw new Error('OS 보안 저장소를 사용할 수 없습니다.');
+    }
+    return safeStorage.decryptString(encrypted);
+  } catch (error) {
+    const e = error as NodeJS.ErrnoException;
+    if (e.code === 'ENOENT') return '';
+    throw error;
+  }
+}
+
+async function writeAppConfig(key: string, configJson: string) {
+  if (!hasSecureRuntimeStorage()) {
+    throw new Error('OS 보안 저장소를 사용할 수 없습니다.');
+  }
+
+  const filepath = getAppConfigPath(key);
+  await mkdir(path.dirname(filepath), { recursive: true });
+  await writeFile(filepath, safeStorage.encryptString(configJson));
+}
+
+async function resolveUpdateUrl() {
+  const config = await readUpdateConfig();
+  const saved = normalizeUpdateUrl(config.updateUrl);
+  if (saved) return { url: saved, source: 'saved' as const };
+  const envUrl = normalizeUpdateUrl(process.env.APP_UPDATE_URL);
+  if (envUrl) return { url: envUrl, source: 'env' as const };
+  return { url: '', source: 'none' as const };
+}
+
+function hasBundledUpdateConfig() {
+  const updater = autoUpdater as unknown as { appUpdateConfigPath?: string };
+  const configPath = updater.appUpdateConfigPath;
+  if (!configPath) return false;
+  return existsSync(configPath);
+}
+
+function getAppUrl() {
+  if (isDev) return devUrl;
+  return `http://127.0.0.1:${appPort}`;
+}
+
+function getAppOrigin() {
+  try {
+    return new URL(getAppUrl()).origin;
+  } catch {
+    return 'http://127.0.0.1:3000';
+  }
+}
+
+function isOAuthPopupUrl(targetUrl: string) {
+  try {
+    const parsed = new URL(targetUrl);
+    const appOrigin = getAppOrigin();
+    return (
+      parsed.origin === appOrigin ||
+      parsed.origin === 'https://www.facebook.com' ||
+      parsed.origin === 'https://facebook.com' ||
+      parsed.origin === 'https://www.instagram.com' ||
+      parsed.origin === 'https://instagram.com'
+    );
+  } catch {
+    return false;
+  }
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function ensureRuntimeDatabaseUrl() {
+  if (isDev) return;
+  if (process.env.DATABASE_URL?.trim()) return;
+  const dbPath = path.join(app.getPath('userData'), 'marketing-os.db');
+  process.env.DATABASE_URL = `file:${dbPath}`;
+}
+
+function enableAsarNodePath(resourcesPath: string) {
+  const unpackedNodeModules = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules');
+  const asarNodeModules = path.join(resourcesPath, 'app.asar', 'node_modules');
+  const unpackedVendorRoot = path.join(resourcesPath, 'app.asar.unpacked', 'vendor_prisma');
+  const asarVendorRoot = path.join(resourcesPath, 'app.asar', 'vendor_prisma');
+  const customPaths = [unpackedVendorRoot, asarVendorRoot, unpackedNodeModules, asarNodeModules].join(path.delimiter);
+  process.env.NODE_PATH = process.env.NODE_PATH ? `${customPaths}${path.delimiter}${process.env.NODE_PATH}` : customPaths;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const Module = require('module') as { Module: { _initPaths: () => void } };
+  Module.Module._initPaths();
+}
+
+async function waitForServerReady(url: string, timeoutMs = 45000) {
+  const started = Date.now();
+  while (Date.now() - started < timeoutMs) {
+    try {
+      const res = await fetch(url, { method: 'GET', signal: AbortSignal.timeout(2000) });
+      if (res.ok) return true;
+    } catch {
+      // keep polling
+    }
+    await sleep(600);
+  }
+  return false;
+}
+
+async function startEmbeddedSeminarScheduler() {
+  if (isDev) return;
+  const schedulerUrl = `http://127.0.0.1:${appPort}/api/seminar/scheduler/start`;
+  try {
+    await fetch(schedulerUrl, { method: 'POST', signal: AbortSignal.timeout(5000) });
+  } catch {
+    // Ignore scheduler bootstrap failures; user can still trigger from UI/API.
+  }
+}
+
+function startNextServer() {
+  if (isDev) return;
+  if (nextServerStarted) return;
+
+  const resourcesPath = process.resourcesPath;
+  const unpackedServerPath = path.join(resourcesPath, 'app.asar.unpacked', '.next-build', 'standalone', 'server.js');
+  const asarServerPath = path.join(resourcesPath, 'app.asar', '.next-build', 'standalone', 'server.js');
+  const serverPath = existsSync(unpackedServerPath) ? unpackedServerPath : asarServerPath;
+  process.env.PORT = appPort;
+  process.env.HOSTNAME = '127.0.0.1';
+  enableAsarNodePath(resourcesPath);
+
+  if (serverPath === unpackedServerPath) {
+    // Unpacked standalone server can chdir/load static assets normally.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require(serverPath);
+  } else {
+    const originalChdir = process.chdir.bind(process);
+    process.chdir = ((dir: string) => {
+      if (typeof dir === 'string' && dir.includes('app.asar/.next-build/standalone')) return;
+      return originalChdir(dir);
+    }) as typeof process.chdir;
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    require(serverPath);
+    process.chdir = originalChdir;
+  }
+  nextServerStarted = true;
+}
+
+function configureAutoUpdater() {
+  if (isDev) return;
+  autoUpdater.autoDownload = false;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    updateAvailableVersion = info.version || '';
+  });
+
+  autoUpdater.on('update-not-available', () => {
+    updateAvailableVersion = '';
+  });
+
+  autoUpdater.on('error', () => {
+    updateAvailableVersion = '';
+  });
+}
+
+async function ensureUpdateFeedConfigured() {
+  if (isDev) {
+    return {
+      ok: false,
+      status: 'disabled',
+      message: '개발 모드에서는 자동 업데이트를 사용할 수 없습니다.',
+      source: 'none' as const
+    };
+  }
+
+  const resolved = await resolveUpdateUrl();
+  if (!resolved.url) {
+    if (hasBundledUpdateConfig()) {
+      return {
+        ok: true,
+        status: 'configured',
+        message: '앱에 내장된 업데이트 설정(app-update.yml)을 사용합니다.',
+        source: 'bundled' as const
+      };
+    }
+    return {
+      ok: false,
+      status: 'missing-config',
+      message: '업데이트 피드 URL이 없습니다. 설정 및 복구에서 먼저 저장해 주세요.',
+      source: resolved.source
+    };
+  }
+
+  if (!isValidUpdateUrl(resolved.url)) {
+    return {
+      ok: false,
+      status: 'invalid-config',
+      message: '업데이트 피드 URL 형식이 올바르지 않습니다. http(s) 주소를 확인해 주세요.',
+      source: resolved.source
+    };
+  }
+
+  if (configuredUpdateUrl !== resolved.url) {
+    autoUpdater.setFeedURL({
+      provider: 'generic',
+      url: resolved.url
+    });
+    configuredUpdateUrl = resolved.url;
+  }
+
+  return {
+    ok: true,
+    status: 'configured',
+    message: '업데이트 피드가 설정되었습니다.',
+    updateUrl: resolved.url,
+    source: resolved.source
+  };
+}
+
+ipcMain.handle('report:save-pdf', async (event, payload?: { suggestedName?: string }) => {
+  const sender = event.sender;
+  const filename = (payload?.suggestedName || 'marketing-report.pdf').replace(/[^\w\-_.가-힣]/g, '_');
+
+  const result = await dialog.showSaveDialog({
+    title: 'PDF 보고서 저장',
+    defaultPath: path.join(app.getPath('documents'), filename),
+    filters: [{ name: 'PDF', extensions: ['pdf'] }]
+  });
+
+  if (result.canceled || !result.filePath) {
+    return { ok: false, canceled: true };
+  }
+
+  const pdfBuffer = await sender.printToPDF({
+    printBackground: true,
+    landscape: false,
+    pageSize: 'A4',
+    margins: { top: 0.4, bottom: 0.4, left: 0.4, right: 0.4 }
+  });
+
+  await writeFile(result.filePath, pdfBuffer);
+  return { ok: true, path: result.filePath };
+});
+
+ipcMain.handle('runtime-config:get', async () => {
+  try {
+    const runtimeJson = await readRuntimeConfig();
+    return {
+      ok: true,
+      status: runtimeJson ? 'loaded' : 'empty',
+      message: runtimeJson ? '실행 키를 안전 저장소에서 불러왔습니다.' : '저장된 실행 키가 없습니다.',
+      runtimeJson: runtimeJson || undefined,
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'error',
+      message: error instanceof Error ? error.message : '실행 키를 불러오지 못했습니다.',
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  }
+});
+
+ipcMain.handle('runtime-config:set', async (_event, payload?: { runtimeJson?: string }) => {
+  const runtimeJson = (payload?.runtimeJson || '').trim();
+  if (!runtimeJson) {
+    try {
+      await rm(getRuntimeConfigPath(), { force: true });
+    } catch {
+      // noop
+    }
+    return {
+      ok: true,
+      status: 'cleared',
+      message: '실행 키를 초기화했습니다.',
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  }
+
+  try {
+    await writeRuntimeConfig(runtimeJson);
+    return {
+      ok: true,
+      status: 'saved',
+      message: '실행 키를 안전 저장소에 저장했습니다.',
+      storageMode: 'safeStorage' as const
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'error',
+      message: error instanceof Error ? error.message : '실행 키 저장에 실패했습니다.',
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  }
+});
+
+ipcMain.handle('app-config:get', async (_event, payload?: { key?: string }) => {
+  const key = sanitizeConfigKey(payload?.key || '');
+  try {
+    const configJson = await readAppConfig(key);
+    return {
+      ok: true,
+      status: configJson ? 'loaded' : 'empty',
+      message: configJson ? '앱 설정을 안전 저장소에서 불러왔습니다.' : '저장된 앱 설정이 없습니다.',
+      configJson: configJson || undefined,
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'error',
+      message: error instanceof Error ? error.message : '앱 설정을 불러오지 못했습니다.',
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  }
+});
+
+ipcMain.handle('app-config:set', async (_event, payload?: { key?: string; configJson?: string }) => {
+  const key = sanitizeConfigKey(payload?.key || '');
+  const configJson = (payload?.configJson || '').trim();
+
+  if (!configJson) {
+    try {
+      await rm(getAppConfigPath(key), { force: true });
+    } catch {
+      // noop
+    }
+    return {
+      ok: true,
+      status: 'cleared',
+      message: '앱 설정을 초기화했습니다.',
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  }
+
+  try {
+    await writeAppConfig(key, configJson);
+    return {
+      ok: true,
+      status: 'saved',
+      message: '앱 설정을 안전 저장소에 저장했습니다.',
+      storageMode: 'safeStorage' as const
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      status: 'error',
+      message: error instanceof Error ? error.message : '앱 설정 저장에 실패했습니다.',
+      storageMode: hasSecureRuntimeStorage() ? ('safeStorage' as const) : ('none' as const)
+    };
+  }
+});
+
+ipcMain.handle('updater:check', async () => {
+  if (isDev) {
+    return {
+      ok: false,
+      status: 'disabled',
+      message: '개발 모드에서는 자동 업데이트를 사용할 수 없습니다.',
+      currentVersion: app.getVersion()
+    };
+  }
+
+  try {
+    const feedStatus = await ensureUpdateFeedConfigured();
+    if (!feedStatus.ok) {
+      return {
+        ok: false,
+        status: feedStatus.status,
+        message: feedStatus.message,
+        currentVersion: app.getVersion()
+      };
+    }
+    const result = await autoUpdater.checkForUpdates();
+    if (!result?.updateInfo) {
+      return {
+        ok: true,
+        status: 'idle',
+        message: '업데이트 정보를 확인하지 못했습니다.',
+        currentVersion: app.getVersion()
+      };
+    }
+
+    const hasUpdate = result.updateInfo.version !== app.getVersion();
+    updateAvailableVersion = hasUpdate ? result.updateInfo.version : '';
+
+    return {
+      ok: true,
+      status: hasUpdate ? 'available' : 'up-to-date',
+      message: hasUpdate ? '업데이트가 확인되었습니다.' : '현재 최신 버전입니다.',
+      currentVersion: app.getVersion(),
+      availableVersion: hasUpdate ? result.updateInfo.version : undefined,
+      updateUrl: feedStatus.updateUrl,
+      configSource: feedStatus.source
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : '업데이트 확인 실패';
+    return {
+      ok: false,
+      status: 'error',
+      message: `업데이트 확인 실패: ${reason}`,
+      currentVersion: app.getVersion()
+    };
+  }
+});
+
+ipcMain.handle('updater:get-config', async () => {
+  const resolved = await resolveUpdateUrl();
+  if (!resolved.url && hasBundledUpdateConfig()) {
+    return {
+      ok: true,
+      updateUrl: '',
+      source: 'bundled' as const
+    };
+  }
+  return {
+    ok: true,
+    updateUrl: resolved.url,
+    source: resolved.source
+  };
+});
+
+ipcMain.handle('updater:set-config', async (_event, payload?: { updateUrl?: string }) => {
+  if (isDev) {
+    return {
+      ok: false,
+      status: 'disabled',
+      message: '개발 모드에서는 업데이트 설정 저장이 비활성화됩니다.'
+    };
+  }
+
+  const updateUrl = normalizeUpdateUrl(payload?.updateUrl);
+  if (updateUrl && !isValidUpdateUrl(updateUrl)) {
+    return {
+      ok: false,
+      status: 'invalid-config',
+      message: 'URL 형식이 올바르지 않습니다. http(s):// 로 시작해야 합니다.'
+    };
+  }
+
+  await writeUpdateConfig({ updateUrl });
+  configuredUpdateUrl = '';
+  updateAvailableVersion = '';
+  await ensureUpdateFeedConfigured();
+
+  return {
+    ok: true,
+    status: 'saved',
+    message: updateUrl ? '업데이트 피드 URL을 저장했습니다.' : '업데이트 피드 URL을 초기화했습니다.',
+    updateUrl
+  };
+});
+
+ipcMain.handle('updater:download', async () => {
+  if (isDev) {
+    return { ok: false, status: 'disabled', message: '개발 모드에서는 다운로드할 수 없습니다.' };
+  }
+
+  try {
+    const feedStatus = await ensureUpdateFeedConfigured();
+    if (!feedStatus.ok) {
+      return {
+        ok: false,
+        status: feedStatus.status,
+        message: feedStatus.message
+      };
+    }
+    await autoUpdater.downloadUpdate();
+    return {
+      ok: true,
+      status: 'downloaded',
+      message: '업데이트 다운로드가 완료되었습니다. 설치 버튼으로 반영하세요.',
+      availableVersion: updateAvailableVersion || undefined
+    };
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : '업데이트 다운로드 실패';
+    return { ok: false, status: 'error', message: `업데이트 다운로드 실패: ${reason}` };
+  }
+});
+
+ipcMain.handle('updater:install', async () => {
+  if (isDev) {
+    return { ok: false, status: 'disabled', message: '개발 모드에서는 설치할 수 없습니다.' };
+  }
+
+  setImmediate(() => autoUpdater.quitAndInstall());
+  return { ok: true, status: 'installing', message: '앱을 종료하고 업데이트를 설치합니다.' };
+});
+
+async function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1366,
+    height: 900,
+    minWidth: 1200,
+    minHeight: 760,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false
+    }
+  });
+
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (!isOAuthPopupUrl(url)) {
+      void shell.openExternal(url);
+      return { action: 'deny' };
+    }
+
+    return {
+      action: 'allow',
+      overrideBrowserWindowOptions: {
+        width: 540,
+        height: 760,
+        autoHideMenuBar: true,
+        parent: mainWindow || undefined,
+        webPreferences: {
+          preload: path.join(__dirname, 'preload.js'),
+          contextIsolation: true,
+          nodeIntegration: false
+        }
+      }
+    };
+  });
+
+  const appUrl = getAppUrl();
+  const canLoad = isDev ? true : await waitForServerReady(appUrl, 45000);
+  if (!canLoad) {
+    const message = `
+      <html><body style="font-family:-apple-system,Apple SD Gothic Neo,sans-serif;padding:28px;background:#f6f1ea;color:#2a1a18;">
+      <h2>앱 로딩 지연</h2>
+      <p>내부 서버 시작이 지연되고 있습니다. 앱을 다시 실행해 주세요.</p>
+      <p style="font-size:12px;color:#6b5a50;">문제가 반복되면 최신 버전으로 업데이트하거나 재설치해 주세요.</p>
+      </body></html>
+    `;
+    await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(message)}`);
+  } else {
+    await mainWindow.loadURL(appUrl);
+  }
+
+  if (isDev) {
+    mainWindow.webContents.openDevTools({ mode: 'detach' });
+  }
+
+  mainWindow.webContents.on('did-fail-load', async () => {
+    if (!mainWindow) return;
+    if (isDev) return;
+    const ready = await waitForServerReady(appUrl, 15000);
+    if (ready) {
+      await mainWindow.loadURL(appUrl);
+    }
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+}
+
+app.whenReady().then(async () => {
+  ensureShellPath();
+  ensureRuntimeDatabaseUrl();
+  configureAutoUpdater();
+  try {
+    startNextServer();
+  } catch (error) {
+    console.error('Failed to start embedded Next server:', error);
+  }
+
+  await createWindow();
+  await startEmbeddedSeminarScheduler();
+
+  app.on('activate', async () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+      await createWindow();
+    }
+  });
+});
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') app.quit();
+});
+
+app.on('quit', () => {
+  nextServerStarted = false;
+});

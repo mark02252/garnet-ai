@@ -1,0 +1,186 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { type ReactNode } from 'react';
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: ReactNode;
+};
+
+function BriefingIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="3.5" rx="1.5" fill="currentColor" opacity="0.2" />
+      <rect x="3" y="10" width="12" height="2.5" rx="1.25" fill="currentColor" />
+      <rect x="3" y="15" width="8" height="2.5" rx="1.25" fill="currentColor" opacity="0.5" />
+    </svg>
+  );
+}
+
+function CampaignIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M3 5h18M3 12h12M3 19h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+      <circle cx="19" cy="17" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function StudioIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" fill="currentColor" />
+      <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M16.9 16.9l1.4 1.4M5.6 18.4l1.4-1.4M16.9 7.1l1.4-1.4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function SeminarIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="17" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3 19c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M17 13c1.7 0 4 1 4 3.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function DataIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="3" y="13" width="4" height="8" rx="1.5" fill="currentColor" opacity="0.4" />
+      <rect x="10" y="8" width="4" height="13" rx="1.5" fill="currentColor" opacity="0.7" />
+      <rect x="17" y="3" width="4" height="18" rx="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function DashboardIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="13" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="3" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <rect x="13" y="13" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function PlaybookIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M4 4h16v14a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 9h8M8 13h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HistoryIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M12 7v5l3 3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M3.05 11a9 9 0 1 0 .5-3" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M3 5v4h4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function SocialIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="2" y="2" width="20" height="20" rx="5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.7" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" />
+    </svg>
+  );
+}
+
+const navItems: NavItem[] = [
+  { href: '/operations', label: '오늘의 브리핑', icon: <BriefingIcon /> },
+  { href: '/', label: '캠페인 스튜디오', icon: <StudioIcon /> },
+  { href: '/campaigns', label: '캠페인 룸', icon: <CampaignIcon /> },
+  { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
+  { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
+  { href: '/dashboard', label: '성과 대시보드', icon: <DashboardIcon /> },
+  { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
+  { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
+];
+
+const bottomItems: NavItem[] = [
+  { href: '/social', label: 'SNS 인사이트', icon: <SocialIcon /> },
+  { href: '/settings', label: '설정', icon: <SettingsIcon /> },
+];
+
+function isActivePath(pathname: string, href: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function NavButton({ item, active }: { item: NavItem; active: boolean }) {
+  return (
+    <Link
+      href={item.href}
+      title={item.label}
+      aria-label={item.label}
+      className={[
+        'relative flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors',
+        active
+          ? 'bg-[rgba(49,130,246,0.1)] text-[#3182f6]'
+          : 'text-[#6b7684] hover:bg-[#f5f6f7] hover:text-[#333d4b]'
+      ].join(' ')}
+    >
+      {item.icon}
+      {active && (
+        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[#3182f6]" />
+      )}
+    </Link>
+  );
+}
+
+export function AppNav() {
+  const pathname = usePathname();
+
+  return (
+    <aside className="app-sidebar">
+      {/* Logo */}
+      <Link
+        href="/operations"
+        className="mb-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[rgba(49,130,246,0.1)] text-[13px] font-bold text-[#3182f6]"
+        title="Garnet"
+      >
+        G
+      </Link>
+
+      {/* Divider */}
+      <div className="my-1 h-px w-8 bg-[#e8ebed]" />
+
+      {/* Main nav */}
+      <nav className="flex flex-1 flex-col gap-1">
+        {navItems.map((item) => (
+          <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
+        ))}
+      </nav>
+
+      {/* Bottom nav */}
+      <div className="flex flex-col gap-1">
+        <div className="mb-1 h-px w-8 bg-[#e8ebed]" />
+        {bottomItems.map((item) => (
+          <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
+        ))}
+      </div>
+    </aside>
+  );
+}

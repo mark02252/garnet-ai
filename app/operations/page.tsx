@@ -52,7 +52,7 @@ function seminarTone(status: SeminarSession['status']) {
   if (status === 'COMPLETED') return 'bg-sky-100 text-sky-700';
   if (status === 'PLANNED') return 'bg-amber-100 text-amber-700';
   if (status === 'FAILED') return 'bg-rose-100 text-rose-700';
-  return 'bg-slate-100 text-slate-600';
+  return 'bg-[#f5f6f7] text-[#6b7684]';
 }
 
 function seminarLabel(status: SeminarSession['status']) {
@@ -82,7 +82,7 @@ function timelineTone(type: TimelineItem['type']) {
 function reachSummary(direction: 'UP' | 'DOWN' | 'FLAT' | null | undefined) {
   if (direction === 'UP') return { label: '상승 추세', tone: 'text-emerald-700' };
   if (direction === 'DOWN') return { label: '하락 추세', tone: 'text-rose-700' };
-  return { label: '보합 추세', tone: 'text-slate-700' };
+  return { label: '보합 추세', tone: 'text-[#6b7684]' };
 }
 
 export default async function OperationsPage() {
@@ -365,22 +365,17 @@ export default async function OperationsPage() {
 
   return (
     <div className="space-y-5">
+      {/* ── Hero ── */}
       <section className="dashboard-hero">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
           <div>
             <p className="dashboard-eyebrow">Morning Briefing</p>
             <h1 className="dashboard-title">오늘의 마케팅 브리핑</h1>
             <p className="dashboard-copy">우선순위와 승인 대기만 빠르게 정리했습니다.</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/" className="button-primary">
-                캠페인 스튜디오
-              </Link>
-              <Link href="/seminar" className="button-secondary">
-                세미나 스튜디오
-              </Link>
-              <Link href="/history" className="button-secondary">
-                실행 아카이브
-              </Link>
+              <Link href="/" className="button-primary">캠페인 스튜디오</Link>
+              <Link href="/seminar" className="button-secondary">세미나 스튜디오</Link>
+              <Link href="/history" className="button-secondary">실행 아카이브</Link>
             </div>
             <PageSectionTabs
               items={[
@@ -396,16 +391,20 @@ export default async function OperationsPage() {
               <span className="pill-option">승인 대기 {approvalQueue.length}건</span>
             </div>
           </div>
-          <div className="rounded-[24px] border border-slate-200 bg-white p-4 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+
+          {/* Assistant summary panel */}
+          <div className="soft-card">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">오늘 포인트</p>
-              <span className="h-2 w-2 rounded-full bg-blue-500" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">오늘 포인트</p>
+              <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
             </div>
-            <p className="mt-3 text-base font-semibold leading-7 text-slate-950">실행 결과를 회수하고 다음 액션으로 넘기는 속도가 중요합니다.</p>
+            <p className="mt-3 text-base font-semibold leading-7 text-[var(--text-strong)]">
+              실행 결과를 회수하고 다음 액션으로 넘기는 속도가 중요합니다.
+            </p>
             <div className="mt-4 space-y-2">
               {assistantSummary.slice(0, 2).map((line) => (
-                <div key={line} className="rounded-[18px] border border-slate-200 bg-slate-50/70 px-3 py-3">
-                  <p className="text-sm leading-6 text-slate-700">{line}</p>
+                <div key={line} className="soft-panel">
+                  <p className="text-sm leading-6 text-[var(--text-base)]">{line}</p>
                 </div>
               ))}
             </div>
@@ -413,52 +412,45 @@ export default async function OperationsPage() {
         </div>
       </section>
 
+      {/* ── KPI Tiles ── */}
       <section id="overview" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 scroll-mt-24">
         <div className="status-tile">
           <p className="metric-label">즉시 대응</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{priorities.length || 1}건</p>
-          <p className="mt-1 text-xs text-slate-500">오늘 바로 열어봐야 할 우선순위</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{priorities.length || 1}건</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">오늘 바로 열어봐야 할 우선순위</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">승인 대기</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{approvalQueue.length}건</p>
-          <p className="mt-1 text-xs text-slate-500">보고서, 플레이북, 분석 전환 대기</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{approvalQueue.length}건</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">보고서, 플레이북, 분석 전환 대기</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">진행 중 흐름</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
-          <p className="mt-1 text-xs text-slate-500">실행 후 아직 마무리되지 않은 트랙</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">실행 후 아직 마무리되지 않은 트랙</p>
         </div>
         <div className="status-tile">
           <p className="metric-label">누적 플레이북</p>
-          <p className="mt-2 text-base font-semibold text-slate-950">{confirmedLearning}개</p>
-          <p className="mt-1 text-xs text-slate-500">바로 재사용 가능한 확정 자산</p>
+          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{confirmedLearning}개</p>
+          <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 확정 자산</p>
         </div>
       </section>
 
+      {/* ── Quick Commands ── */}
       <section id="questions" className="panel space-y-4 scroll-mt-24">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Command Deck</p>
-            <h2 className="section-title">바로 열기</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">자주 보는 흐름만 빠르게 이동합니다.</p>
-          </div>
-          <div className="flex min-w-[260px] items-center gap-3 rounded-full border border-slate-200/80 bg-white/92 px-4 py-2.5 text-sm text-slate-500">
-            <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-              <svg aria-hidden="true" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24">
-                <circle cx="11" cy="11" r="5.5" stroke="currentColor" strokeWidth="1.8" />
-                <path d="M16 16l4 4" stroke="currentColor" strokeLinecap="round" strokeWidth="1.8" />
-              </svg>
-            </span>
-            <span>예: 이번 주 가장 위험한 캠페인 보여줘</span>
-          </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Command Deck</p>
+          <h2 className="section-title">바로 열기</h2>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">자주 보는 흐름만 빠르게 이동합니다.</p>
         </div>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           {quickCommandCards.map((item) => (
             <Link key={item.title} href={item.href} className="list-card block">
-              <span className="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-[11px] font-semibold text-slate-500">{item.tag}</span>
-              <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{item.title}</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
+              <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                {item.tag}
+              </span>
+              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
             </Link>
           ))}
         </div>
@@ -466,10 +458,11 @@ export default async function OperationsPage() {
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.28fr)_340px]">
         <div className="space-y-5">
+          {/* ── Today's Priorities ── */}
           <section id="campaigns" className="panel space-y-4 scroll-mt-24">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Top Priorities</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Top Priorities</p>
                 <h2 className="section-title">오늘 먼저 볼 일</h2>
               </div>
               <span className="accent-pill">{priorities.length || 1} items</span>
@@ -482,25 +475,28 @@ export default async function OperationsPage() {
               <div className="grid gap-3 md:grid-cols-2">
                 {priorities.map((item) => (
                   <Link key={item.title} href={item.href} className="list-card block">
-                    <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-[11px] font-semibold text-slate-600">{item.tag}</span>
-                    <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{item.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.description}</p>
-                    <span className="mt-4 inline-flex rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">{item.cta}</span>
+                    <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-3 py-1 text-[11px] font-semibold text-[var(--text-base)]">
+                      {item.tag}
+                    </span>
+                    <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
+                    <span className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.18)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+                      {item.cta}
+                    </span>
                   </Link>
                 ))}
               </div>
             )}
           </section>
 
+          {/* ── Campaign Rooms ── */}
           <section id="timeline" className="panel space-y-4 scroll-mt-24">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Campaign Rooms</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Campaign Rooms</p>
                 <h2 className="section-title">지금 관리 중인 캠페인 흐름</h2>
               </div>
-              <Link href="/campaigns" className="button-secondary">
-                전체 캠페인 룸 보기
-              </Link>
+              <Link href="/campaigns" className="button-secondary">전체 캠페인 룸 보기</Link>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               {campaignRooms.map((room) => (
@@ -519,30 +515,27 @@ export default async function OperationsPage() {
                     </span>
                     <span className="pill-option">{room.approvals.length} approvals</span>
                   </div>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{room.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{room.summary}</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{room.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{room.summary}</p>
                   <div className="mt-3 flex flex-wrap gap-2">
                     <span className="pill-option">브리프 {room.counts.briefs}</span>
                     <span className="pill-option">보고서 {room.counts.reports}</span>
                     <span className="pill-option">플레이북 {room.counts.playbooks}</span>
                   </div>
                   <div className="mt-4 flex flex-wrap gap-2">
-                    <Link href={room.primaryHref} className="button-secondary px-3 py-2 text-xs">
-                      최신 흐름
-                    </Link>
-                    <Link href="/campaigns" className="button-secondary px-3 py-2 text-xs">
-                      캠페인 룸
-                    </Link>
+                    <Link href={room.primaryHref} className="button-secondary px-3 py-2 text-xs">최신 흐름</Link>
+                    <Link href="/campaigns" className="button-secondary px-3 py-2 text-xs">캠페인 룸</Link>
                   </div>
                 </article>
               ))}
             </div>
           </section>
 
+          {/* ── Approval Inbox ── */}
           <section className="panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Approval Inbox</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Approval Inbox</p>
                 <h2 className="section-title">승인 대기함</h2>
               </div>
               <span className="accent-pill">{approvalQueue.length} approvals</span>
@@ -554,38 +547,38 @@ export default async function OperationsPage() {
             />
           </section>
 
+          {/* ── Focus Board ── */}
           <section className="panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Focus Board</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Focus Board</p>
                 <h2 className="section-title">지금 집중 중인 흐름</h2>
               </div>
-              <Link href="/history" className="button-secondary">
-                전체 실행 보기
-              </Link>
+              <Link href="/history" className="button-secondary">전체 실행 보기</Link>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               {focusBoard.map((item) => (
                 <Link key={`${item.eyebrow}-${item.title}`} href={item.href} className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">{item.eyebrow}</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{item.title}</p>
-                  <p className="mt-2 text-xs font-medium text-slate-500">{item.status}</p>
-                  <p className="mt-3 line-clamp-4 text-sm leading-6 text-slate-600">{item.note}</p>
-                  <span className="mt-4 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">{item.cta}</span>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.eyebrow}</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+                  <p className="mt-2 text-xs font-medium text-[var(--text-muted)]">{item.status}</p>
+                  <p className="mt-3 line-clamp-4 text-sm leading-6 text-[var(--text-base)]">{item.note}</p>
+                  <span className="mt-4 inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-3 py-1 text-xs font-semibold text-[var(--text-base)]">
+                    {item.cta}
+                  </span>
                 </Link>
               ))}
             </div>
           </section>
 
+          {/* ── Coverage Board ── */}
           <section className="panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Coverage Board</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Coverage Board</p>
                 <h2 className="section-title">운영 자산화 진행률</h2>
               </div>
-              <Link href="/learning" className="button-secondary">
-                플레이북 보기
-              </Link>
+              <Link href="/learning" className="button-secondary">플레이북 보기</Link>
             </div>
             <div className="grid gap-3 md:grid-cols-2">
               {[
@@ -596,22 +589,23 @@ export default async function OperationsPage() {
               ].map((item) => (
                 <div key={item.label} className="soft-panel">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-900">{item.label}</p>
+                    <p className="text-sm font-semibold text-[var(--text-strong)]">{item.label}</p>
                     <span className="pill-option">{item.value}%</span>
                   </div>
-                  <div className="mt-3 h-2 rounded-full bg-slate-200">
-                    <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.max(6, item.value)}%` }} />
+                  <div className="mt-3 h-1.5 rounded-full bg-[var(--surface-border)]">
+                    <div className="h-1.5 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(6, item.value)}%` }} />
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">{item.helper}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{item.helper}</p>
                 </div>
               ))}
             </div>
           </section>
 
+          {/* ── Recent Flow / Timeline ── */}
           <section className="panel space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Recent Flow</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Recent Flow</p>
                 <h2 className="section-title">최근 운영 흐름</h2>
               </div>
               <span className="pill-option">{timeline.length} events</span>
@@ -624,10 +618,10 @@ export default async function OperationsPage() {
                       <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${timelineTone(item.type)}`}>
                         {timelineBadge(item.type)}
                       </span>
-                      <p className="mt-3 text-sm font-semibold leading-6 text-slate-950">{item.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-slate-600">{item.meta}</p>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+                      <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.meta}</p>
                     </div>
-                    <p className="text-xs text-slate-500">{formatDate(item.at)}</p>
+                    <p className="text-xs text-[var(--text-muted)]">{formatDate(item.at)}</p>
                   </div>
                 </Link>
               ))}
@@ -635,10 +629,12 @@ export default async function OperationsPage() {
           </section>
         </div>
 
+        {/* ── Right Sidebar ── */}
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
+          {/* Decision Rail */}
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Decision Rail</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Decision Rail</p>
               <h2 className="section-title">오늘의 결정 메모</h2>
             </div>
             <div className="surface-note">
@@ -648,40 +644,41 @@ export default async function OperationsPage() {
             </div>
             <div className="grid gap-3">
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">추천 1</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">세미나와 캠페인 스튜디오를 바로 연결하세요</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">토론이 끝난 세션부터 실행 브리프와 보고서로 넘겨야 전략이 사라지지 않습니다.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 1</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">세미나와 캠페인 스튜디오를 바로 연결하세요</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">토론이 끝난 세션부터 실행 브리프와 보고서로 넘겨야 전략이 사라지지 않습니다.</p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">추천 2</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">검증된 답변을 플레이북으로 확정하세요</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">재사용 패턴이 쌓일수록 사내 대응 속도와 일관성이 함께 올라갑니다.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 2</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">검증된 답변을 플레이북으로 확정하세요</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">재사용 패턴이 쌓일수록 사내 대응 속도와 일관성이 함께 올라갑니다.</p>
               </div>
               <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">추천 3</p>
-                <p className="mt-2 text-sm font-semibold text-slate-900">데이터 해석을 회의 안건으로 올리세요</p>
-                <p className="mt-1 text-xs leading-5 text-slate-500">분석 대기 데이터는 인사이트가 붙는 순간 전략 회의의 질을 크게 높여줍니다.</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 3</p>
+                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">데이터 해석을 회의 안건으로 올리세요</p>
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">분석 대기 데이터는 인사이트가 붙는 순간 전략 회의의 질을 크게 높여줍니다.</p>
               </div>
             </div>
           </section>
 
+          {/* Signal Tags */}
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Signal Tags</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Signal Tags</p>
               <h2 className="section-title">반복되는 질문과 신호</h2>
             </div>
             {topSignals.length === 0 ? (
-              <div className="soft-panel text-sm text-slate-600">아직 반복 신호가 충분하지 않습니다.</div>
+              <div className="soft-panel text-sm text-[var(--text-muted)]">아직 반복 신호가 충분하지 않습니다.</div>
             ) : (
               <div className="space-y-3">
                 {topSignals.map(([tag, count]) => (
                   <div key={tag} className="soft-panel">
-                    <div className="mb-1 flex items-center justify-between text-xs text-slate-600">
+                    <div className="mb-1 flex items-center justify-between text-xs text-[var(--text-base)]">
                       <span>#{tag}</span>
                       <span>{count}회</span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-200">
-                      <div className="h-2 rounded-full bg-sky-500" style={{ width: `${Math.max(10, Math.min(100, count * 10))}%` }} />
+                    <div className="h-1.5 rounded-full bg-[var(--surface-border)]">
+                      <div className="h-1.5 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(10, Math.min(100, count * 10))}%` }} />
                     </div>
                   </div>
                 ))}
@@ -689,50 +686,54 @@ export default async function OperationsPage() {
             )}
           </section>
 
+          {/* Latest Assets */}
           <section className="panel space-y-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Latest Assets</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Latest Assets</p>
               <h2 className="section-title">방금 업데이트된 자산</h2>
             </div>
             <div className="space-y-3">
               {latestSeminar && (
-                <Link href={latestSeminar.status === 'COMPLETED' ? `/seminar/sessions/${latestSeminar.id}/report` : '/seminar'} className="list-card block">
+                <Link
+                  href={latestSeminar.status === 'COMPLETED' ? `/seminar/sessions/${latestSeminar.id}/report` : '/seminar'}
+                  className="list-card block"
+                >
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Simulation</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Simulation</p>
                     <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${seminarTone(latestSeminar.status)}`}>
                       {seminarLabel(latestSeminar.status)}
                     </span>
                   </div>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-900">{latestSeminar.title || latestSeminar.topic}</p>
-                  <p className="mt-2 text-xs text-slate-500">{formatDate(latestSeminar.lastRunAt || latestSeminar.updatedAt)}</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestSeminar.title || latestSeminar.topic}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestSeminar.lastRunAt || latestSeminar.updatedAt)}</p>
                 </Link>
               )}
               {latestRun && (
                 <Link href={`/runs/${latestRun.id}`} className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Brief</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-900">{latestRun.topic}</p>
-                  <p className="mt-2 text-xs text-slate-500">{formatDate(latestRun.createdAt)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Brief</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestRun.topic}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestRun.createdAt)}</p>
                 </Link>
               )}
               {latestDataset && (
                 <Link href="/datasets" className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Data</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-900">{latestDataset.name}</p>
-                  <p className="mt-2 text-xs text-slate-500">{formatDate(latestDataset.updatedAt)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Data</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestDataset.name}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestDataset.updatedAt)}</p>
                 </Link>
               )}
               {latestKnowledge && (
                 <Link href="/learning" className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Playbook</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-slate-900">{latestKnowledge.situation}</p>
-                  <p className="mt-2 text-xs text-slate-500">{formatDate(latestKnowledge.updatedAt)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Playbook</p>
+                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestKnowledge.situation}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestKnowledge.updatedAt)}</p>
                 </Link>
               )}
               {latestReachAnalysis && (
                 <Link href="/datasets" className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">Performance</p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Performance</p>
                   <p className={`mt-3 text-sm font-semibold leading-6 ${reachSignal.tone}`}>{latestReachAnalysis.accountId}</p>
-                  <p className="mt-2 text-xs text-slate-500">
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">
                     {reachSignal.label} · {formatDate(latestReachAnalysis.createdAt)}
                   </p>
                 </Link>
@@ -740,19 +741,20 @@ export default async function OperationsPage() {
             </div>
           </section>
 
+          {/* Failed Sessions */}
           {failedSeminars.length > 0 && (
             <section className="panel space-y-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-slate-400">Attention</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Attention</p>
                 <h2 className="section-title">확인 필요한 세션</h2>
               </div>
               {failedSeminars.slice(0, 3).map((session) => (
                 <Link key={session.id} href="/seminar" className="list-card block">
                   <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-slate-950">{session.title || session.topic}</p>
+                    <p className="text-sm font-semibold text-[var(--text-strong)]">{session.title || session.topic}</p>
                     <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700">실패</span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-500">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
+                  <p className="mt-2 text-xs text-[var(--text-muted)]">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
                 </Link>
               ))}
             </section>

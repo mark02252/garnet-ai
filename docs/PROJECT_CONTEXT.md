@@ -176,36 +176,32 @@
 - [/Users/rnr/Documents/New project/lib/run-progress.ts](/Users/rnr/Documents/New%20project/lib/run-progress.ts)
 
 ## 다음 우선순위
+> 전체 로드맵: `docs/2026-03-16-roadmap.md`
 
-### 🔴 내일 최우선 — MCP 연결 확장
-> 상세 계획: `docs/2026-03-16-mcp-connection-plan.md`
+### 🔴 Phase 1 — 이번 주
+1. **Supabase SMTP 차단 해제** — Resend/SendGrid 연결 (Auth 전체 블로킹)
+2. **MCP 레지스트리 4개 추가** — Supabase, Slack, GDrive, Brave Search
+3. **Playwright MCP 실제 연결** — 설정만 하면 동작
+4. **status badge 토큰화** — `globals.css` + `lib/design-tokens.ts`
+5. **app-nav + seminar hex 색상 정리** — 디자인 시스템 마무리
 
-1. `lib/mcp-connections.ts` — Supabase, Slack, Google Drive, Brave Search 4개 항목 신규 추가
-2. **Supabase MCP** (`@supabase/mcp-server-supabase`) 실제 연결 테스트
-   - Personal Access Token 발급 후 `aimd-local`과 함께 활성화
-   - `workspace_runs` 등 공유 테이블 직접 쿼리 확인
-3. **Notion MCP** (`@notionhq/notion-mcp-server`) OAuth 플로우 구현
-   - 세미나 보고서, 플레이북 카드 Notion 발행 버튼 추가
-4. **Playwright MCP** (`@playwright/mcp`) 명령어 연결 후 smoke test 실행 확인
-   - `/api/mcp/playwright/smoke` 엔드포인트 활성화 확인
-5. 각 화면에 MCP 연동 액션 버튼 추가 (Notion 발행, Slack 공유 등)
+### 🟠 Phase 2 — 다음 주
+6. **Notion MCP** 연결 + 화면별 발행 버튼 추가
+7. **Supabase MCP** 연결 (Personal Access Token)
+8. **Supabase 데이터 이전** Phase 1-2 (Auth 확인 + 핵심 데이터 이전)
+9. **Supabase Storage** 분리 (첨부/데이터셋 원본)
 
-### 🟡 디자인 시스템 마무리 (P1 잔여)
-6. `globals.css` — `.status-badge-*` 클래스 추가 + `lib/design-tokens.ts` 생성
-7. `components/app-nav.tsx` — hex 색상 CSS 변수로 교체
-8. `app/seminar/page.tsx` — 라운드 상태 hex 색상 정리
-9. `globals.css` — `.data-table` 클래스 추가 후 `datasets/page.tsx` 적용
-
-### 기능 개발
-10. Supabase 이메일 로그인 재시도 후 실제 세션 연결 확인
-11. 워크스페이스 생성 정상 동작 확인
-12. `/api/supabase/bootstrap` 기반 실제 업로드/동기화 액션 붙이기
-13. `Instagram Login` 우선 전환 설계 및 구현
-14. 추천 액션 엔진 추가
+### 🟡 Phase 3 — 2-3주 후
+10. **Slack MCP** + 승인 알림 워크플로우
+11. **Supabase Realtime** (RunProgress, ApprovalDecision)
+12. **Instagram Login** 전환
+13. **Google Drive MCP** + 데이터셋 자동화
+14. **내부 MCP 서버** tools/prompts 확장
 
 ## 다음 대화에서 먼저 보면 좋은 것
 - 이 문서
-- [docs/2026-03-16-mcp-connection-plan.md](2026-03-16-mcp-connection-plan.md) ← 최신: 내일 MCP 연결 계획
+- [docs/2026-03-16-roadmap.md](2026-03-16-roadmap.md) ← 최신: 전체 고도화 우선순위 로드맵
+- [docs/2026-03-16-mcp-connection-plan.md](2026-03-16-mcp-connection-plan.md) ← MCP 연결 상세 계획
 - [docs/2026-03-16-design-system-audit.md](2026-03-16-design-system-audit.md) ← 디자인 시스템 감사 결과
 - [docs/2026-03-16-supabase-adoption-plan.md](2026-03-16-supabase-adoption-plan.md)
 - [docs/2026-03-12-mcp-expansion-roadmap.md](2026-03-12-mcp-expansion-roadmap.md)

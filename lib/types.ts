@@ -1,4 +1,4 @@
-import { DeliverableType, MeetingRole } from '@prisma/client';
+import type { DeliverableType, MeetingRole } from '@prisma/client';
 
 export type DomainKey =
   | 'MARKETING_GROWTH'

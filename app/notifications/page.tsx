@@ -1,14 +1,14 @@
 import Link from 'next/link';
-import type { Notification } from '@/app/api/notifications/route';
+import { computeNotifications, type Notification } from '@/lib/notifications';
 
 export const dynamic = 'force-dynamic';
 
 async function getNotifications(): Promise<Notification[]> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/notifications`, {
-    cache: 'no-store'
-  });
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    return await computeNotifications();
+  } catch {
+    return [];
+  }
 }
 
 function typeTone(type: Notification['type']) {

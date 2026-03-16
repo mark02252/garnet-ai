@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "garnet": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/Users/rnr/Documents/New project/scripts/mcp-server.mjs"],
+      "env": {
+        "DATABASE_URL": "file:/Users/rnr/Documents/New project/prisma/dev.db"
+      },
+      "description": "Garnet 앱 내부 데이터 접근 — runs, datasets, learning archives, instagram reach"
+    }
+  }
+}

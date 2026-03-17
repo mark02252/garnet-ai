@@ -535,7 +535,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             <p className="mt-1 text-xs text-[var(--text-muted)]">{draft.instagramBusinessAccountId || '선택된 계정이 없습니다.'}</p>
           </div>
         </div>
-        {!isConfigured && (
+        {!isSocialMode && !isConfigured && (
           <div className="soft-panel space-y-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Instagram 연동 설정 마법사</p>
             <WizardStep

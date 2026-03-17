@@ -3,6 +3,13 @@ import path from 'node:path';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { autoUpdater } from 'electron-updater';
+import ffmpegPath from 'ffmpeg-static';
+import ffmpeg from 'fluent-ffmpeg';
+
+// ffmpeg 경로 주입 (개발/프로덕션 모두)
+if (ffmpegPath) {
+  ffmpeg.setFfmpegPath(ffmpegPath);
+}
 
 let mainWindow: BrowserWindow | null = null;
 let nextServerStarted = false;
@@ -204,6 +211,299 @@ function ensureRuntimeDatabaseUrl() {
   if (process.env.DATABASE_URL?.trim()) return;
   const dbPath = path.join(app.getPath('userData'), 'marketing-os.db');
   process.env.DATABASE_URL = `file:${dbPath}`;
+}
+
+function ensureDbSchema() {
+  if (isDev) return;
+  const dbUrl = process.env.DATABASE_URL || '';
+  const dbPath = dbUrl.startsWith('file:') ? dbUrl.slice(5) : dbUrl;
+  if (!dbPath) return;
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
+    const db = new DatabaseSync(dbPath);
+
+    // Check if schema already exists
+    const row = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='Run'").get();
+    if (row) { db.close(); return; }
+
+    db.exec(`
+      PRAGMA journal_mode=WAL;
+      PRAGMA foreign_keys=ON;
+
+      CREATE TABLE IF NOT EXISTS "Run" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "topic" TEXT NOT NULL,
+        "brand" TEXT,
+        "region" TEXT,
+        "goal" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "Run_createdAt_idx" ON "Run"("createdAt");
+      CREATE INDEX IF NOT EXISTS "Run_topic_idx" ON "Run"("topic");
+      CREATE INDEX IF NOT EXISTS "Run_brand_idx" ON "Run"("brand");
+
+      CREATE TABLE IF NOT EXISTS "RunAttachment" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "runId" TEXT NOT NULL,
+        "name" TEXT NOT NULL,
+        "mimeType" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "RunAttachment_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "RunAttachment_runId_createdAt_idx" ON "RunAttachment"("runId", "createdAt");
+
+      CREATE TABLE IF NOT EXISTS "WebSource" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "runId" TEXT NOT NULL,
+        "title" TEXT NOT NULL,
+        "snippet" TEXT NOT NULL,
+        "url" TEXT NOT NULL,
+        "provider" TEXT NOT NULL,
+        "fetchedAt" DATETIME NOT NULL,
+        CONSTRAINT "WebSource_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "WebSource_runId_idx" ON "WebSource"("runId");
+      CREATE INDEX IF NOT EXISTS "WebSource_fetchedAt_idx" ON "WebSource"("fetchedAt");
+
+      CREATE TABLE IF NOT EXISTS "MeetingTurn" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "runId" TEXT NOT NULL,
+        "role" TEXT NOT NULL,
+        "nickname" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "MeetingTurn_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "MeetingTurn_runId_createdAt_idx" ON "MeetingTurn"("runId", "createdAt");
+      CREATE INDEX IF NOT EXISTS "MeetingTurn_role_idx" ON "MeetingTurn"("role");
+
+      CREATE TABLE IF NOT EXISTS "Deliverable" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "runId" TEXT NOT NULL UNIQUE,
+        "type" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "Deliverable_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "Deliverable_type_idx" ON "Deliverable"("type");
+
+      CREATE TABLE IF NOT EXISTS "MemoryLog" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "runId" TEXT NOT NULL UNIQUE,
+        "hypothesis" TEXT NOT NULL,
+        "direction" TEXT NOT NULL,
+        "expectedImpact" TEXT NOT NULL,
+        "risks" TEXT NOT NULL,
+        "outcome" TEXT,
+        "failureReason" TEXT,
+        "tags" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "MemoryLog_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "MemoryLog_createdAt_idx" ON "MemoryLog"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "Dataset" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "type" TEXT NOT NULL,
+        "notes" TEXT,
+        "rawData" TEXT NOT NULL,
+        "analysis" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "Dataset_createdAt_idx" ON "Dataset"("createdAt");
+      CREATE INDEX IF NOT EXISTS "Dataset_name_idx" ON "Dataset"("name");
+      CREATE INDEX IF NOT EXISTS "Dataset_type_idx" ON "Dataset"("type");
+
+      CREATE TABLE IF NOT EXISTS "LearningArchive" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "runId" TEXT,
+        "sourceType" TEXT NOT NULL,
+        "situation" TEXT NOT NULL,
+        "recommendedResponse" TEXT NOT NULL,
+        "reasoning" TEXT NOT NULL,
+        "signals" TEXT NOT NULL,
+        "tags" TEXT NOT NULL,
+        "status" TEXT NOT NULL DEFAULT 'DRAFT',
+        "lastUsedAt" DATETIME,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "LearningArchive_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE SET NULL ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "LearningArchive_runId_idx" ON "LearningArchive"("runId");
+      CREATE INDEX IF NOT EXISTS "LearningArchive_status_idx" ON "LearningArchive"("status");
+      CREATE INDEX IF NOT EXISTS "LearningArchive_createdAt_idx" ON "LearningArchive"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "ManualCampaignRoom" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "title" TEXT NOT NULL,
+        "brand" TEXT NOT NULL,
+        "region" TEXT NOT NULL,
+        "goal" TEXT NOT NULL,
+        "objective" TEXT,
+        "notes" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "ManualCampaignRoom_brand_idx" ON "ManualCampaignRoom"("brand");
+      CREATE INDEX IF NOT EXISTS "ManualCampaignRoom_createdAt_idx" ON "ManualCampaignRoom"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "KpiGoal" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "title" TEXT NOT NULL,
+        "brand" TEXT,
+        "region" TEXT,
+        "metric" TEXT NOT NULL,
+        "targetValue" REAL NOT NULL,
+        "currentValue" REAL NOT NULL DEFAULT 0,
+        "unit" TEXT NOT NULL DEFAULT '',
+        "period" TEXT NOT NULL DEFAULT 'MONTHLY',
+        "notes" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "KpiGoal_createdAt_idx" ON "KpiGoal"("createdAt");
+      CREATE INDEX IF NOT EXISTS "KpiGoal_brand_idx" ON "KpiGoal"("brand");
+
+      CREATE TABLE IF NOT EXISTS "InstagramReachDaily" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "accountId" TEXT NOT NULL,
+        "metricDate" DATETIME NOT NULL,
+        "reach" INTEGER NOT NULL,
+        "rawValue" TEXT,
+        "fetchedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("accountId", "metricDate")
+      );
+      CREATE INDEX IF NOT EXISTS "InstagramReachDaily_metricDate_idx" ON "InstagramReachDaily"("metricDate");
+      CREATE INDEX IF NOT EXISTS "InstagramReachDaily_accountId_metricDate_idx" ON "InstagramReachDaily"("accountId", "metricDate");
+
+      CREATE TABLE IF NOT EXISTS "ContentDraft" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "contentType" TEXT NOT NULL,
+        "brand" TEXT NOT NULL DEFAULT '',
+        "target" TEXT NOT NULL DEFAULT '',
+        "tone" TEXT NOT NULL DEFAULT '',
+        "keyMessage" TEXT NOT NULL,
+        "additionalContext" TEXT NOT NULL DEFAULT '',
+        "result" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "ContentDraft_createdAt_idx" ON "ContentDraft"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "InstagramReachAnalysisRun" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "accountId" TEXT NOT NULL,
+        "since" DATETIME NOT NULL,
+        "until" DATETIME NOT NULL,
+        "days" INTEGER NOT NULL,
+        "averageReach" REAL NOT NULL,
+        "latestReach" INTEGER NOT NULL,
+        "previousReach" INTEGER,
+        "dayOverDayChangePct" REAL,
+        "sevenDayAverage" REAL,
+        "trendDirection" TEXT NOT NULL,
+        "anomalyCount" INTEGER NOT NULL DEFAULT 0,
+        "summary" TEXT NOT NULL,
+        "rawJson" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "InstagramReachAnalysisRun_accountId_createdAt_idx" ON "InstagramReachAnalysisRun"("accountId", "createdAt");
+      CREATE INDEX IF NOT EXISTS "InstagramReachAnalysisRun_createdAt_idx" ON "InstagramReachAnalysisRun"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "ApprovalDecision" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "itemType" TEXT NOT NULL,
+        "itemId" TEXT NOT NULL,
+        "decision" TEXT NOT NULL,
+        "label" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("itemType", "itemId", "decision")
+      );
+      CREATE INDEX IF NOT EXISTS "ApprovalDecision_itemType_updatedAt_idx" ON "ApprovalDecision"("itemType", "updatedAt");
+
+      CREATE TABLE IF NOT EXISTS "RunProgress" (
+        "runId" TEXT NOT NULL PRIMARY KEY,
+        "status" TEXT NOT NULL,
+        "stepKey" TEXT NOT NULL,
+        "stepLabel" TEXT NOT NULL,
+        "progressPct" INTEGER NOT NULL DEFAULT 0,
+        "message" TEXT,
+        "startedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "finishedAt" DATETIME,
+        CONSTRAINT "RunProgress_runId_fkey" FOREIGN KEY ("runId") REFERENCES "Run"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "RunProgress_status_updatedAt_idx" ON "RunProgress"("status", "updatedAt");
+
+      CREATE TABLE IF NOT EXISTS "SeminarSession" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "title" TEXT,
+        "topic" TEXT NOT NULL,
+        "brand" TEXT,
+        "region" TEXT,
+        "goal" TEXT,
+        "status" TEXT NOT NULL,
+        "startsAt" DATETIME NOT NULL,
+        "endsAt" DATETIME NOT NULL,
+        "intervalMinutes" INTEGER NOT NULL,
+        "maxRounds" INTEGER NOT NULL,
+        "completedRounds" INTEGER NOT NULL DEFAULT 0,
+        "nextRunAt" DATETIME,
+        "lastRunAt" DATETIME,
+        "morningBriefing" TEXT,
+        "runtimeConfig" TEXT,
+        "lastError" TEXT,
+        "isProcessing" INTEGER NOT NULL DEFAULT 0,
+        "processingStartedAt" DATETIME,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "SeminarSession_status_nextRunAt_idx" ON "SeminarSession"("status", "nextRunAt");
+      CREATE INDEX IF NOT EXISTS "SeminarSession_createdAt_idx" ON "SeminarSession"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "SeminarRound" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "sessionId" TEXT NOT NULL,
+        "roundNumber" INTEGER NOT NULL,
+        "scheduledAt" DATETIME NOT NULL,
+        "startedAt" DATETIME,
+        "finishedAt" DATETIME,
+        "status" TEXT NOT NULL,
+        "runId" TEXT,
+        "summary" TEXT,
+        "error" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE("sessionId", "roundNumber"),
+        CONSTRAINT "SeminarRound_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "SeminarSession"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "SeminarRound_sessionId_status_idx" ON "SeminarRound"("sessionId", "status");
+      CREATE INDEX IF NOT EXISTS "SeminarRound_createdAt_idx" ON "SeminarRound"("createdAt");
+
+      CREATE TABLE IF NOT EXISTS "SeminarFinalReport" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "sessionId" TEXT NOT NULL UNIQUE,
+        "content" TEXT NOT NULL,
+        "structured" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SeminarFinalReport_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "SeminarSession"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "SeminarFinalReport_updatedAt_idx" ON "SeminarFinalReport"("updatedAt");
+    `);
+
+    db.close();
+    console.log('[ensureDbSchema] Schema created successfully.');
+  } catch (error) {
+    console.error('[ensureDbSchema] Failed to initialize DB schema:', error);
+  }
 }
 
 function enableAsarNodePath(resourcesPath: string) {
@@ -683,15 +983,45 @@ async function createWindow() {
   });
 }
 
+function startSchedulerTimer() {
+  const appPort = process.env.PORT || '3123'
+  const baseUrl = `http://127.0.0.1:${appPort}`
+
+  // 앱 시작 시 MISSED 처리 (Next.js가 준비된 후 호출되므로 약간 지연)
+  setTimeout(() => processMissedSchedules(baseUrl), 5_000)
+
+  // 1분마다 PENDING 예약 확인
+  setInterval(() => processScheduledPosts(baseUrl), 60_000)
+}
+
+async function processMissedSchedules(baseUrl: string) {
+  try {
+    await fetch(`${baseUrl}/api/sns/schedule/missed`, { method: 'POST' })
+  } catch (e) {
+    console.error('[Scheduler] missed 처리 오류:', e)
+  }
+}
+
+async function processScheduledPosts(baseUrl: string) {
+  try {
+    const res = await fetch(`${baseUrl}/api/sns/schedule/process`, { method: 'POST' })
+    if (!res.ok) console.error('[Scheduler] 발행 처리 실패:', await res.text())
+  } catch (e) {
+    console.error('[Scheduler] 타이머 오류:', e)
+  }
+}
+
 app.whenReady().then(async () => {
   ensureShellPath();
   ensureRuntimeDatabaseUrl();
+  ensureDbSchema();
   configureAutoUpdater();
   try {
     startNextServer();
   } catch (error) {
     console.error('Failed to start embedded Next server:', error);
   }
+  startSchedulerTimer();
 
   await createWindow();
   await startEmbeddedSeminarScheduler();

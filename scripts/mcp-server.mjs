@@ -28,7 +28,9 @@ const server = new McpServer(
   {
     capabilities: { logging: {} },
     instructions:
-      'Use the Garnet tools to inspect marketing runs, datasets, learning archives, and Instagram reach analyses. Prefer overview resources first, then call detail tools when deeper evidence is needed.'
+      'Use the Garnet tools to inspect marketing runs, datasets, learning archives, seminar sessions, KPI goals, campaign rooms, and Instagram reach analyses. ' +
+      'Start with "get_operations_summary" or resource "aimd://overview" for a quick health check. ' +
+      'Then drill down with detail tools. Use prompts for structured analysis workflows.'
   }
 );
 
@@ -104,6 +106,60 @@ function summarizeLearningCard(card) {
   };
 }
 
+function summarizeKpiGoal(goal) {
+  const progress = goal.targetValue > 0
+    ? Math.round((goal.currentValue / goal.targetValue) * 100)
+    : 0;
+  return {
+    id: goal.id,
+    title: goal.title,
+    brand: goal.brand,
+    region: goal.region,
+    metric: goal.metric,
+    targetValue: goal.targetValue,
+    currentValue: goal.currentValue,
+    unit: goal.unit,
+    period: goal.period,
+    progressPct: progress,
+    notes: clipText(goal.notes, 160),
+    createdAt: goal.createdAt,
+    updatedAt: goal.updatedAt
+  };
+}
+
+function summarizeSeminarSession(session) {
+  return {
+    id: session.id,
+    title: session.title,
+    topic: session.topic,
+    brand: session.brand,
+    status: session.status,
+    completedRounds: session.completedRounds,
+    maxRounds: session.maxRounds,
+    intervalMinutes: session.intervalMinutes,
+    nextRunAt: session.nextRunAt,
+    lastRunAt: session.lastRunAt,
+    morningBriefing: clipText(session.morningBriefing, 300),
+    createdAt: session.createdAt,
+    updatedAt: session.updatedAt
+  };
+}
+
+function summarizeCampaignRoom(room) {
+  return {
+    id: room.id,
+    title: room.title,
+    brand: room.brand,
+    region: room.region,
+    goal: room.goal,
+    objective: room.objective,
+    status: room.status,
+    notes: clipText(room.notes, 200),
+    createdAt: room.createdAt,
+    updatedAt: room.updatedAt
+  };
+}
+
 function summarizeInstagramAnalysis(item) {
   return {
     id: item.id,
@@ -128,12 +184,15 @@ server.registerResource(
     mimeType: 'application/json'
   },
   async () => {
-    const [runCount, datasetCount, learningCount, confirmedLearningCount, latestRun, latestDataset, latestInstagram] =
+    const [runCount, datasetCount, learningCount, confirmedLearningCount, seminarCount, runningSeminarCount, kpiGoalCount, latestRun, latestDataset, latestInstagram] =
       await Promise.all([
         prisma.run.count(),
         prisma.dataset.count(),
         prisma.learningArchive.count(),
         prisma.learningArchive.count({ where: { status: 'CONFIRMED' } }),
+        prisma.seminarSession.count(),
+        prisma.seminarSession.count({ where: { status: 'RUNNING' } }),
+        prisma.kpiGoal.count(),
         prisma.run.findFirst({ orderBy: { createdAt: 'desc' } }),
         prisma.dataset.findFirst({ orderBy: { updatedAt: 'desc' } }),
         prisma.instagramReachAnalysisRun.findFirst({ orderBy: { createdAt: 'desc' } })
@@ -145,7 +204,10 @@ server.registerResource(
         runs: runCount,
         datasets: datasetCount,
         learningCards: learningCount,
-        confirmedLearningCards: confirmedLearningCount
+        confirmedLearningCards: confirmedLearningCount,
+        seminarSessions: seminarCount,
+        runningSeminarSessions: runningSeminarCount,
+        kpiGoals: kpiGoalCount
       },
       latestRun: latestRun
         ? {
@@ -521,6 +583,284 @@ server.registerTool(
   }
 );
 
+// ── KPI Goals ──────────────────────────────────────────────────────────────
+
+server.registerTool(
+  'list_kpi_goals',
+  {
+    title: 'List KPI Goals',
+    description: 'List KPI goals with current progress. Optionally filter by brand.',
+    inputSchema: {
+      limit: z.number().int().min(1).max(50).default(20),
+      brand: z.string().optional()
+    }
+  },
+  async ({ limit = 20, brand }) => {
+    const goals = await prisma.kpiGoal.findMany({
+      where: brand ? { brand } : undefined,
+      orderBy: { createdAt: 'desc' },
+      take: limit
+    });
+
+    const structuredContent = {
+      count: goals.length,
+      goals: goals.map(summarizeKpiGoal)
+    };
+
+    return {
+      content: textContent(structuredContent),
+      structuredContent
+    };
+  }
+);
+
+server.registerTool(
+  'update_kpi_current_value',
+  {
+    title: 'Update KPI Current Value',
+    description: 'Update the currentValue of a KPI goal by id.',
+    inputSchema: {
+      goalId: z.string().min(1),
+      currentValue: z.number()
+    }
+  },
+  async ({ goalId, currentValue }) => {
+    const updated = await prisma.kpiGoal.update({
+      where: { id: goalId },
+      data: { currentValue }
+    });
+
+    return {
+      content: textContent(summarizeKpiGoal(updated)),
+      structuredContent: summarizeKpiGoal(updated)
+    };
+  }
+);
+
+// ── Seminar Sessions ────────────────────────────────────────────────────────
+
+server.registerResource(
+  'aimd-recent-seminars',
+  'aimd://seminar/recent',
+  {
+    title: 'Recent Seminar Sessions',
+    description: 'Latest seminar (strategy simulation) sessions with status and round count.',
+    mimeType: 'application/json'
+  },
+  async () => {
+    const sessions = await prisma.seminarSession.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 10
+    });
+
+    return {
+      contents: [
+        {
+          uri: 'aimd://seminar/recent',
+          mimeType: 'application/json',
+          text: asJsonText({
+            generatedAt: new Date().toISOString(),
+            sessions: sessions.map(summarizeSeminarSession)
+          })
+        }
+      ]
+    };
+  }
+);
+
+server.registerTool(
+  'list_seminar_sessions',
+  {
+    title: 'List Seminar Sessions',
+    description: 'List strategy simulation sessions, optionally filtered by status.',
+    inputSchema: {
+      limit: z.number().int().min(1).max(30).default(10),
+      status: z.enum(['PLANNED', 'RUNNING', 'COMPLETED', 'FAILED', 'STOPPED']).optional()
+    }
+  },
+  async ({ limit = 10, status }) => {
+    const sessions = await prisma.seminarSession.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { updatedAt: 'desc' },
+      take: limit
+    });
+
+    const structuredContent = {
+      count: sessions.length,
+      sessions: sessions.map(summarizeSeminarSession)
+    };
+
+    return {
+      content: textContent(structuredContent),
+      structuredContent
+    };
+  }
+);
+
+server.registerTool(
+  'get_seminar_session',
+  {
+    title: 'Get Seminar Session',
+    description: 'Fetch full detail for a seminar session including all rounds and final report.',
+    inputSchema: {
+      sessionId: z.string().min(1)
+    }
+  },
+  async ({ sessionId }) => {
+    const session = await prisma.seminarSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        rounds: { orderBy: { roundNumber: 'asc' } },
+        finalReport: true
+      }
+    });
+
+    if (!session) {
+      return {
+        content: [{ type: 'text', text: `Seminar session not found: ${sessionId}` }],
+        isError: true
+      };
+    }
+
+    const structuredContent = {
+      ...summarizeSeminarSession(session),
+      rounds: session.rounds.map((round) => ({
+        roundNumber: round.roundNumber,
+        status: round.status,
+        scheduledAt: round.scheduledAt,
+        startedAt: round.startedAt,
+        finishedAt: round.finishedAt,
+        runId: round.runId,
+        summary: clipText(round.summary, 400),
+        error: round.error
+      })),
+      finalReport: session.finalReport
+        ? {
+            content: clipText(session.finalReport.content, 6000),
+            createdAt: session.finalReport.createdAt,
+            updatedAt: session.finalReport.updatedAt
+          }
+        : null
+    };
+
+    return {
+      content: textContent(structuredContent),
+      structuredContent
+    };
+  }
+);
+
+// ── Campaign Rooms ──────────────────────────────────────────────────────────
+
+server.registerTool(
+  'list_campaign_rooms',
+  {
+    title: 'List Campaign Rooms',
+    description: 'List manual campaign rooms with status and key metadata.',
+    inputSchema: {
+      limit: z.number().int().min(1).max(30).default(10),
+      status: z.enum(['ACTIVE', 'PAUSED', 'COMPLETED']).optional()
+    }
+  },
+  async ({ limit = 10, status }) => {
+    const rooms = await prisma.manualCampaignRoom.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { updatedAt: 'desc' },
+      take: limit
+    });
+
+    const structuredContent = {
+      count: rooms.length,
+      rooms: rooms.map(summarizeCampaignRoom)
+    };
+
+    return {
+      content: textContent(structuredContent),
+      structuredContent
+    };
+  }
+);
+
+// ── Operations Summary ──────────────────────────────────────────────────────
+
+server.registerTool(
+  'get_operations_summary',
+  {
+    title: 'Get Operations Summary',
+    description: 'Return a consolidated ops dashboard: run counts, seminar status, KPI health, and latest signals.',
+    inputSchema: {}
+  },
+  async () => {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    const [
+      totalRuns,
+      recentRunCount,
+      deliverableCount,
+      totalDatasets,
+      analyzedDatasets,
+      totalLearning,
+      confirmedLearning,
+      draftLearning,
+      runningSeminars,
+      completedSeminars,
+      totalKpiGoals,
+      latestReach,
+      activeRooms
+    ] = await Promise.all([
+      prisma.run.count(),
+      prisma.run.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.deliverable.count(),
+      prisma.dataset.count(),
+      prisma.dataset.count({ where: { analysis: { not: null } } }),
+      prisma.learningArchive.count(),
+      prisma.learningArchive.count({ where: { status: 'CONFIRMED' } }),
+      prisma.learningArchive.count({ where: { status: 'DRAFT' } }),
+      prisma.seminarSession.count({ where: { status: 'RUNNING' } }),
+      prisma.seminarSession.count({ where: { status: 'COMPLETED' } }),
+      prisma.kpiGoal.count(),
+      prisma.instagramReachAnalysisRun.findFirst({ orderBy: { createdAt: 'desc' } }),
+      prisma.manualCampaignRoom.count({ where: { status: 'ACTIVE' } })
+    ]);
+
+    const structuredContent = {
+      generatedAt: new Date().toISOString(),
+      runs: {
+        total: totalRuns,
+        last7Days: recentRunCount,
+        deliverableCoveragePct: totalRuns > 0 ? Math.round((deliverableCount / totalRuns) * 100) : 0
+      },
+      datasets: {
+        total: totalDatasets,
+        analyzedPct: totalDatasets > 0 ? Math.round((analyzedDatasets / totalDatasets) * 100) : 0,
+        backlog: totalDatasets - analyzedDatasets
+      },
+      learning: {
+        total: totalLearning,
+        confirmed: confirmedLearning,
+        draft: draftLearning,
+        confirmedPct: totalLearning > 0 ? Math.round((confirmedLearning / totalLearning) * 100) : 0
+      },
+      seminars: {
+        running: runningSeminars,
+        completed: completedSeminars
+      },
+      kpi: {
+        totalGoals: totalKpiGoals
+      },
+      campaigns: {
+        activeRooms
+      },
+      latestReach: latestReach ? summarizeInstagramAnalysis(latestReach) : null
+    };
+
+    return {
+      content: textContent(structuredContent),
+      structuredContent
+    };
+  }
+);
+
 server.registerPrompt(
   'run-retrospective',
   {
@@ -594,6 +934,82 @@ server.registerPrompt(
             (query ? ` with query "${query}"` : '') +
             (status ? ` and status "${status}"` : '') +
             `. Then cluster similar situations, recommend the best confirmed patterns, and flag any draft cards that still need validation.`
+        }
+      }
+    ]
+  })
+);
+
+server.registerPrompt(
+  'ops-weekly-digest',
+  {
+    title: 'Ops Weekly Digest',
+    description: 'Guide a model to produce a concise weekly operations summary.',
+    argsSchema: {}
+  },
+  async () => ({
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text:
+            'Produce a concise weekly operations digest. ' +
+            'Call "get_operations_summary" first, then "list_seminar_sessions" with status RUNNING or COMPLETED, ' +
+            'then "list_kpi_goals" to check goal health. ' +
+            'Output: 1) headline numbers 2) top 3 priorities this week 3) risks or blockers 4) recommended next actions.'
+        }
+      }
+    ]
+  })
+);
+
+server.registerPrompt(
+  'seminar-to-action',
+  {
+    title: 'Seminar to Action Plan',
+    description: 'Turn a completed seminar session into a concrete action plan.',
+    argsSchema: {
+      sessionId: z.string().describe('Target seminar session id')
+    }
+  },
+  async ({ sessionId }) => ({
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text:
+            `Convert seminar session ${sessionId} into an executable action plan. ` +
+            `Call "get_seminar_session" first. ` +
+            `Then produce: 1) 3-line executive summary 2) key strategic decisions from the debate 3) ` +
+            `5 concrete actions with owner role and deadline 4) risks to watch.`
+        }
+      }
+    ]
+  })
+);
+
+server.registerPrompt(
+  'kpi-gap-analysis',
+  {
+    title: 'KPI Gap Analysis',
+    description: 'Analyze current KPI goals and identify top gaps and quick wins.',
+    argsSchema: {
+      brand: z.string().optional().describe('Optional brand filter')
+    }
+  },
+  async ({ brand }) => ({
+    messages: [
+      {
+        role: 'user',
+        content: {
+          type: 'text',
+          text:
+            'Analyze KPI goal gaps and quick wins. ' +
+            `Call "list_kpi_goals"${brand ? ` with brand "${brand}"` : ''}. ` +
+            'Then: 1) rank goals by gap (farthest from target first) 2) identify which metrics need immediate attention ' +
+            '3) suggest 3 specific actions to close the top gaps.'
         }
       }
     ]

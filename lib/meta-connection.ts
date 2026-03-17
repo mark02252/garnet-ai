@@ -2,7 +2,9 @@ export const INSTAGRAM_LOGIN_SCOPES = [
   'instagram_basic',
   'instagram_manage_insights',
   'pages_show_list',
-  'pages_read_engagement'
+  'pages_read_engagement',
+  'instagram_manage_comments',
+  'instagram_content_publish'
 ] as const;
 
 export const META_BUSINESS_SCOPES = [

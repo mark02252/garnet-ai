@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   buildInstagramConnectionOAuthUrl,
@@ -78,6 +78,55 @@ function trendLabel(direction: 'UP' | 'DOWN' | 'FLAT' | undefined) {
   if (direction === 'UP') return { label: '상승 추세', tone: 'text-emerald-700' };
   if (direction === 'DOWN') return { label: '하락 추세', tone: 'text-rose-700' };
   return { label: '보합 추세', tone: 'text-[var(--text-base)]' };
+}
+
+function WizardStep({
+  stepNum,
+  current,
+  title,
+  description,
+  actionLabel,
+  actionHref,
+  onNext,
+  onBack,
+  children,
+}: {
+  stepNum: number;
+  current: number;
+  title: string;
+  description: string;
+  actionLabel?: string;
+  actionHref?: string;
+  onNext: () => void;
+  onBack?: () => void;
+  children?: React.ReactNode;
+}) {
+  if (stepNum !== current) return null;
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center gap-2">
+        <span className="accent-pill">Step {stepNum} / 5</span>
+        <h4 className="text-sm font-semibold text-[var(--text-strong)]">{title}</h4>
+      </div>
+      <p className="text-sm leading-6 text-[var(--text-base)]">{description}</p>
+      {children}
+      <div className="flex gap-2">
+        {onBack && (
+          <button type="button" className="button-secondary" onClick={onBack}>
+            이전
+          </button>
+        )}
+        {actionLabel && actionHref && (
+          <a href={actionHref} target="_blank" rel="noopener noreferrer" className="button-secondary">
+            {actionLabel} →
+          </a>
+        )}
+        <button type="button" className="button-primary" onClick={onNext}>
+          다음
+        </button>
+      </div>
+    </div>
+  );
 }
 
 type MetaConnectionPanelProps = {
@@ -385,6 +434,25 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     setMessage(`${getConnectionModeLabel(nextMode)} 중심으로 연결 방식을 바꿨습니다. 저장 후 새로 로그인해 주세요.`);
   }
 
+  async function handleWizardReset() {
+    const next = {
+      ...draft,
+      appId: '',
+      appSecret: '',
+      loginMode: 'instagram_login' as const,
+      connectedAccounts: [],
+      accessToken: '',
+      tokenSource: 'none' as const,
+      tokenExpiresIn: null,
+      lastConnectedAt: '',
+      lastOauthState: ''
+    };
+    await persist(next, 'Instagram 연동 설정이 초기화되었습니다.');
+    setWizardAppId('');
+    setWizardAppSecret('');
+    setWizardStep(1);
+  }
+
   if (loading) {
     return (
       <section className="panel">
@@ -449,6 +517,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
           </div>
         </>
       ) : (
+        <>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="status-tile">
             <p className="metric-label">연결 방식</p>
@@ -466,6 +535,41 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             <p className="mt-1 text-xs text-[var(--text-muted)]">{draft.instagramBusinessAccountId || '선택된 계정이 없습니다.'}</p>
           </div>
         </div>
+        {!isConfigured && (
+          <div className="soft-panel space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Instagram 연동 설정 마법사</p>
+            <WizardStep
+              stepNum={1}
+              current={wizardStep}
+              title="Meta 개발자 계정 만들기"
+              description="Meta for Developers에서 개발자 계정을 만듭니다. Facebook 계정으로 로그인하면 됩니다. 이미 있다면 바로 다음으로 넘어가세요."
+              actionLabel="developers.facebook.com 열기"
+              actionHref="https://developers.facebook.com"
+              onNext={() => setWizardStep(2)}
+            />
+            <WizardStep
+              stepNum={2}
+              current={wizardStep}
+              title="Business 앱 만들기"
+              description="개발자 대시보드 → 'My Apps' → '앱 만들기' → 앱 유형 'Business' 선택 → 앱 이름·연락처 이메일 입력 후 생성합니다."
+              actionLabel="Meta App Dashboard 열기"
+              actionHref="https://developers.facebook.com/apps"
+              onBack={() => setWizardStep(1)}
+              onNext={() => setWizardStep(3)}
+            />
+            <WizardStep
+              stepNum={3}
+              current={wizardStep}
+              title="Instagram 제품 추가"
+              description="앱 대시보드 → 왼쪽 사이드바 '제품 추가' → 'Instagram' (Instagram Login for Business) → '설정'을 클릭합니다."
+              actionLabel="Meta App Dashboard 열기"
+              actionHref="https://developers.facebook.com/apps"
+              onBack={() => setWizardStep(2)}
+              onNext={() => setWizardStep(4)}
+            />
+          </div>
+        )}
+        </>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

@@ -59,12 +59,14 @@ body {
   display: flex;
   height: 100vh;
   flex-direction: column;
-  align-items: center;
-  gap: 4px;
+  align-items: stretch;
+  gap: 0;
   padding: 12px 8px;
   background: var(--surface);
   border-right: 1px solid var(--surface-border);
-  width: 56px;
+  width: 200px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .app-topbar {

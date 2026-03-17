@@ -185,23 +185,57 @@ function SnsCommunityIcon() {
   )
 }
 
-const navItems: NavItem[] = [
-  { href: '/operations', label: '오늘의 브리핑', icon: <BriefingIcon /> },
-  { href: '/', label: '캠페인 스튜디오', icon: <StudioIcon /> },
-  { href: '/campaigns', label: '캠페인 룸', icon: <CampaignIcon /> },
-  { href: '/content', label: '콘텐츠 스튜디오', icon: <ContentIcon /> },
-  { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
-  { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
-  { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
-  { href: '/dashboard', label: '성과 대시보드', icon: <DashboardIcon /> },
-  { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
-  { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
-  { href: '/notifications', label: '알림 인박스', icon: <NotificationIcon /> },
-  { href: '/sns/personas',  label: '페르소나',     icon: <SnsPersonaIcon /> },
-  { href: '/sns/studio',    label: '콘텐츠 제작소', icon: <SnsStudioIcon /> },
-  { href: '/sns/calendar',  label: '캘린더',        icon: <SnsCalendarIcon /> },
-  { href: '/sns/analytics', label: '성과 분석',     icon: <SnsAnalyticsIcon /> },
-  { href: '/sns/community', label: '커뮤니티',      icon: <SnsCommunityIcon /> },
+type NavGroup = {
+  label: string;
+  items: NavItem[];
+};
+
+const navGroups: NavGroup[] = [
+  {
+    label: '운영',
+    items: [
+      { href: '/operations', label: '오늘의 브리핑', icon: <BriefingIcon /> },
+    ],
+  },
+  {
+    label: '캠페인',
+    items: [
+      { href: '/', label: '캠페인 스튜디오', icon: <StudioIcon /> },
+      { href: '/campaigns', label: '캠페인 룸', icon: <CampaignIcon /> },
+    ],
+  },
+  {
+    label: '제작',
+    items: [
+      { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
+      { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
+    ],
+  },
+  {
+    label: 'SNS 스튜디오',
+    items: [
+      { href: '/sns/personas',  label: '페르소나',     icon: <SnsPersonaIcon /> },
+      { href: '/sns/studio',    label: '콘텐츠 제작소', icon: <SnsStudioIcon /> },
+      { href: '/sns/calendar',  label: '캘린더',        icon: <SnsCalendarIcon /> },
+      { href: '/sns/analytics', label: '성과 분석',     icon: <SnsAnalyticsIcon /> },
+      { href: '/sns/community', label: '커뮤니티',      icon: <SnsCommunityIcon /> },
+    ],
+  },
+  {
+    label: '성과',
+    items: [
+      { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
+      { href: '/dashboard', label: '성과 대시보드', icon: <DashboardIcon /> },
+    ],
+  },
+  {
+    label: '아카이브',
+    items: [
+      { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
+      { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
+      { href: '/notifications', label: '알림 인박스', icon: <NotificationIcon /> },
+    ],
+  },
 ];
 
 const bottomItems: NavItem[] = [
@@ -218,19 +252,19 @@ function NavButton({ item, active }: { item: NavItem; active: boolean }) {
   return (
     <Link
       href={item.href}
-      title={item.label}
       aria-label={item.label}
       className={[
-        'relative flex h-10 w-10 items-center justify-center rounded-[10px] transition-colors',
+        'relative flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2.5 transition-colors',
         active
           ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
           : 'text-[var(--text-muted)] hover:bg-[var(--surface-sub)] hover:text-[var(--text-base)]'
       ].join(' ')}
     >
-      {item.icon}
       {active && (
         <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]" />
       )}
+      <span className="shrink-0">{item.icon}</span>
+      <span className="truncate text-[13px] font-medium">{item.label}</span>
     </Link>
   );
 }
@@ -243,25 +277,34 @@ export function AppNav() {
       {/* Logo */}
       <Link
         href="/operations"
-        className="mb-2 flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-[var(--accent-soft)] text-[13px] font-bold text-[var(--accent)]"
+        className="mb-3 flex h-9 items-center gap-2.5 px-2 text-[var(--accent)]"
         title="Garnet"
       >
-        G
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--accent-soft)] text-[13px] font-bold">
+          G
+        </span>
+        <span className="text-[15px] font-bold text-[var(--text-strong)]">Garnet</span>
       </Link>
 
-      {/* Divider */}
-      <div className="my-1 h-px w-8 bg-[var(--surface-border)]" />
-
-      {/* Main nav */}
-      <nav className="flex flex-1 flex-col gap-1">
-        {navItems.map((item) => (
-          <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
+      {/* Grouped nav */}
+      <nav className="flex flex-1 flex-col gap-4">
+        {navGroups.map((group) => (
+          <div key={group.label}>
+            <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] opacity-60">
+              {group.label}
+            </p>
+            <div className="flex flex-col gap-0.5">
+              {group.items.map((item) => (
+                <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
+              ))}
+            </div>
+          </div>
         ))}
       </nav>
 
       {/* Bottom nav */}
-      <div className="flex flex-col gap-1">
-        <div className="mb-1 h-px w-8 bg-[var(--surface-border)]" />
+      <div className="flex flex-col gap-0.5 pt-2">
+        <div className="mb-2 h-px bg-[var(--surface-border)]" />
         {bottomItems.map((item) => (
           <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
         ))}

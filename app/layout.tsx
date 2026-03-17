@@ -21,7 +21,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="ko">
       <body className={notoSansKr.variable}>
         <div className="app-shell">
-          <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[56px_1fr]">
+          <div className="grid min-h-screen grid-cols-1 lg:grid-cols-[200px_1fr]">
             <AppNav />
             <div className="min-w-0">
               <header className="app-topbar">

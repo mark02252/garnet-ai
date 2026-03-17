@@ -34,6 +34,7 @@ model Run {
   deliverable  Deliverable?
   memoryLog    MemoryLog?
   learningArchives LearningArchive[]
+  runProgress  RunProgress?
 
   @@index([createdAt])
   @@index([topic])
@@ -255,4 +256,243 @@ model InstagramReachAnalysisRun {
 
   @@index([accountId, createdAt])
   @@index([createdAt])
+}
+
+model ApprovalDecision {
+  id        String   @id @default(cuid())
+  itemType  String
+  itemId    String
+  decision  String
+  label     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+
+  @@unique([itemType, itemId, decision])
+  @@index([itemType, updatedAt])
+}
+
+model RunProgress {
+  runId       String    @id
+  status      String
+  stepKey     String
+  stepLabel   String
+  progressPct Int       @default(0)
+  message     String?
+  startedAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  finishedAt  DateTime?
+
+  run Run @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
+}
+
+model SeminarSession {
+  id                 String          @id @default(cuid())
+  title              String?
+  topic              String
+  brand              String?
+  region             String?
+  goal               String?
+  status             String
+  startsAt           DateTime
+  endsAt             DateTime
+  intervalMinutes    Int
+  maxRounds          Int
+  completedRounds    Int             @default(0)
+  nextRunAt          DateTime?
+  lastRunAt          DateTime?
+  morningBriefing    String?
+  runtimeConfig      String?
+  lastError          String?
+  isProcessing       Boolean         @default(false)
+  processingStartedAt DateTime?
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @default(now()) @updatedAt
+  rounds             SeminarRound[]
+  finalReport        SeminarFinalReport?
+
+  @@index([status, nextRunAt])
+  @@index([createdAt])
+}
+
+model SeminarRound {
+  id          String         @id @default(cuid())
+  sessionId   String
+  roundNumber Int
+  scheduledAt DateTime
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  status      String
+  runId       String?
+  summary     String?
+  error       String?
+  createdAt   DateTime       @default(now())
+  session     SeminarSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, roundNumber])
+  @@index([sessionId, status])
+  @@index([createdAt])
+}
+
+model SeminarFinalReport {
+  id         String         @id @default(cuid())
+  sessionId  String         @unique
+  content    String
+  structured String?
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @default(now()) @updatedAt
+  session    SeminarSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([updatedAt])
+}
+
+// ─── SNS 스튜디오 ─────────────────────────────
+
+enum PersonaLearnMode {
+  FROM_POSTS
+  FROM_TEMPLATE
+}
+
+enum PersonaPlatform {
+  INSTAGRAM
+  THREADS
+  X
+  YOUTUBE
+}
+
+enum ContentType {
+  TEXT
+  CAROUSEL
+  VIDEO
+}
+
+enum DraftStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+}
+
+enum PlanningMode {
+  CREATIVE
+  SEARCH
+  FILE
+}
+
+enum ScheduleStatus {
+  PENDING
+  PUBLISHED
+  FAILED
+  MISSED
+}
+
+// A. 페르소나
+model SnsPersona {
+  id              String           @id @default(cuid())
+  name            String
+  platform        PersonaPlatform  @default(INSTAGRAM)
+  learnMode       PersonaLearnMode
+  brandConcept    String?
+  targetAudience  String?
+  writingStyle    String?
+  tone            String?
+  keywords        String           @default("[]")
+  sampleSentences String           @default("[]")
+  instagramHandle String?
+  isActive        Boolean          @default(true)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  sourcePosts      SnsPersonaPost[]
+  contentDrafts    SnsContentDraft[]
+  scheduledPosts   SnsScheduledPost[]
+  analytics        SnsAnalyticsSnapshot[]
+  commentTemplates SnsCommentTemplate[]
+}
+
+model SnsPersonaPost {
+  id        String     @id @default(cuid())
+  personaId String
+  content   String
+  postedAt  DateTime?
+  source    String?
+  persona   SnsPersona @relation(fields: [personaId], references: [id], onDelete: Cascade)
+
+  @@index([personaId])
+}
+
+// B. 콘텐츠 초안
+model SnsContentDraft {
+  id           String          @id @default(cuid())
+  personaId    String?
+  type         ContentType     @default(TEXT)
+  planningMode PlanningMode    @default(CREATIVE)
+  title        String?
+  content      String?
+  slides       String?
+  videoUrl     String?
+  status       DraftStatus     @default(DRAFT)
+  publishedAt  DateTime?
+  platform     PersonaPlatform @default(INSTAGRAM)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  persona   SnsPersona?      @relation(fields: [personaId], references: [id])
+  scheduled SnsScheduledPost[]
+
+  @@index([personaId])
+  @@index([status])
+}
+
+// C. 예약 발행
+model SnsScheduledPost {
+  id          String          @id @default(cuid())
+  draftId     String          @unique
+  personaId   String
+  platform    PersonaPlatform @default(INSTAGRAM)
+  scheduledAt DateTime
+  publishedAt DateTime?
+  status      ScheduleStatus  @default(PENDING)
+  errorMsg    String?
+  createdAt   DateTime        @default(now())
+
+  draft   SnsContentDraft @relation(fields: [draftId], references: [id])
+  persona SnsPersona      @relation(fields: [personaId], references: [id])
+
+  @@index([status, scheduledAt])
+}
+
+// D. 성과 스냅샷
+model SnsAnalyticsSnapshot {
+  id          String          @id @default(cuid())
+  personaId   String
+  platform    PersonaPlatform @default(INSTAGRAM)
+  date        DateTime
+  reach       Int             @default(0)
+  impressions Int             @default(0)
+  engagement  Float           @default(0)
+  followers   Int             @default(0)
+  postCount   Int             @default(0)
+  topPostId   String?
+  createdAt   DateTime        @default(now())
+
+  persona SnsPersona @relation(fields: [personaId], references: [id])
+
+  @@unique([personaId, date])
+}
+
+// E. 댓글 템플릿
+model SnsCommentTemplate {
+  id              String     @id @default(cuid())
+  personaId       String
+  triggerKeywords String     @default("[]")
+  replyType       String     @default("comment")
+  template        String
+  isActive        Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+
+  persona SnsPersona @relation(fields: [personaId], references: [id])
+
+  @@index([personaId])
 }

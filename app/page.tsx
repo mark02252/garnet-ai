@@ -68,7 +68,7 @@ export default function HomePage() {
     message?: string;
     steps: Array<{ key: string; label: string; state: 'pending' | 'running' | 'completed' | 'failed' }>;
   } | null>(null);
-  const progressPollerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const progressSourceRef = useRef<EventSource | null>(null);
   const [envStatus, setEnvStatus] = useState<{
     ok: boolean;
     provider: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw';
@@ -246,54 +246,68 @@ export default function HomePage() {
     return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`;
   }
 
-  function clearProgressPoller() {
-    if (progressPollerRef.current) {
-      clearInterval(progressPollerRef.current);
-      progressPollerRef.current = null;
+  function clearProgressSource() {
+    if (progressSourceRef.current) {
+      progressSourceRef.current.close();
+      progressSourceRef.current = null;
     }
   }
 
   useEffect(() => {
     return () => {
-      clearProgressPoller();
+      clearProgressSource();
     };
   }, []);
 
-  async function fetchRunProgress(runId: string) {
-    const res = await fetch(`/api/runs/${runId}/progress`, { cache: 'no-store' });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || '실행 진행 상태를 불러오지 못했습니다.');
-    }
-    setRunProgress({
-      status: data.status,
-      progressPct: data.progressPct,
-      stepLabel: data.stepLabel,
-      message: data.message,
-      steps: data.steps || []
-    });
-
-    if (data.status === 'COMPLETED') {
-      clearProgressPoller();
-      setLoading(false);
-      localStorage.removeItem(DRAFT_KEY);
-      router.push(`/runs/${runId}`);
-      return;
-    }
-
-    if (data.status === 'FAILED') {
-      clearProgressPoller();
-      setLoading(false);
-      setError(data.message || '회의 실행 중 오류가 발생했습니다.');
-    }
-  }
-
   function startRunProgressPolling(runId: string) {
-    clearProgressPoller();
-    void fetchRunProgress(runId);
-    progressPollerRef.current = setInterval(() => {
-      void fetchRunProgress(runId);
-    }, 1300);
+    clearProgressSource();
+
+    const es = new EventSource(`/api/runs/${runId}/progress/stream`);
+    progressSourceRef.current = es;
+
+    es.onmessage = (event) => {
+      let data: Record<string, unknown>;
+      try {
+        data = JSON.parse(event.data as string) as Record<string, unknown>;
+      } catch {
+        return;
+      }
+
+      if (data.error) {
+        clearProgressSource();
+        setLoading(false);
+        setError(String(data.error));
+        return;
+      }
+
+      setRunProgress({
+        status: data.status as 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED',
+        progressPct: data.progressPct as number,
+        stepLabel: data.stepLabel as string,
+        message: data.message as string | undefined,
+        steps: (data.steps as Array<{ key: string; label: string; state: 'pending' | 'running' | 'completed' | 'failed' }>) || []
+      });
+
+      if (data.status === 'COMPLETED') {
+        clearProgressSource();
+        setLoading(false);
+        localStorage.removeItem(DRAFT_KEY);
+        router.push(`/runs/${runId}`);
+        return;
+      }
+
+      if (data.status === 'FAILED') {
+        clearProgressSource();
+        setLoading(false);
+        setError((data.message as string) || '회의 실행 중 오류가 발생했습니다.');
+      }
+    };
+
+    es.onerror = () => {
+      clearProgressSource();
+      setLoading(false);
+      setError('진행 상태 스트림 연결이 끊겼습니다. 다시 시도해 주세요.');
+    };
   }
 
   function parseBriefToFields(brief: string) {

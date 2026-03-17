@@ -9,38 +9,46 @@ const bodySchema = z.object({
   connection: mcpConnectionSchema.optional()
 });
 
+async function listSafe<T>(fn: () => Promise<T>): Promise<T | null> {
+  try {
+    return await fn();
+  } catch {
+    return null;
+  }
+}
+
 async function inspectWithConnection(connection?: z.infer<typeof mcpConnectionSchema>) {
   try {
     const startedAt = Date.now();
     const runner = connection ? withMcpClient(connection, async (client) => {
       const [tools, resources, prompts] = await Promise.all([
-        client.listTools(),
-        client.listResources(),
-        client.listPrompts()
+        listSafe(() => client.listTools()),
+        listSafe(() => client.listResources()),
+        listSafe(() => client.listPrompts())
       ]);
 
       return {
         server: client.getServerVersion(),
         instructions: client.getInstructions(),
         capabilities: client.getServerCapabilities(),
-        tools: tools.tools,
-        resources: resources.resources,
-        prompts: prompts.prompts
+        tools: tools?.tools ?? [],
+        resources: resources?.resources ?? [],
+        prompts: prompts?.prompts ?? []
       };
     }) : withLocalMcpClient(async (client) => {
       const [tools, resources, prompts] = await Promise.all([
-        client.listTools(),
-        client.listResources(),
-        client.listPrompts()
+        listSafe(() => client.listTools()),
+        listSafe(() => client.listResources()),
+        listSafe(() => client.listPrompts())
       ]);
 
       return {
         server: client.getServerVersion(),
         instructions: client.getInstructions(),
         capabilities: client.getServerCapabilities(),
-        tools: tools.tools,
-        resources: resources.resources,
-        prompts: prompts.prompts
+        tools: tools?.tools ?? [],
+        resources: resources?.resources ?? [],
+        prompts: prompts?.prompts ?? []
       };
     });
     const { data, stderr } = await runner;

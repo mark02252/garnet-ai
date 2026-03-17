@@ -314,38 +314,56 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
             </div>
 
             {selectedConnection.transport === 'stdio' && (
-              <div className="grid gap-3 lg:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">실행 명령</label>
-                  <input
-                    className="input"
-                    value={selectedConnection.command}
-                    onChange={(e) =>
-                      updateConnection(selectedConnection.id, (current) => ({
-                        ...current,
-                        command: e.target.value
-                      }))
-                    }
-                    disabled={selectedConnection.readonly}
-                  />
+              <div className="space-y-3">
+                <div className="grid gap-3 lg:grid-cols-2">
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">실행 명령</label>
+                    <input
+                      className="input"
+                      value={selectedConnection.command}
+                      onChange={(e) =>
+                        updateConnection(selectedConnection.id, (current) => ({
+                          ...current,
+                          command: e.target.value
+                        }))
+                      }
+                      disabled={selectedConnection.readonly}
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">인자</label>
+                    <input
+                      className="input"
+                      value={selectedConnection.args.join(' ')}
+                      onChange={(e) =>
+                        updateConnection(selectedConnection.id, (current) => ({
+                          ...current,
+                          args: e.target.value
+                            .split(/\s+/)
+                            .map((item) => item.trim())
+                            .filter(Boolean)
+                        }))
+                      }
+                      disabled={selectedConnection.readonly}
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">인자</label>
-                  <input
-                    className="input"
-                    value={selectedConnection.args.join(' ')}
-                    onChange={(e) =>
-                      updateConnection(selectedConnection.id, (current) => ({
-                        ...current,
-                        args: e.target.value
-                          .split(/\s+/)
-                          .map((item) => item.trim())
-                          .filter(Boolean)
-                      }))
-                    }
-                    disabled={selectedConnection.readonly}
-                  />
-                </div>
+                {selectedConnection.authMode === 'bearer' && (
+                  <div>
+                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Bearer Token</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={selectedConnection.bearerToken}
+                      onChange={(e) =>
+                        updateConnection(selectedConnection.id, (current) => ({
+                          ...current,
+                          bearerToken: e.target.value
+                        }))
+                      }
+                    />
+                  </div>
+                )}
               </div>
             )}
 

@@ -87,18 +87,35 @@ function createTransport(connection: McpConnectionDraft) {
     }
 
     const env = stringifyEnv(process.env);
+    let resolvedArgs = connection.args || [];
 
-    // Bearer token이 있는 stdio 서버는 OPENAPI_MCP_HEADERS env var로 전달
+    // Bearer token이 있는 stdio 서버 처리
     if (connection.authMode === 'bearer' && connection.bearerToken.trim()) {
+      const token = connection.bearerToken.trim();
+
+      // --access-token 인자가 있으면 다음 위치에 토큰 삽입 (Supabase MCP 등)
+      const tokenArgIndex = resolvedArgs.indexOf('--access-token');
+      if (tokenArgIndex !== -1) {
+        resolvedArgs = [...resolvedArgs];
+        if (tokenArgIndex + 1 < resolvedArgs.length) {
+          // 플레이스홀더가 있으면 교체
+          resolvedArgs[tokenArgIndex + 1] = token;
+        } else {
+          // --access-token이 마지막 인자면 토큰을 뒤에 추가
+          resolvedArgs.push(token);
+        }
+      }
+
+      // HTTP 방식 MCP 서버를 위한 OPENAPI_MCP_HEADERS도 설정
       env.OPENAPI_MCP_HEADERS = JSON.stringify({
-        Authorization: `Bearer ${connection.bearerToken.trim()}`
+        Authorization: `Bearer ${token}`
       });
     }
 
     return {
       transport: new StdioClientTransport({
         command,
-        args: connection.args || [],
+        args: resolvedArgs,
         cwd: process.cwd(),
         env,
         stderr: 'pipe'

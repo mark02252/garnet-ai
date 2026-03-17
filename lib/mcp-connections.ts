@@ -480,7 +480,6 @@ export function describeMcpConnectionReadiness(connection: McpConnectionDraft) {
 export function canInspectMcpConnection(connection: McpConnectionDraft) {
   const readiness = describeMcpConnectionReadiness(connection);
   if (!readiness.ready) return false;
-  if (!connection.enabled && connection.transport !== 'builtin-local') return false;
   if (connection.setupMode === 'oauth') return false;
   return true;
 }

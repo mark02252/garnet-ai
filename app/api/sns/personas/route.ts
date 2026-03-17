@@ -2,12 +2,16 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET() {
-  const personas = await prisma.snsPersona.findMany({
-    where: { isActive: true },
-    orderBy: { createdAt: 'desc' },
-    include: { _count: { select: { contentDrafts: true } } },
-  })
-  return NextResponse.json(personas)
+  try {
+    const personas = await prisma.snsPersona.findMany({
+      where: { isActive: true },
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { contentDrafts: true } } },
+    })
+    return NextResponse.json(personas)
+  } catch {
+    return NextResponse.json([], { status: 200 })
+  }
 }
 
 export async function POST(req: NextRequest) {

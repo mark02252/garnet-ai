@@ -29,8 +29,10 @@ export default function PersonasPage() {
 
   useEffect(() => {
     fetch('/api/sns/personas')
-      .then(r => r.json())
-      .then(data => { setPersonas(data); setLoading(false) })
+      .then(r => r.ok ? r.json() : Promise.reject(r.status))
+      .then(data => Array.isArray(data) ? setPersonas(data) : void 0)
+      .catch(() => {})
+      .finally(() => setLoading(false))
   }, [])
 
   return (

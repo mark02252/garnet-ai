@@ -19,7 +19,9 @@ const prismaClient =
         if (!url) return undefined;
         if (url.startsWith('file:./')) {
           const relative = url.replace('file:./', '');
-          return `file:${path.join(process.cwd(), relative)}`;
+          // Prisma CLI resolves file:. relative to schema dir (prisma/)
+          // so we match that convention here
+          return `file:${path.join(process.cwd(), 'prisma', relative)}`;
         }
         return url;
       })(),

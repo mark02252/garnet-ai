@@ -1,7 +1,7 @@
 # SNS 스튜디오 (Mirra 기능 통합) 설계 스펙
 
 > 작성일: 2026-03-17
-> 버전: v1.1 (스펙 리뷰 반영)
+> 버전: v1.2 (MCP 연동 추가)
 > 상태: 승인됨
 
 ---
@@ -558,7 +558,60 @@ app/api/sns/community/
 
 ---
 
-## 9. 신규 패키지
+## 9. MCP 서버 연동
+
+### 9.1 ig-mcp — Instagram MCP (즉시 연동)
+
+**[jlbadano/ig-mcp](https://github.com/jlbadano/ig-mcp)** — 오픈소스, Python 기반
+
+D(성과 대시보드)와 E(댓글 자동화) 서브시스템의 Instagram Graph API 직접 호출을 이 MCP로 위임한다.
+
+| MCP 툴 | 서브시스템 활용 |
+|--------|--------------|
+| `Publish Media` | C. 예약 발행 실행 |
+| `Get Media Posts` | D. 포스팅 목록 수집 |
+| `Get Media Insights` | D. 성과 지표 수집 |
+| `Manage Comments` | E. 댓글 조회 + 답변 발행 |
+| `Send DM` | E. DM 자동화 (향후) |
+
+**`.mcp.json` 추가:**
+```json
+{
+  "mcpServers": {
+    "ig-mcp": {
+      "command": "python",
+      "args": ["-m", "ig_mcp"],
+      "env": {
+        "INSTAGRAM_ACCESS_TOKEN": "${INSTAGRAM_ACCESS_TOKEN}",
+        "FACEBOOK_APP_ID": "${FACEBOOK_APP_ID}",
+        "FACEBOOK_APP_SECRET": "${FACEBOOK_APP_SECRET}",
+        "INSTAGRAM_BUSINESS_ACCOUNT_ID": "${INSTAGRAM_BUSINESS_ACCOUNT_ID}"
+      }
+    }
+  }
+}
+```
+
+**필요 Instagram 권한 스코프:**
+```
+instagram_basic
+instagram_content_publish
+instagram_manage_insights
+instagram_manage_comments
+instagram_manage_messages  (DM 기능 — Meta 앱 검토 필요)
+pages_show_list
+pages_read_engagement
+```
+
+### 9.2 ayrshare-mcp — 멀티 플랫폼 MCP (향후 확장)
+
+**[vanman2024/ayrshare-mcp](https://github.com/vanman2024/ayrshare-mcp)** — 유료 (Ayrshare 구독 필요)
+
+Instagram 이후 Threads, X, YouTube 확장 시 플랫폼별 OAuth를 Ayrshare 단일 API로 대체. 75개+ 툴로 멀티 플랫폼 발행/분석/댓글을 통합 관리.
+
+---
+
+## 10. 신규 패키지
 
 | 패키지 | 용도 |
 |--------|------|
@@ -568,7 +621,7 @@ app/api/sns/community/
 
 ---
 
-## 10. 구현 순서 (A → E)
+## 11. 구현 순서 (A → E)
 
 1. **A. 페르소나 엔진** — Prisma 스키마 + API + UI (마법사 + 목록)
 2. **B. 콘텐츠 제작소** — 텍스트 → 카드뉴스(나노바나나 2) → 영상(FFmpeg) 순서로 점진 구현
@@ -578,7 +631,7 @@ app/api/sns/community/
 
 ---
 
-## 11. 향후 확장 계획
+## 12. 향후 확장 계획
 
 - 페르소나 모드 ② (계정 카피) 구현
 - Threads, X, YouTube 플랫폼 추가

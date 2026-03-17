@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { loadStoredMetaConnectionDraft, saveStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { buildInstagramConnectionOAuthUrl, getDefaultScopesForConnectionMode } from '@/lib/meta-connection'
 
 type Persona = {
   id: string; name: string; platform: string; brandConcept: string | null
@@ -18,6 +19,7 @@ export default function PersonaDetailPage() {
   const [isMetaConfigured, setIsMetaConfigured] = useState(false);
   const [connectingIg, setConnectingIg] = useState(false);
   const [igMessage, setIgMessage] = useState('');
+  const [igError, setIgError] = useState('');
 
   useEffect(() => {
     fetch(`/api/sns/personas/${id}`).then(r => r.json()).then(setPersona)
@@ -40,10 +42,12 @@ export default function PersonaDetailPage() {
           setPersona((prev) => prev ? { ...prev, instagramHandle: `@${handle}` } : prev);
           setIgMessage(`@${handle} 계정이 연결되었습니다. 저장 버튼을 눌러 확정하세요.`);
         }
+        setIgError('');
         setConnectingIg(false);
       }
       if (record.type === 'instagram-connection-error') {
-        setIgMessage('Instagram 연결 중 오류가 발생했습니다.');
+        setIgError('Instagram 연결 중 오류가 발생했습니다.');
+        setIgMessage('');
         setConnectingIg(false);
       }
     }
@@ -86,11 +90,9 @@ export default function PersonaDetailPage() {
     const stored = await loadStoredMetaConnectionDraft(window.location.origin);
     const draft = stored.value;
     if (!draft.appId) {
-      setIgMessage('Meta 앱이 설정되지 않았습니다. 설정 페이지에서 먼저 완료해 주세요.');
+      setIgError('Meta 앱이 설정되지 않았습니다. 설정 페이지에서 먼저 완료해 주세요.');
       return;
     }
-    const { buildInstagramConnectionOAuthUrl, getDefaultScopesForConnectionMode } = await import('@/lib/meta-connection');
-    const { saveStoredMetaConnectionDraft } = await import('@/lib/meta-connection-storage');
     const state = window.crypto.randomUUID();
     const nextDraft = {
       ...draft,
@@ -101,7 +103,8 @@ export default function PersonaDetailPage() {
     };
     await saveStoredMetaConnectionDraft(nextDraft);
     const url = buildInstagramConnectionOAuthUrl(nextDraft, state);
-    if (!url) { setIgMessage('로그인 URL을 만들지 못했습니다.'); return; }
+    if (!url) { setIgError('로그인 URL을 만들지 못했습니다.'); return; }
+    setIgError('');
     setConnectingIg(true);
     setIgMessage('');
     const popup = window.open(url, 'instagram-connect', 'width=540,height=760');
@@ -148,6 +151,7 @@ export default function PersonaDetailPage() {
                 {connectingIg ? 'OAuth 창 열리는 중...' : 'Instagram 계정 연결'}
               </button>
               {igMessage && <p className="text-xs text-emerald-700">{igMessage}</p>}
+              {igError && <p className="text-xs text-rose-700">{igError}</p>}
             </div>
           ) : (
             <p className="text-xs text-[var(--text-muted)]">

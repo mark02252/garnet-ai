@@ -136,6 +136,55 @@ function SocialIcon() {
   );
 }
 
+function SnsPersonaIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M4 20c0-4 3.6-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="19" cy="7" r="2.5" fill="currentColor" opacity="0.5" />
+    </svg>
+  )
+}
+
+function SnsStudioIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="3" y="3" width="18" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M8 8h8M8 11h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M7 21h10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.5" />
+    </svg>
+  )
+}
+
+function SnsCalendarIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="16" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M16 3v4M8 3v4M3 9h18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="8" cy="15" r="1.5" fill="currentColor" opacity="0.6" />
+      <circle cx="12" cy="15" r="1.5" fill="currentColor" />
+      <circle cx="16" cy="15" r="1.5" fill="currentColor" opacity="0.6" />
+    </svg>
+  )
+}
+
+function SnsAnalyticsIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M4 17l4-5 4 3 4-6 4 2" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M4 21h16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" opacity="0.4" />
+    </svg>
+  )
+}
+
+function SnsCommunityIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 const navItems: NavItem[] = [
   { href: '/operations', label: '오늘의 브리핑', icon: <BriefingIcon /> },
   { href: '/', label: '캠페인 스튜디오', icon: <StudioIcon /> },
@@ -148,6 +197,11 @@ const navItems: NavItem[] = [
   { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
   { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
   { href: '/notifications', label: '알림 인박스', icon: <NotificationIcon /> },
+  { href: '/sns/personas',  label: '페르소나',     icon: <SnsPersonaIcon /> },
+  { href: '/sns/studio',    label: '콘텐츠 제작소', icon: <SnsStudioIcon /> },
+  { href: '/sns/calendar',  label: '캘린더',        icon: <SnsCalendarIcon /> },
+  { href: '/sns/analytics', label: '성과 분석',     icon: <SnsAnalyticsIcon /> },
+  { href: '/sns/community', label: '커뮤니티',      icon: <SnsCommunityIcon /> },
 ];
 
 const bottomItems: NavItem[] = [

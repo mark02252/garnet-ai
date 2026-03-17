@@ -731,6 +731,22 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             )}
           </div>
         )}
+        {!isSocialMode && isConfigured && (
+          <div className="soft-panel flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <span className="accent-pill">Meta 앱 설정됨</span>
+              <p className="text-sm text-[var(--text-base)]">Instagram 연동 준비 완료. 이제 페르소나에서 계정을 연결하세요.</p>
+            </div>
+            <button
+              type="button"
+              className="button-secondary text-xs"
+              onClick={() => void handleWizardReset()}
+              disabled={saving}
+            >
+              {saving ? '초기화 중...' : '다시 설정'}
+            </button>
+          </div>
+        )}
         </>
       )}
 

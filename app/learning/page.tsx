@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { NotionPublishButton } from '@/components/notion-publish-button';
+import { SlackNotifyButton } from '@/components/slack-notify-button';
 
 type Archive = {
   id: string;
@@ -381,6 +382,13 @@ export default function LearningPage() {
                       title={form.situation.slice(0, 60) || '플레이북'}
                       content={`상황\n${form.situation}\n\n추천 대응\n${form.recommendedResponse}\n\n근거\n${form.reasoning}`}
                       contentType="playbook"
+                    />
+                  )}
+                  {form.status === 'CONFIRMED' && (
+                    <SlackNotifyButton
+                      title={form.situation.slice(0, 60) || '플레이북'}
+                      content={`상황\n${form.situation}\n\n추천 대응\n${form.recommendedResponse}\n\n근거\n${form.reasoning}`}
+                      emoji="📖"
                     />
                   )}
                 </div>

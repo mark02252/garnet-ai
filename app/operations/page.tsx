@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { ApprovalActionList } from '@/components/approval-action-list';
 import { NotionPublishButton } from '@/components/notion-publish-button';
+import { SlackNotifyButton } from '@/components/slack-notify-button';
 import { PageSectionTabs } from '@/components/page-section-tabs';
 import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
@@ -409,6 +410,11 @@ export default async function OperationsPage() {
                 title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
                 content={briefingContent}
                 contentType="briefing"
+              />
+              <SlackNotifyButton
+                title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
+                content={briefingContent}
+                emoji="📋"
               />
             </div>
             <PageSectionTabs

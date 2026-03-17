@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { CopyButton } from '@/components/copy-button';
 import { PrintButton } from '@/components/print-button';
 import { NotionPublishButton } from '@/components/notion-publish-button';
+import { SlackNotifyButton } from '@/components/slack-notify-button';
 import { SeminarReportDashboard } from '@/components/seminar-report-dashboard';
 import { ensureSeminarFinalReport } from '@/lib/seminar-scheduler';
 import { getSeminarSessionDetail } from '@/lib/seminar-storage';
@@ -52,6 +53,13 @@ export default async function SeminarSessionReportPage({ params }: { params: Pro
                 title={session.title || session.topic}
                 content={finalReport.content}
                 contentType="seminar-report"
+              />
+            )}
+            {finalReport?.content && (
+              <SlackNotifyButton
+                title={session.title || session.topic}
+                content={finalReport.content}
+                emoji="📋"
               />
             )}
           </div>

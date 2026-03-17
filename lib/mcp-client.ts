@@ -106,10 +106,18 @@ function createTransport(connection: McpConnectionDraft) {
         }
       }
 
-      // HTTP 방식 MCP 서버를 위한 OPENAPI_MCP_HEADERS도 설정
-      env.OPENAPI_MCP_HEADERS = JSON.stringify({
-        Authorization: `Bearer ${token}`
-      });
+      // Notion MCP는 NOTION_TOKEN을 사용 (OPENAPI_MCP_HEADERS보다 우선하며 Notion-Version 헤더 포함)
+      if (resolvedArgs.some(a => a.includes('notion-mcp-server'))) {
+        env.NOTION_TOKEN = token;
+      // Slack MCP는 SLACK_BOT_TOKEN을 사용 (xoxb-... Bot Token)
+      } else if (resolvedArgs.some(a => a.includes('server-slack'))) {
+        env.SLACK_BOT_TOKEN = token;
+      } else {
+        // 그 외 HTTP 방식 MCP 서버를 위한 OPENAPI_MCP_HEADERS 설정
+        env.OPENAPI_MCP_HEADERS = JSON.stringify({
+          Authorization: `Bearer ${token}`
+        });
+      }
     }
 
     return {

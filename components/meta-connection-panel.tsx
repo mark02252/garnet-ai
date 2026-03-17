@@ -454,6 +454,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     await persist(next, 'Instagram 연동 설정이 초기화되었습니다.');
     setWizardAppId('');
     setWizardAppSecret('');
+    setWizardError('');
     setWizardStep(1);
   }
 

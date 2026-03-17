@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { loadStoredMcpHubDraft } from '@/lib/mcp-hub-storage';
+
+const STORAGE_KEY = 'notion_publish_parent_page_id';
 
 type NotionPublishProps = {
   title: string;
@@ -32,6 +34,14 @@ function NotionIcon() {
   );
 }
 
+function extractNotionPageId(input: string): string {
+  const match = input.match(/([a-f0-9]{32})(?:[?#]|$)/i);
+  if (match) return match[1];
+  const uuidMatch = input.match(/([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i);
+  if (uuidMatch) return uuidMatch[1].replace(/-/g, '');
+  return input.trim();
+}
+
 export function NotionPublishButton({ title, content, contentType = 'seminar-report' }: NotionPublishProps) {
   const [state, setState] = useState<PublishState>('idle');
   const [pageUrl, setPageUrl] = useState('');
@@ -39,11 +49,29 @@ export function NotionPublishButton({ title, content, contentType = 'seminar-rep
   const [showInput, setShowInput] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) setParentPageId(saved);
+    } catch {
+      // localStorage unavailable
+    }
+  }, []);
+
+  function saveParentPageId(val: string) {
+    setParentPageId(val);
+    try {
+      localStorage.setItem(STORAGE_KEY, val);
+    } catch {
+      // ignore
+    }
+  }
+
   async function handlePublish() {
     const stored = await loadStoredMcpHubDraft();
     const notion = stored.value.connections.find((c) => c.id === 'notion');
 
-    if (!notion || !notion.enabled || !notion.bearerToken.trim()) {
+    if (!notion || !notion.bearerToken.trim()) {
       setState('not-connected');
       return;
     }
@@ -64,9 +92,9 @@ export function NotionPublishButton({ title, content, contentType = 'seminar-rep
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: 'API_create_a_page',
+          name: 'API-post-page',
           arguments: {
-            parent: { page_id: parentPageId.replace(/-/g, '').replace(/[^a-f0-9]/gi, '') || parentPageId },
+            parent: { page_id: extractNotionPageId(parentPageId) },
             properties: {
               title: {
                 title: [{ text: { content: `${emoji} ${title}` } }]
@@ -86,20 +114,45 @@ export function NotionPublishButton({ title, content, contentType = 'seminar-rep
         })
       });
 
-      const json = await res.json() as { ok: boolean; result?: { url?: string }; error?: string };
+      const json = await res.json() as {
+        ok: boolean;
+        result?: { content?: Array<{ type: string; text: string }>; isError?: boolean };
+        error?: string;
+      };
 
       if (!json.ok) {
         throw new Error(json.error || 'Notion 발행 실패');
       }
 
-      const url = (json.result as Record<string, unknown>)?.url as string | undefined;
-      setPageUrl(url || '');
+      if (json.result?.isError) {
+        const errText = json.result.content?.find(c => c.type === 'text')?.text || 'Notion API 오류';
+        throw new Error(errText);
+      }
+
+      let url = '';
+      const textContent = json.result?.content?.find(c => c.type === 'text')?.text;
+      if (textContent) {
+        try {
+          const page = JSON.parse(textContent) as Record<string, unknown>;
+          url = (page.url as string) || '';
+        } catch {
+          // not JSON
+        }
+      }
+
+      setPageUrl(url);
       setState('success');
       setShowInput(false);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : 'Notion 발행 중 오류가 발생했습니다.');
       setState('error');
     }
+  }
+
+  function handleReset() {
+    setState('idle');
+    setPageUrl('');
+    setErrorMsg('');
   }
 
   if (state === 'not-connected') {
@@ -116,47 +169,74 @@ export function NotionPublishButton({ title, content, contentType = 'seminar-rep
 
   if (state === 'success') {
     return (
-      <span className="flex items-center gap-1.5 text-xs text-emerald-700">
-        <NotionIcon />
-        Notion 발행 완료
-        {pageUrl && (
-          <>
-            {' — '}
-            <a href={pageUrl} target="_blank" rel="noreferrer" className="underline">
-              페이지 열기
-            </a>
-          </>
-        )}
-      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex items-center gap-1.5 text-xs text-emerald-700">
+          <NotionIcon />
+          Notion 발행 완료
+          {pageUrl && (
+            <>
+              {' — '}
+              <a href={pageUrl} target="_blank" rel="noreferrer" className="underline">
+                페이지 열기
+              </a>
+            </>
+          )}
+        </span>
+        <button
+          type="button"
+          className="button-secondary flex items-center gap-1.5 text-xs"
+          onClick={handleReset}
+        >
+          다시 발행
+        </button>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col gap-2">
       {showInput && (
-        <input
-          className="input w-64 text-sm"
-          placeholder="Notion 상위 페이지 ID 또는 URL 붙여넣기"
-          value={parentPageId}
-          onChange={(e) => setParentPageId(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void handlePublish();
-          }}
-          autoFocus
-        />
+        <div className="flex flex-col gap-1">
+          <label className="text-xs text-[var(--text-muted)]">
+            발행할 Notion 상위 페이지 — URL 또는 페이지 ID를 붙여넣으세요
+          </label>
+          <input
+            className="input w-72 text-sm"
+            placeholder="https://notion.so/... 또는 페이지 ID"
+            value={parentPageId}
+            disabled={state === 'loading'}
+            onChange={(e) => saveParentPageId(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void handlePublish();
+            }}
+            autoFocus
+            autoComplete="off"
+          />
+        </div>
       )}
-      <button
-        type="button"
-        className="button-secondary flex items-center gap-1.5 text-sm"
-        disabled={state === 'loading'}
-        onClick={() => void handlePublish()}
-      >
-        <NotionIcon />
-        {state === 'loading' ? '발행 중...' : 'Notion 발행'}
-      </button>
-      {state === 'error' && (
-        <span className="text-xs text-rose-600">{errorMsg}</span>
-      )}
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          className="button-secondary flex items-center gap-1.5 text-sm"
+          disabled={state === 'loading'}
+          onClick={() => void handlePublish()}
+        >
+          <NotionIcon />
+          {state === 'loading' ? '발행 중...' : 'Notion 발행'}
+        </button>
+        {parentPageId && !showInput && state !== 'loading' && (
+          <button
+            type="button"
+            className="text-xs text-[var(--text-muted)] underline"
+            onClick={() => setShowInput(true)}
+          >
+            페이지 변경
+          </button>
+        )}
+        {state === 'error' && (
+          <span className="text-xs text-rose-600">{errorMsg}</span>
+        )}
+      </div>
     </div>
   );
 }

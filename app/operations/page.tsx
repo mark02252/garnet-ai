@@ -364,6 +364,34 @@ export default async function OperationsPage() {
     .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
     .slice(0, 10);
 
+  const briefingContent = [
+    `[오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}]`,
+    '',
+    `■ 실행 현황`,
+    `• 전체 실행: ${totalRuns}건 (최근 7일 ${recentRunCount}건)`,
+    `• 보고서 연결률: ${deliverableCoverage}% (${deliverableCount}/${totalRuns})`,
+    runningSeminars.length > 0 ? `• 진행 중 세미나: ${runningSeminars.length}개` : null,
+    '',
+    `■ 성과 신호`,
+    latestReachAnalysis
+      ? `• ${latestReachAnalysis.accountId}: ${reachSignal.label} (${latestReachAnalysis.days}일 기준)`
+      : '• 성과 신호 데이터 없음',
+    latestReachAnalysis?.summary ? `  ${latestReachAnalysis.summary}` : null,
+    '',
+    `■ 자산화 현황`,
+    `• 데이터 분석률: ${datasetCoverage}% (${analyzedDatasets}/${totalDatasets})`,
+    `• 플레이북 확정률: ${learningCoverage}% (${confirmedLearning}/${totalLearning})`,
+    draftLearning > 0 ? `• 검토 대기 플레이북: ${draftLearning}개` : null,
+    '',
+    priorities.length > 0
+      ? [`■ 오늘 먼저 볼 일`, ...priorities.map(p => `• [${p.tag}] ${p.title}`)].join('\n')
+      : '■ 긴급 병목 없음 — 자산화 작업에 집중해도 좋습니다.',
+    '',
+    leadSignal ? `■ 주요 신호 태그: #${leadSignal}` : null
+  ]
+    .filter((line): line is string => line !== null)
+    .join('\n');
+
   return (
     <div className="space-y-5">
       {/* ── Hero ── */}
@@ -378,8 +406,8 @@ export default async function OperationsPage() {
               <Link href="/seminar" className="button-secondary">세미나 스튜디오</Link>
               <Link href="/history" className="button-secondary">실행 아카이브</Link>
               <NotionPublishButton
-                title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR')}`}
-                content="오늘의 브리핑 내용을 Notion으로 공유합니다."
+                title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
+                content={briefingContent}
                 contentType="briefing"
               />
             </div>

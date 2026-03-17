@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 
 type Persona = {
   id: string; name: string; platform: string; brandConcept: string | null
@@ -14,10 +15,56 @@ export default function PersonaDetailPage() {
   const router = useRouter()
   const [persona, setPersona] = useState<Persona | null>(null)
   const [saving, setSaving] = useState(false)
+  const [isMetaConfigured, setIsMetaConfigured] = useState(false);
+  const [connectingIg, setConnectingIg] = useState(false);
+  const [igMessage, setIgMessage] = useState('');
 
   useEffect(() => {
     fetch(`/api/sns/personas/${id}`).then(r => r.json()).then(setPersona)
   }, [id])
+
+  useEffect(() => {
+    void loadStoredMetaConnectionDraft(window.location.origin).then((result) => {
+      setIsMetaConfigured(Boolean(result.value.appId && result.value.appSecret));
+    });
+  }, []);
+
+  useEffect(() => {
+    function handlePayload(data: unknown) {
+      if (!data || typeof data !== 'object') return;
+      const record = data as Record<string, unknown>;
+      if (record.type === 'instagram-connection-complete') {
+        const payload = record.payload as { accounts?: Array<{ username: string; instagramBusinessAccountId: string }> };
+        const handle = payload?.accounts?.[0]?.username;
+        if (handle) {
+          setPersona((prev) => prev ? { ...prev, instagramHandle: `@${handle}` } : prev);
+          setIgMessage(`@${handle} 계정이 연결되었습니다. 저장 버튼을 눌러 확정하세요.`);
+        }
+        setConnectingIg(false);
+      }
+      if (record.type === 'instagram-connection-error') {
+        setIgMessage('Instagram 연결 중 오류가 발생했습니다.');
+        setConnectingIg(false);
+      }
+    }
+
+    let channel: BroadcastChannel | null = null;
+    if ('BroadcastChannel' in window) {
+      try {
+        channel = new BroadcastChannel('instagram-connect');
+        channel.onmessage = (e) => handlePayload(e.data);
+      } catch { channel = null; }
+    }
+    function handleWindowMessage(e: MessageEvent) {
+      if (e.origin === window.location.origin) handlePayload(e.data);
+    }
+    window.addEventListener('message', handleWindowMessage);
+
+    return () => {
+      channel?.close();
+      window.removeEventListener('message', handleWindowMessage);
+    };
+  }, []);
 
   async function handleSave() {
     if (!persona) return
@@ -33,6 +80,33 @@ export default function PersonaDetailPage() {
     })
     setSaving(false)
     router.push('/sns/personas')
+  }
+
+  async function handleInstagramConnect() {
+    const stored = await loadStoredMetaConnectionDraft(window.location.origin);
+    const draft = stored.value;
+    if (!draft.appId) {
+      setIgMessage('Meta 앱이 설정되지 않았습니다. 설정 페이지에서 먼저 완료해 주세요.');
+      return;
+    }
+    const { buildInstagramConnectionOAuthUrl, getDefaultScopesForConnectionMode } = await import('@/lib/meta-connection');
+    const { saveStoredMetaConnectionDraft } = await import('@/lib/meta-connection-storage');
+    const state = window.crypto.randomUUID();
+    const nextDraft = {
+      ...draft,
+      loginMode: 'instagram_login' as const,
+      redirectUri: draft.redirectUri || `${window.location.origin}/meta/connect`,
+      lastOauthState: state,
+      scopes: getDefaultScopesForConnectionMode('instagram_login')
+    };
+    await saveStoredMetaConnectionDraft(nextDraft);
+    const url = buildInstagramConnectionOAuthUrl(nextDraft, state);
+    if (!url) { setIgMessage('로그인 URL을 만들지 못했습니다.'); return; }
+    setConnectingIg(true);
+    setIgMessage('');
+    const popup = window.open(url, 'instagram-connect', 'width=540,height=760');
+    if (!popup) window.location.href = url;
+    else popup.focus();
   }
 
   if (!persona) return <div className="p-6 text-[var(--text-muted)]">불러오는 중...</div>
@@ -61,6 +135,29 @@ export default function PersonaDetailPage() {
             />
           </div>
         ))}
+        <div className="pt-1 border-t border-[var(--border-subtle)]">
+          <p className="text-sm font-semibold text-[var(--text-strong)] mb-2">Instagram 계정 연결</p>
+          {isMetaConfigured ? (
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                className="button-secondary"
+                onClick={() => void handleInstagramConnect()}
+                disabled={connectingIg}
+              >
+                {connectingIg ? 'OAuth 창 열리는 중...' : 'Instagram 계정 연결'}
+              </button>
+              {igMessage && <p className="text-xs text-emerald-700">{igMessage}</p>}
+            </div>
+          ) : (
+            <p className="text-xs text-[var(--text-muted)]">
+              Instagram 연동 설정이 필요합니다.{' '}
+              <a href="/settings" className="text-[var(--accent)] underline">
+                설정 페이지에서 완료하기 →
+              </a>
+            </p>
+          )}
+        </div>
         <div>
           <label className="text-sm text-[var(--text-muted)] block mb-1">키워드 (쉼표 구분)</label>
           <input

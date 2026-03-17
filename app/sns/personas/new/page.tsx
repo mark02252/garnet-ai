@@ -1,14 +1,22 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 
 type Step = 1 | 2 | 3
 type LearnMode = 'FROM_POSTS' | 'FROM_TEMPLATE'
 
 export default function NewPersonaPage() {
   const router = useRouter()
+  const [isMetaConfigured, setIsMetaConfigured] = useState(false)
   const [step, setStep] = useState<Step>(1)
+
+  useEffect(() => {
+    void loadStoredMetaConnectionDraft(window.location.origin).then((result) => {
+      setIsMetaConfigured(Boolean(result.value.appId && result.value.appSecret))
+    })
+  }, [])
   const [mode, setMode] = useState<LearnMode>('FROM_TEMPLATE')
   const [name, setName] = useState('')
   const [instagramHandle, setInstagramHandle] = useState('')
@@ -86,6 +94,15 @@ export default function NewPersonaPage() {
               </button>
             ))}
           </div>
+          {!isMetaConfigured && (
+            <p className="text-xs text-[var(--text-muted)]">
+              Instagram 계정 연결을 위해{' '}
+              <a href="/settings" className="text-[var(--accent)] underline">
+                먼저 Instagram 연동을 설정
+              </a>
+              해 주세요. (선택 사항 — 나중에 해도 됩니다.)
+            </p>
+          )}
           <button className="button-primary w-full" onClick={() => setStep(2)}>다음</button>
         </div>
       )}

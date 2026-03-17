@@ -1,6 +1,6 @@
 {
   "name": "garnet",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "description": "Garnet all-in-one AI marketing OS for macOS",
   "main": "dist-electron/main.js",

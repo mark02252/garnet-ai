@@ -1016,6 +1016,22 @@ server.registerPrompt(
   })
 );
 
+server.registerTool(
+  'list_sns_personas',
+  {
+    title: 'List SNS Personas',
+    description: 'List active SNS personas with platform, brand concept, and tone.',
+    inputSchema: {}
+  },
+  async () => {
+    const personas = await prisma.snsPersona.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, platform: true, brandConcept: true, tone: true },
+    })
+    return { content: [{ type: 'text', text: JSON.stringify(personas, null, 2) }] }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

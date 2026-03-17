@@ -93,6 +93,12 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
   const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [refreshingAnalysis, setRefreshingAnalysis] = useState(false);
   const [showAdminFields, setShowAdminFields] = useState(mode === 'settings');
+  // 마법사: settings 모드에서만 사용
+  const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+  const [wizardAppId, setWizardAppId] = useState('');
+  const [wizardAppSecret, setWizardAppSecret] = useState('');
+  const [wizardConnecting, setWizardConnecting] = useState(false);
+  const [wizardError, setWizardError] = useState('');
   const [lookbackDays, setLookbackDays] = useState(30);
   const [latestAnalysis, setLatestAnalysis] = useState<InstagramReachApiResponse['latestAnalysis']>(null);
   const [message, setMessage] = useState('');
@@ -114,6 +120,8 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             };
 
       setDraft(next);
+      setWizardAppId(next.appId);
+      setWizardAppSecret(next.appSecret);
       if (next.instagramBusinessAccountId) {
         void fetchLatestAnalysis(next.instagramBusinessAccountId);
       }
@@ -385,6 +393,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     );
   }
 
+  const isConfigured = Boolean(draft.appId && draft.appSecret);
   const hasSavedToken = Boolean(draft.accessToken);
   const hasDefaultAccount = Boolean(draft.instagramBusinessAccountId);
 

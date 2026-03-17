@@ -236,11 +236,15 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
         setLaunching(false);
         setError('');
         setMessage('인스타그램 연결이 완료되었습니다. 연결된 계정 목록을 확인해 주세요.');
+        setWizardConnecting(false);
       }
 
       if (record.type === 'instagram-connection-error') {
         setLaunching(false);
         setError(typeof record.message === 'string' ? record.message : '인스타그램 로그인 중 오류가 발생했습니다.');
+        setWizardConnecting(false);
+        setWizardError(typeof record.message === 'string' ? record.message : '연결 중 오류가 발생했습니다. App ID/Secret을 다시 확인해 주세요.');
+        setWizardStep(4);
       }
     }
 
@@ -453,6 +457,57 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     setWizardStep(1);
   }
 
+  async function handleWizardConnect() {
+    const appId = wizardAppId.trim();
+    const appSecret = wizardAppSecret.trim();
+
+    if (!appId || !appSecret) {
+      setWizardError('App ID와 App Secret을 모두 입력해 주세요.');
+      return;
+    }
+    if (!isLikelyMetaAppId(appId)) {
+      setWizardError('App ID 형식이 올바르지 않습니다. Meta 개발자 대시보드의 숫자형 App ID를 입력해 주세요.');
+      return;
+    }
+
+    const redirectUri = `${window.location.origin}/meta/connect`;
+    const state = window.crypto.randomUUID();
+    const nextDraft = {
+      ...draft,
+      appId,
+      appSecret,
+      loginMode: 'instagram_login' as const,
+      redirectUri,
+      lastOauthState: state,
+      scopes: getDefaultScopesForConnectionMode('instagram_login')
+    };
+
+    setWizardError('');
+    setWizardConnecting(true);
+
+    const saveResult = await saveStoredMetaConnectionDraft(nextDraft);
+    if (!saveResult.ok) {
+      setWizardConnecting(false);
+      setWizardError(saveResult.message || '연결 정보를 저장하지 못했습니다.');
+      return;
+    }
+    setDraft(nextDraft);
+
+    const url = buildInstagramConnectionOAuthUrl(nextDraft, state);
+    if (!url) {
+      setWizardConnecting(false);
+      setWizardError('로그인 URL을 만들지 못했습니다. 입력값을 다시 확인해 주세요.');
+      return;
+    }
+
+    const popup = window.open(url, 'instagram-connect', 'width=540,height=760');
+    if (!popup) {
+      window.location.href = url;
+    } else {
+      popup.focus();
+    }
+  }
+
   if (loading) {
     return (
       <section className="panel">
@@ -567,6 +622,113 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
               onBack={() => setWizardStep(2)}
               onNext={() => setWizardStep(4)}
             />
+            {wizardStep === 4 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="accent-pill">Step 4 / 5</span>
+                  <h4 className="text-sm font-semibold text-[var(--text-strong)]">App ID / App Secret 입력</h4>
+                </div>
+                <p className="text-sm leading-6 text-[var(--text-base)]">
+                  앱 대시보드 → 앱 설정 → 기본 설정에서 App ID와 App Secret을 복사해 붙여넣으세요.
+                </p>
+                <div className="space-y-3">
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">Meta App ID</label>
+                    <input
+                      className="input"
+                      value={wizardAppId}
+                      onChange={(e) => setWizardAppId(e.target.value)}
+                      placeholder="숫자형 App ID (예: 1234567890)"
+                      autoFocus
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium">App Secret</label>
+                    <input
+                      className="input"
+                      type="password"
+                      value={wizardAppSecret}
+                      onChange={(e) => setWizardAppSecret(e.target.value)}
+                      placeholder="App Secret"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-sm font-medium text-[var(--text-muted)]">Redirect URI (Meta 콘솔에 등록)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        className="input flex-1 bg-[var(--surface-subtle)] cursor-default"
+                        readOnly
+                        value={typeof window !== 'undefined' ? `${window.location.origin}/meta/connect` : '/meta/connect'}
+                      />
+                      <button
+                        type="button"
+                        className="button-secondary shrink-0"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(`${window.location.origin}/meta/connect`);
+                        }}
+                      >
+                        복사
+                      </button>
+                    </div>
+                    <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
+                      Meta 콘솔 → Instagram → OAuth 리디렉션 URI 설정에 이 값을 추가해 주세요.
+                    </p>
+                  </div>
+                </div>
+                {wizardError && <p className="text-xs text-rose-700">{wizardError}</p>}
+                <div className="flex gap-2">
+                  <button type="button" className="button-secondary" onClick={() => { setWizardError(''); setWizardStep(3); }}>
+                    이전
+                  </button>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={() => {
+                      const id = wizardAppId.trim();
+                      const secret = wizardAppSecret.trim();
+                      if (!id || !secret) {
+                        setWizardError('App ID와 App Secret을 모두 입력해 주세요.');
+                        return;
+                      }
+                      if (!isLikelyMetaAppId(id)) {
+                        setWizardError('App ID 형식이 올바르지 않습니다. Meta 개발자 대시보드의 숫자형 App ID를 입력해 주세요.');
+                        return;
+                      }
+                      setWizardError('');
+                      setWizardStep(5);
+                    }}
+                  >
+                    다음
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {wizardStep === 5 && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <span className="accent-pill">Step 5 / 5</span>
+                  <h4 className="text-sm font-semibold text-[var(--text-strong)]">연결 테스트</h4>
+                </div>
+                <p className="text-sm leading-6 text-[var(--text-base)]">
+                  아래 버튼을 눌러 Instagram OAuth 팝업을 열고 내 계정으로 로그인하세요. 연결이 완료되면 이 화면이 자동으로 바뀝니다.
+                </p>
+                {wizardError && <p className="text-xs text-rose-700">{wizardError}</p>}
+                <div className="flex gap-2">
+                  <button type="button" className="button-secondary" onClick={() => { setWizardError(''); setWizardStep(4); }}>
+                    이전
+                  </button>
+                  <button
+                    type="button"
+                    className="button-primary"
+                    onClick={() => void handleWizardConnect()}
+                    disabled={wizardConnecting}
+                  >
+                    {wizardConnecting ? 'OAuth 창 열리는 중...' : 'Instagram 연결 테스트'}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
         </>

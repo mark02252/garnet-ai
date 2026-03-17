@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { getSupabasePublicEnv } from '@/lib/supabase/env';
+import { ensureAttachmentBucket, uploadRunAttachmentsToStorage } from '@/lib/supabase/storage';
 import type {
   SharedApprovalDecisionRecord,
   SharedLearningArchiveRecord,
@@ -41,7 +42,27 @@ export async function syncRunsToSupabase(
   if (runs.length === 0) return { count: 0, error: null };
 
   const client = getServerClient(accessToken);
-  const rows = runs.map((run) => ({
+
+  // Upload attachments to Supabase Storage (best-effort — errors don't block the sync)
+  const runsWithStorageAttachments = await Promise.all(
+    runs.map(async (run) => {
+      if (!run.attachments.length) return run;
+      try {
+        await ensureAttachmentBucket(accessToken);
+        const uploaded = await uploadRunAttachmentsToStorage(
+          accessToken,
+          organizationId,
+          run.id,
+          run.attachments
+        );
+        return { ...run, attachments: uploaded };
+      } catch {
+        return run;
+      }
+    })
+  );
+
+  const rows = runsWithStorageAttachments.map((run) => ({
     id: run.id,
     organization_id: organizationId,
     created_by_user_id: createdByUserId,

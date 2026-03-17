@@ -25,7 +25,10 @@ export type SharedRunRecord = {
     id: string;
     name: string;
     mimeType: string;
+    /** base64 content (local only) or empty string when storageUrl is set */
     content: string;
+    /** Supabase Storage public URL, set after upload */
+    storageUrl?: string | null;
     createdAt: string;
   }>;
   deliverable: {

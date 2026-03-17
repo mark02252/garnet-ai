@@ -498,7 +498,7 @@ export default function HomePage() {
       startRunProgressPolling(data.runId);
     } catch (err) {
       setError(err instanceof Error ? err.message : '회의 실행에 실패했습니다.');
-      clearProgressPoller();
+      clearProgressSource();
     } finally {
       if (!queuedRunId) {
         setLoading(false);

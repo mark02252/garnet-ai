@@ -1,6 +1,6 @@
 {
   "name": "garnet",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "description": "Garnet all-in-one AI marketing OS for macOS",
   "main": "dist-electron/main.js",
@@ -13,7 +13,7 @@
     "dev:next": "next dev -p 3000 --turbo",
     "dev:electron": "wait-on tcp:3000 && npm run build:electron && cross-env NODE_ENV=development ELECTRON_START_URL=http://localhost:3000 electron .",
     "prepare:prisma-bundle": "rm -rf vendor_prisma && mkdir -p vendor_prisma && cp -R node_modules/.prisma vendor_prisma/.prisma",
-    "build:next": "cross-env NEXT_DIST_DIR=.next-build next build && rm -rf .next-build/standalone/.next/static && mkdir -p .next-build/standalone/.next && cp -R .next-build/static .next-build/standalone/.next/static",
+    "build:next": "cross-env NEXT_DIST_DIR=.next-build next build && mkdir -p .next-build/standalone/.next-build && cp -R .next-build/static .next-build/standalone/.next-build/static",
     "build": "npm run prepare:prisma-bundle && npm run build:next && npm run build:electron",
     "build:electron": "tsc -p electron/tsconfig.json",
     "mcp:server": "node scripts/mcp-server.mjs",
@@ -69,6 +69,7 @@
     "files": [
       "dist-electron/**/*",
       ".next-build/standalone/**/*",
+      ".next-build/standalone/.next-build/**/*",
       ".next-build/static/**/*",
       "vendor_prisma/**/*",
       "public/**/*",

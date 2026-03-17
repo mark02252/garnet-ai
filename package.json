@@ -68,7 +68,8 @@
     "appId": "com.local.aimarketingdepartment",
     "productName": "Garnet",
     "asarUnpack": [
-      ".next-build/**"
+      ".next-build/**",
+      "node_modules/ffmpeg-static/**"
     ],
     "files": [
       "dist-electron/**/*",
@@ -80,6 +81,7 @@
       "prisma/**/*",
       "scripts/**/*",
       "node_modules/.prisma/**/*",
+      "node_modules/ffmpeg-static/**/*",
       "package.json"
     ],
     "mac": {

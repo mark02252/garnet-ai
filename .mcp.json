@@ -8,6 +8,16 @@
         "DATABASE_URL": "file:/Users/rnr/Documents/New project/prisma/dev.db"
       },
       "description": "Garnet 앱 내부 데이터 접근 — runs, datasets, learning archives, instagram reach"
+    },
+    "ig-mcp": {
+      "command": "python3",
+      "args": ["-m", "ig_mcp"],
+      "env": {
+        "INSTAGRAM_ACCESS_TOKEN": "${INSTAGRAM_ACCESS_TOKEN}",
+        "FACEBOOK_APP_ID": "${FACEBOOK_APP_ID}",
+        "FACEBOOK_APP_SECRET": "${FACEBOOK_APP_SECRET}",
+        "INSTAGRAM_BUSINESS_ACCOUNT_ID": "${INSTAGRAM_BUSINESS_ACCOUNT_ID}"
+      }
     }
   }
 }

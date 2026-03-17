@@ -89,7 +89,7 @@ export default function PersonaDetailPage() {
   async function handleInstagramConnect() {
     const stored = await loadStoredMetaConnectionDraft(window.location.origin);
     const draft = stored.value;
-    if (!draft.appId) {
+    if (!draft.appId || !draft.appSecret) {
       setIgError('Meta 앱이 설정되지 않았습니다. 설정 페이지에서 먼저 완료해 주세요.');
       return;
     }

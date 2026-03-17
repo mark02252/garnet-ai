@@ -11,12 +11,6 @@ export default function NewPersonaPage() {
   const router = useRouter()
   const [isMetaConfigured, setIsMetaConfigured] = useState(false)
   const [step, setStep] = useState<Step>(1)
-
-  useEffect(() => {
-    void loadStoredMetaConnectionDraft(window.location.origin).then((result) => {
-      setIsMetaConfigured(Boolean(result.value.appId && result.value.appSecret))
-    })
-  }, [])
   const [mode, setMode] = useState<LearnMode>('FROM_TEMPLATE')
   const [name, setName] = useState('')
   const [instagramHandle, setInstagramHandle] = useState('')
@@ -28,6 +22,12 @@ export default function NewPersonaPage() {
   const [analysis, setAnalysis] = useState<Record<string, unknown> | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    void loadStoredMetaConnectionDraft(window.location.origin).then((result) => {
+      setIsMetaConfigured(Boolean(result.value.appId && result.value.appSecret));
+    });
+  }, []);
 
   async function handleAnalyze() {
     if (!name.trim()) { setError('페르소나 이름을 입력하세요.'); return }

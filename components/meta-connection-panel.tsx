@@ -244,7 +244,9 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
         setError(typeof record.message === 'string' ? record.message : '인스타그램 로그인 중 오류가 발생했습니다.');
         setWizardConnecting(false);
         setWizardError(typeof record.message === 'string' ? record.message : '연결 중 오류가 발생했습니다. App ID/Secret을 다시 확인해 주세요.');
-        setWizardStep(4);
+        if (!isSocialMode) {
+          setWizardStep(4);
+        }
       }
     }
 

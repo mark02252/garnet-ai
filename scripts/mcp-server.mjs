@@ -1028,7 +1028,8 @@ server.registerTool(
       where: { isActive: true },
       select: { id: true, name: true, platform: true, brandConcept: true, tone: true },
     })
-    return { content: [{ type: 'text', text: JSON.stringify(personas, null, 2) }] }
+    const structuredContent = { count: personas.length, personas }
+    return { content: textContent(structuredContent), structuredContent }
   }
 );
 

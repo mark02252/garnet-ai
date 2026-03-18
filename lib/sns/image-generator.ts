@@ -3,8 +3,8 @@ import { GoogleGenAI } from '@google/genai'
 import { uploadSnsFile } from '@/lib/sns/upload'
 import { applyCanvaTemplate } from '@/lib/sns/canva-pipeline'
 
-// Nano Banana 2 — Gemini Flash image generation model
-const MODEL_ID = 'gemini-2.0-flash-preview-image-generation'
+// Gemini Flash image generation model
+const MODEL_ID = 'gemini-2.5-flash-image'
 
 export type GeneratedImage = {
   url: string

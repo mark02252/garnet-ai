@@ -15,6 +15,7 @@ type FollowerPoint = { date: string; followers: number }
 type TopPost = {
   id: string; timestamp: string; reach: number;
   caption?: string; media_type?: string; permalink?: string;
+  like_count?: number; comments_count?: number;
 }
 type DashboardData = {
   kpiGoals: KpiGoal[]
@@ -41,11 +42,12 @@ export default function DashboardPage() {
   const [report, setReport] = useState<any>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMessage, setSyncMessage] = useState('')
+  const [days, setDays] = useState(30)
 
   // 대시보드 데이터 + 리포트 로드
   const connectionRef = useRef({ accountId: '', accessToken: '', personaId: '' })
 
-  async function loadDashboard() {
+  async function loadDashboard(daysParam = 30) {
     try {
       const draft = await loadStoredMetaConnectionDraft(window.location.origin)
       const accountId = draft.value.instagramBusinessAccountId || ''
@@ -67,7 +69,7 @@ export default function DashboardPage() {
       const res = await fetch('/api/dashboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ days: 30, accountId, accessToken, personaId }),
+        body: JSON.stringify({ days: daysParam, accountId, accessToken, personaId }),
       })
       if (!res.ok) throw new Error('API 오류')
       const json = await res.json() as DashboardData
@@ -124,7 +126,7 @@ export default function DashboardPage() {
       }
       // 3. 대시보드 다시 로드
       setLoading(true)
-      await loadDashboard()
+      await loadDashboard(days)
       setSyncMessage('동기화 완료')
     } catch {
       setSyncMessage('동기화 실패')
@@ -135,8 +137,9 @@ export default function DashboardPage() {
   }
 
   useEffect(() => {
+    setLoading(true)
     void (async () => {
-      const result = await loadDashboard()
+      const result = await loadDashboard(days)
       setLoading(false)
 
       // 자동 동기화: 마지막 동기화가 1시간 이상 지났으면 자동 실행
@@ -150,7 +153,8 @@ export default function DashboardPage() {
         void handleSync()
       }
     })()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days])
 
   if (loading) {
     return (
@@ -176,6 +180,22 @@ export default function DashboardPage() {
           <h1 className="dashboard-title">마케팅 대시보드</h1>
         </div>
         <div className="flex items-center gap-3">
+          <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
+            {([7, 30, 90] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  days === d
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'bg-[var(--surface-sub)] text-[var(--text-muted)] hover:text-[var(--text-strong)]'
+                }`}
+                onClick={() => setDays(d)}
+              >
+                {d}일
+              </button>
+            ))}
+          </div>
           {syncMessage && <p className="text-xs text-emerald-600">{syncMessage}</p>}
           <p className="text-xs text-[var(--text-muted)]">
             마지막 동기화: {formatSyncTime(data.lastSyncAt)}
@@ -222,6 +242,74 @@ export default function DashboardPage() {
           </p>
         </div>
       )}
+
+      {/* Engagement Summary */}
+      {(() => {
+        const totalLikes = data.topPosts.reduce((s, p) => s + (p.like_count || 0), 0)
+        const totalComments = data.topPosts.reduce((s, p) => s + (p.comments_count || 0), 0)
+        const postCount = data.topPosts.length
+        return (
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="status-tile">
+              <p className="metric-label">총 좋아요</p>
+              <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">{totalLikes.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
+            </div>
+            <div className="status-tile">
+              <p className="metric-label">총 댓글</p>
+              <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">{totalComments.toLocaleString()}</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
+            </div>
+            <div className="status-tile">
+              <p className="metric-label">게시 빈도</p>
+              <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">이번 달 {postCount}개</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">분석된 게시물 수</p>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* Content Type Breakdown */}
+      {data.topPosts.length > 0 && (() => {
+        const typeCounts: Record<string, number> = {}
+        data.topPosts.forEach((p) => {
+          const t = p.media_type || 'UNKNOWN'
+          typeCounts[t] = (typeCounts[t] || 0) + 1
+        })
+        const total = data.topPosts.length
+        const typeLabels: Record<string, string> = {
+          IMAGE: '이미지', VIDEO: '비디오', CAROUSEL_ALBUM: '캐러셀', UNKNOWN: '기타',
+        }
+        const typeColors: Record<string, string> = {
+          IMAGE: 'var(--accent)', VIDEO: '#6366f1', CAROUSEL_ALBUM: '#f59e0b', UNKNOWN: '#94a3b8',
+        }
+        return (
+          <div className="panel">
+            <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">콘텐츠 유형별 분포</p>
+            <div className="space-y-2">
+              {Object.entries(typeCounts)
+                .sort(([, a], [, b]) => b - a)
+                .map(([type, count]) => {
+                  const pct = Math.round((count / total) * 100)
+                  return (
+                    <div key={type}>
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="text-[var(--text-strong)] font-medium">{typeLabels[type] || type}</span>
+                        <span className="text-[var(--text-muted)]">{count}개 · {pct}%</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-[var(--surface-sub)]">
+                        <div
+                          className="h-full rounded-full transition-all"
+                          style={{ width: `${pct}%`, backgroundColor: typeColors[type] || '#94a3b8' }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+        )
+      })()}
 
       <ReachChart data={data.reachDaily} />
 

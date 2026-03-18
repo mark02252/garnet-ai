@@ -409,6 +409,7 @@ model SnsPersona {
   scheduledPosts   SnsScheduledPost[]
   analytics        SnsAnalyticsSnapshot[]
   commentTemplates SnsCommentTemplate[]
+  performanceReports SnsPerformanceReport[]
 }
 
 model SnsPersonaPost {
@@ -495,4 +496,17 @@ model SnsCommentTemplate {
   persona SnsPersona @relation(fields: [personaId], references: [id])
 
   @@index([personaId])
+}
+
+// F. 성과 리포트
+model SnsPerformanceReport {
+  id         String   @id @default(cuid())
+  personaId  String
+  period     String   @default("30d")
+  reportJson String
+  createdAt  DateTime @default(now())
+
+  persona SnsPersona @relation(fields: [personaId], references: [id])
+
+  @@index([personaId, createdAt])
 }

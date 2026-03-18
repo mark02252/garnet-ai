@@ -1004,7 +1004,23 @@ async function processMissedSchedules(baseUrl: string) {
 
 async function processScheduledPosts(baseUrl: string) {
   try {
-    const res = await fetch(`${baseUrl}/api/sns/schedule/process`, { method: 'POST' })
+    // Electron 보안 저장소에서 Meta 연결 정보 읽기
+    let accessToken = ''
+    let businessAccountId = ''
+    try {
+      const raw = await readAppConfig('meta_connection_v1')
+      if (raw) {
+        const parsed = JSON.parse(raw)
+        accessToken = parsed?.accessToken || ''
+        businessAccountId = parsed?.instagramBusinessAccountId || ''
+      }
+    } catch { /* config 읽기 실패 — 토큰 없이 진행 (DB 상태만 변경) */ }
+
+    const res = await fetch(`${baseUrl}/api/sns/schedule/process`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accessToken, businessAccountId }),
+    })
     if (!res.ok) console.error('[Scheduler] 발행 처리 실패:', await res.text())
   } catch (e) {
     console.error('[Scheduler] 타이머 오류:', e)

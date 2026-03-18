@@ -17,8 +17,8 @@ export async function generateSlideImage(
   imagePrompt: string,
   referenceImageUrls: string[] = []
 ): Promise<GeneratedImage> {
-  const apiKey = process.env.GOOGLE_API_KEY
-  if (!apiKey) throw new Error('GOOGLE_API_KEY 환경변수가 없습니다.')
+  const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
+  if (!apiKey) throw new Error('GEMINI_API_KEY 또는 GOOGLE_API_KEY 환경변수가 없습니다.')
 
   const ai = new GoogleGenAI({ apiKey })
 

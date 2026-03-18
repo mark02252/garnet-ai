@@ -4,28 +4,33 @@ import { generatePerformanceReport } from '@/lib/sns/performance-analyzer'
 
 // GET: fetch latest report for a persona
 export async function GET(req: NextRequest) {
-  const personaId = req.nextUrl.searchParams.get('personaId')
-  if (!personaId) {
-    return NextResponse.json({ error: 'personaId가 필요합니다.' }, { status: 400 })
-  }
+  try {
+    const personaId = req.nextUrl.searchParams.get('personaId')
+    if (!personaId) {
+      return NextResponse.json({ error: 'personaId가 필요합니다.' }, { status: 400 })
+    }
 
-  const latest = await prisma.snsPerformanceReport.findFirst({
-    where: { personaId },
-    orderBy: { createdAt: 'desc' },
-  })
+    const latest = await prisma.snsPerformanceReport.findFirst({
+      where: { personaId },
+      orderBy: { createdAt: 'desc' },
+    })
 
-  if (!latest) {
-    return NextResponse.json({ report: null })
-  }
+    if (!latest) {
+      return NextResponse.json({ report: null })
+    }
 
-  return NextResponse.json({
-    report: {
-      id: latest.id,
-      personaId: latest.personaId,
-      createdAt: latest.createdAt.toISOString(),
+    return NextResponse.json({
+      report: {
+        id: latest.id,
+        personaId: latest.personaId,
+        createdAt: latest.createdAt.toISOString(),
       ...JSON.parse(latest.reportJson),
     },
   })
+  } catch (error) {
+    console.error('Report GET error:', error)
+    return NextResponse.json({ report: null })
+  }
 }
 
 // POST: generate new report

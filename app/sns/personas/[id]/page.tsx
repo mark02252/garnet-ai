@@ -141,15 +141,48 @@ export default function PersonaDetailPage() {
         <div className="pt-1 border-t border-[var(--border-subtle)]">
           <p className="text-sm font-semibold text-[var(--text-strong)] mb-2">Instagram 계정 연결</p>
           {isMetaConfigured ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                className="button-secondary"
-                onClick={() => void handleInstagramConnect()}
-                disabled={connectingIg}
-              >
-                {connectingIg ? 'OAuth 창 열리는 중...' : 'Instagram 계정 연결'}
-              </button>
+            <div className="space-y-2">
+              {persona.instagramHandle ? (
+                <div className="flex items-center gap-2">
+                  <span className="accent-pill">연결됨</span>
+                  <span className="text-sm text-[var(--text-base)]">{persona.instagramHandle}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  className="button-secondary"
+                  onClick={async () => {
+                    const draft = await loadStoredMetaConnectionDraft(window.location.origin)
+                    const accounts = draft.value.connectedAccounts || []
+                    if (accounts.length > 0) {
+                      const handle = `@${accounts[0].username}`
+                      setPersona(prev => prev ? { ...prev, instagramHandle: handle } : prev)
+                      setIgMessage(`${handle} 연결됨 — 저장 버튼을 눌러 확정하세요.`)
+                    } else {
+                      // connectedAccounts가 없으면 instagramBusinessAccountId로 직접 설정
+                      const accountId = draft.value.instagramBusinessAccountId
+                      if (accountId) {
+                        try {
+                          const token = draft.value.accessToken
+                          const res = await fetch(`https://graph.instagram.com/v19.0/${accountId}?fields=username&access_token=${token}`)
+                          if (res.ok) {
+                            const data = await res.json() as { username?: string }
+                            if (data.username) {
+                              const handle = `@${data.username}`
+                              setPersona(prev => prev ? { ...prev, instagramHandle: handle } : prev)
+                              setIgMessage(`${handle} 연결됨 — 저장 버튼을 눌러 확정하세요.`)
+                              return
+                            }
+                          }
+                        } catch {}
+                      }
+                      setIgError('연결된 Instagram 계정을 찾을 수 없습니다. 설정 페이지에서 먼저 연동하세요.')
+                    }
+                  }}
+                >
+                  설정에서 연결된 계정 가져오기
+                </button>
+              )}
               {igMessage && <p className="text-xs text-emerald-700">{igMessage}</p>}
               {igError && <p className="text-xs text-rose-700">{igError}</p>}
             </div>

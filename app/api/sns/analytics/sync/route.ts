@@ -4,16 +4,18 @@ import { fetchInstagramMediaInsights, fetchInstagramFollowerCount } from '@/lib/
 
 export async function POST(req: NextRequest) {
   try {
-    const { personaId } = await req.json()
+    const body = await req.json()
+    const personaId = body.personaId
     if (!personaId) return NextResponse.json({ error: 'personaId 필수' }, { status: 400 })
 
     const persona = await prisma.snsPersona.findUnique({ where: { id: personaId } })
     if (!persona) return NextResponse.json({ error: '페르소나 없음' }, { status: 404 })
 
-    const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN
-    const businessAccountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID
+    // body에서 직접 전달받은 토큰 우선, 없으면 환경변수 폴백
+    const accessToken = body.accessToken || process.env.INSTAGRAM_ACCESS_TOKEN || ''
+    const businessAccountId = body.businessAccountId || process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID || ''
     if (!accessToken || !businessAccountId) {
-      return NextResponse.json({ error: 'Instagram 연동 설정이 필요합니다.' }, { status: 400 })
+      return NextResponse.json({ error: 'Instagram 연동 설정이 필요합니다. accessToken과 businessAccountId를 전달하거나 환경변수를 설정하세요.' }, { status: 400 })
     }
 
     const [insights, followers] = await Promise.all([

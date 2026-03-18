@@ -67,7 +67,17 @@ JSON 배열로만 응답하세요:
         prompt
       )
       const jsonMatch = slidePlan.match(/\[[\s\S]*\]/)
-      slides = jsonMatch ? jsonMatch[0] : '[]'
+      slides = jsonMatch ? jsonMatch[0] : null
+
+      // 파싱 실패 시 1회 재시도
+      if (!slides || slides === '[]') {
+        const retry = await runLLM(
+          '반드시 JSON 배열만 출력하세요. 마크다운 코드블록 없이 [ 로 시작하고 ] 로 끝나야 합니다.',
+          `${slideCount}장짜리 카드뉴스를 JSON 배열로 작성하세요. 주제: ${prompt}\n형식: [{"title":"제목","body":"본문 3~5문장","imagePrompt":"영문 이미지 프롬프트"}]`
+        )
+        const retryMatch = retry.match(/\[[\s\S]*\]/)
+        slides = retryMatch ? retryMatch[0] : '[]'
+      }
     }
 
     const draft = await prisma.snsContentDraft.create({

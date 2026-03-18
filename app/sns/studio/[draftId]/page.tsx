@@ -23,6 +23,12 @@ const ASPECT_RATIO_LABELS: Record<AspectRatio, string> = {
   '9:16': '9:16 (릴스/스토리)',
 }
 
+const ASPECT_RATIO_DIMENSIONS: Record<AspectRatio, { width: number; height: number }> = {
+  '1:1': { width: 1080, height: 1080 },
+  '4:5': { width: 1080, height: 1350 },
+  '9:16': { width: 1080, height: 1920 },
+}
+
 const DEFAULT_HASHTAGS = [
   '#인스타그램', '#소통', '#일상', '#팔로우', '#좋아요',
   '#daily', '#instadaily', '#instagood', '#follow', '#like4like',
@@ -41,6 +47,9 @@ export default function DraftEditorPage() {
   const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1')
   const [generatingAll, setGeneratingAll] = useState(false)
   const [captionOpen, setCaptionOpen] = useState(false)
+  const [generatingVideo, setGeneratingVideo] = useState(false)
+  const [videoUrl, setVideoUrl] = useState<string | null>(null)
+  const [videoDuration, setVideoDuration] = useState<number>(4)
 
   useEffect(() => {
     fetch(`/api/sns/content/${draftId}`)
@@ -139,6 +148,29 @@ export default function DraftEditorPage() {
       const body = s.body.replace(/\n\n#[\s\S]*$/, '')
       return { ...s, body: body + tagStr }
     }))
+  }
+
+  async function generateVideo() {
+    setGeneratingVideo(true)
+    try {
+      const dims = ASPECT_RATIO_DIMENSIONS[aspectRatio]
+      const res = await fetch(`/api/sns/content/${draftId}/video`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          durationPerSlide: videoDuration,
+          width: dims.width,
+          height: dims.height,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || '영상 렌더링 실패')
+      setVideoUrl(data.videoUrl)
+    } catch (err) {
+      alert(err instanceof Error ? err.message : '영상 렌더링 실패')
+    } finally {
+      setGeneratingVideo(false)
+    }
   }
 
   async function save() {
@@ -340,6 +372,55 @@ export default function DraftEditorPage() {
                     className="button-secondary text-sm mt-3"
                     onClick={insertAutoHashtags}
                   >해시태그 자동 추가</button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Video generation */}
+          {slides.length > 0 && slides.some(s => s.imageUrl) && (
+            <div className="card">
+              <h3 className="text-sm font-medium mb-3">릴스 영상 생성</h3>
+              <div className="flex items-center gap-4 mb-3">
+                <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">슬라이드당 표시 시간</label>
+                  <select
+                    className="input text-sm"
+                    value={videoDuration}
+                    onChange={e => setVideoDuration(Number(e.target.value))}
+                  >
+                    <option value={2}>2초</option>
+                    <option value={3}>3초</option>
+                    <option value={4}>4초</option>
+                    <option value={5}>5초</option>
+                    <option value={6}>6초</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">비율</label>
+                  <span className="text-sm">{ASPECT_RATIO_LABELS[aspectRatio]}</span>
+                </div>
+                <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">예상 길이</label>
+                  <span className="text-sm">{slides.filter(s => s.imageUrl).length * videoDuration}초</span>
+                </div>
+              </div>
+              <button
+                className="button-primary text-sm w-full"
+                onClick={generateVideo}
+                disabled={generatingVideo}
+              >
+                {generatingVideo ? '영상 렌더링 중...' : '릴스 영상 생성'}
+              </button>
+              {videoUrl && (
+                <div className="mt-4">
+                  <label className="text-xs text-[var(--text-muted)] block mb-2">영상 미리보기</label>
+                  <video
+                    src={videoUrl}
+                    controls
+                    className="w-full max-w-sm mx-auto rounded-lg"
+                    style={{ aspectRatio: ASPECT_RATIO_CSS[aspectRatio] }}
+                  />
                 </div>
               )}
             </div>

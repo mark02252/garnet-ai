@@ -24,6 +24,7 @@ type UpcomingPost = {
   draftTitle: string
   draftType: string
 }
+type AlertItem = { type: 'warning' | 'info' | 'success'; message: string }
 type DashboardData = {
   kpiGoals: KpiGoal[]
   reachDaily: ReachPoint[]
@@ -34,6 +35,7 @@ type DashboardData = {
   todayScheduled: number
   weekScheduled: number
   upcomingPosts: UpcomingPost[]
+  alerts?: AlertItem[]
 }
 
 function formatSyncTime(iso: string | null) {
@@ -220,6 +222,22 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Performance anomaly alerts */}
+      {data.alerts && data.alerts.length > 0 && (
+        <div className="space-y-2">
+          {data.alerts.map((alert, i) => (
+            <div key={i} className={`panel flex items-start gap-3 ${
+              alert.type === 'warning' ? 'border-l-4 border-rose-500' :
+              alert.type === 'success' ? 'border-l-4 border-emerald-500' :
+              'border-l-4 border-[var(--accent)]'
+            }`}>
+              <span>{alert.type === 'warning' ? '\u26a0\ufe0f' : alert.type === 'success' ? '\ud83c\udf89' : '\u2139\ufe0f'}</span>
+              <p className="text-sm text-[var(--text-base)]">{alert.message}</p>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 오늘의 할 일 AI Briefing Card */}
       {(() => {

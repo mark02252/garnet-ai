@@ -134,6 +134,36 @@ export async function POST(req: NextRequest) {
       draftType: p.draft?.type || 'TEXT',
     }))
 
+    // --- Anomaly detection ---
+    const alerts: Array<{ type: 'warning' | 'info' | 'success'; message: string }> = []
+
+    if (reachDaily.length >= 14) {
+      const recent7 = reachDaily.slice(-7)
+      const previous7 = reachDaily.slice(-14, -7)
+      const recentAvg = recent7.reduce((s, r) => s + r.reach, 0) / 7
+      const previousAvg = previous7.reduce((s, r) => s + r.reach, 0) / 7
+
+      if (previousAvg > 0) {
+        const changePct = ((recentAvg - previousAvg) / previousAvg) * 100
+
+        if (changePct <= -30) {
+          alerts.push({ type: 'warning', message: `도달이 전주 대비 ${Math.abs(Math.round(changePct))}% 급감했습니다. 콘텐츠 전략을 검토하세요.` })
+        } else if (changePct <= -15) {
+          alerts.push({ type: 'warning', message: `도달이 전주 대비 ${Math.abs(Math.round(changePct))}% 감소했습니다.` })
+        } else if (changePct >= 30) {
+          alerts.push({ type: 'success', message: `도달이 전주 대비 ${Math.round(changePct)}% 급증했습니다! 잘하고 있습니다.` })
+        }
+      }
+    }
+
+    // Check if no posts in last 3 days
+    if (reachDaily.length >= 3) {
+      const last3 = reachDaily.slice(-3)
+      if (last3.every(r => r.reach === 0)) {
+        alerts.push({ type: 'info', message: '최근 3일간 도달이 없습니다. 새 콘텐츠를 게시해보세요.' })
+      }
+    }
+
     const lastReachSync = await prisma.instagramReachDaily.findFirst({
       orderBy: { fetchedAt: 'desc' },
       select: { fetchedAt: true },
@@ -150,6 +180,7 @@ export async function POST(req: NextRequest) {
       kpiGoals, reachDaily, followerTrend, topPosts, currentFollowers,
       todayScheduled, weekScheduled, upcomingPosts: serializedUpcoming,
       lastSyncAt: lastSyncAt ? (lastSyncAt as Date).toISOString() : null,
+      alerts,
     })
   } catch (error) {
     console.error('Dashboard API error:', error)

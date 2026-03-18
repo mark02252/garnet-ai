@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [report, setReport] = useState<any>(null)
 
   useEffect(() => {
     void (async () => {
@@ -63,6 +64,16 @@ export default function DashboardPage() {
         if (!res.ok) throw new Error('API 오류')
         const json = await res.json() as DashboardData
         setData(json)
+
+        if (personaId) {
+          try {
+            const reportRes = await fetch(`/api/sns/analytics/report?personaId=${personaId}`)
+            if (reportRes.ok) {
+              const reportData = await reportRes.json()
+              setReport(reportData.report)
+            }
+          } catch { /* ignore */ }
+        }
       } catch (e) {
         setError(e instanceof Error ? e.message : '대시보드 데이터를 불러오지 못했습니다.')
       } finally {
@@ -138,11 +149,25 @@ export default function DashboardPage() {
         <FollowerChart data={data.followerTrend} />
       </div>
 
-      <div className="soft-panel">
-        <p className="text-sm font-semibold text-[var(--text-strong)]">AI 성과 추천</p>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Phase 2에서 AI 성과 분석 리포트가 연동되면, 추천 콘텐츠와 개선 방향이 여기에 표시됩니다.
-        </p>
+      <div className="panel">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-sm font-semibold text-[var(--text-strong)]">AI 성과 추천</p>
+          <a href="/sns/analytics" className="text-xs text-[var(--accent)] underline">전체 리포트 보기 →</a>
+        </div>
+        {report?.recommendations?.length > 0 ? (
+          <div className="space-y-2">
+            {report.recommendations.slice(0, 3).map((rec: any, i: number) => (
+              <div key={i} className="soft-panel">
+                <p className="text-sm font-medium text-[var(--text-strong)]">{rec.topic}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">{rec.reason}</p>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--text-muted)]">
+            SNS 분석 페이지에서 AI 리포트를 생성하면 추천 콘텐츠가 여기에 표시됩니다.
+          </p>
+        )}
       </div>
     </div>
   )

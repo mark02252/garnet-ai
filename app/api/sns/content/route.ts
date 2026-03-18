@@ -41,13 +41,29 @@ export async function POST(req: NextRequest) {
 
     if (type === 'TEXT') {
       content = await runLLM(
-        systemContext + '\n\nInstagram 포스팅을 작성하세요. 해시태그 포함.',
+        systemContext + `\n\nInstagram 포스팅을 작성하세요.
+
+규칙:
+- 주제에 대한 구체적인 정보, 근거, 사례를 포함하세요
+- 단순 훅이 아니라 읽을거리가 있는 본문을 작성하세요 (최소 5~10문장)
+- 이모지를 적절히 활용하세요
+- 마지막에 관련 해시태그 5~10개 포함
+- 첫 줄은 주목을 끄는 훅으로 시작`,
         prompt
       )
     } else if (type === 'CAROUSEL') {
       const slidePlan = await runLLM(
-        systemContext + `\n\n아래 주제로 ${slideCount}장짜리 카드뉴스 기획안을 JSON 배열로만 응답하세요:
-[{"title":"슬라이드 제목","body":"본문 내용","imagePrompt":"이미지 생성 프롬프트 (영문)"}]`,
+        systemContext + `\n\n아래 주제로 ${slideCount}장짜리 Instagram 카드뉴스를 작성하세요.
+
+규칙:
+- 슬라이드 1: 주목을 끄는 제목 + 핵심 질문/훅
+- 슬라이드 2~${slideCount - 1}: 각 슬라이드마다 구체적인 정보, 근거, 사례를 포함한 본문 (3~5문장)
+- 마지막 슬라이드: CTA (행동 유도) + 해시태그
+- body는 각 슬라이드의 핵심 내용을 충분히 설명하세요. 짧은 한 줄이 아니라 읽을거리가 있어야 합니다.
+- 이모지를 적절히 활용하세요.
+
+JSON 배열로만 응답하세요:
+[{"title":"슬라이드 제목","body":"본문 내용 (3~5문장, 구체적 정보 포함)","imagePrompt":"이미지 생성 프롬프트 (영문, 구체적 장면 묘사)"}]`,
         prompt
       )
       const jsonMatch = slidePlan.match(/\[[\s\S]*\]/)

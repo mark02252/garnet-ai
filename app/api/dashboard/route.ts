@@ -86,6 +86,35 @@ export async function POST(req: NextRequest) {
       } catch { /* ignore */ }
     }
 
+    // --- 오늘의 할 일: 예약 게시물 카운트 + 목록 ---
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const endOfDay = new Date(today)
+    endOfDay.setHours(23, 59, 59, 999)
+    const weekEnd = new Date(today)
+    weekEnd.setDate(weekEnd.getDate() + 7)
+
+    const todayScheduled = await prisma.snsScheduledPost.count({
+      where: { scheduledAt: { gte: today, lte: endOfDay }, status: 'PENDING' },
+    })
+    const weekScheduled = await prisma.snsScheduledPost.count({
+      where: { scheduledAt: { gte: today, lte: weekEnd }, status: 'PENDING' },
+    })
+
+    const upcomingPosts = await prisma.snsScheduledPost.findMany({
+      where: { scheduledAt: { gte: today }, status: 'PENDING' },
+      orderBy: { scheduledAt: 'asc' },
+      take: 5,
+      include: { draft: { select: { title: true, type: true } } },
+    })
+
+    const serializedUpcoming = upcomingPosts.map((p) => ({
+      id: p.id,
+      scheduledAt: p.scheduledAt.toISOString(),
+      draftTitle: p.draft?.title || '(제목 없음)',
+      draftType: p.draft?.type || 'TEXT',
+    }))
+
     const lastReachSync = await prisma.instagramReachDaily.findFirst({
       orderBy: { fetchedAt: 'desc' },
       select: { fetchedAt: true },
@@ -100,6 +129,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       kpiGoals, reachDaily, followerTrend, topPosts, currentFollowers,
+      todayScheduled, weekScheduled, upcomingPosts: serializedUpcoming,
       lastSyncAt: lastSyncAt ? (lastSyncAt as Date).toISOString() : null,
     })
   } catch (error) {

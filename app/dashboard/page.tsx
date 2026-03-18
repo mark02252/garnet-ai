@@ -18,6 +18,12 @@ type TopPost = {
   caption?: string; media_type?: string; permalink?: string;
   like_count?: number; comments_count?: number;
 }
+type UpcomingPost = {
+  id: string
+  scheduledAt: string
+  draftTitle: string
+  draftType: string
+}
 type DashboardData = {
   kpiGoals: KpiGoal[]
   reachDaily: ReachPoint[]
@@ -25,6 +31,9 @@ type DashboardData = {
   topPosts: TopPost[]
   currentFollowers: number
   lastSyncAt: string | null
+  todayScheduled: number
+  weekScheduled: number
+  upcomingPosts: UpcomingPost[]
 }
 
 function formatSyncTime(iso: string | null) {
@@ -211,6 +220,99 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* 오늘의 할 일 AI Briefing Card */}
+      {(() => {
+        // 도달 추세 계산: 최근 7일 평균 vs 이전 7일 평균
+        const reachArr = data.reachDaily
+        let trendText = ''
+        let trendDirection: 'up' | 'down' | 'flat' = 'flat'
+        if (reachArr.length >= 14) {
+          const recent7 = reachArr.slice(-7)
+          const prev7 = reachArr.slice(-14, -7)
+          const recentAvg = recent7.reduce((s, r) => s + r.reach, 0) / 7
+          const prevAvg = prev7.reduce((s, r) => s + r.reach, 0) / 7
+          if (prevAvg > 0) {
+            const changePct = Math.round(((recentAvg - prevAvg) / prevAvg) * 100)
+            if (changePct > 0) {
+              trendText = `상승 중 (전주 대비 +${changePct}%)`
+              trendDirection = 'up'
+            } else if (changePct < 0) {
+              trendText = `하락 중 (전주 대비 ${changePct}%)`
+              trendDirection = 'down'
+            } else {
+              trendText = '변동 없음'
+            }
+          }
+        } else if (reachArr.length >= 7) {
+          const recent = reachArr.slice(-7)
+          const avg = Math.round(recent.reduce((s, r) => s + r.reach, 0) / 7)
+          trendText = `최근 7일 평균 ${avg.toLocaleString()}`
+        }
+
+        // AI 추천 (규칙 기반)
+        let recommendation = '꾸준한 게시가 도달 성장의 핵심입니다'
+        if (data.todayScheduled === 0) {
+          recommendation = '오늘 게시할 콘텐츠를 만들어보세요'
+        } else if (trendDirection === 'down') {
+          recommendation = '캐러셀/릴스 등 다양한 형식을 시도해보세요'
+        }
+
+        return (
+          <div className="panel" style={{ background: 'var(--surface-accent, var(--surface-sub))', borderLeft: '4px solid var(--accent)' }}>
+            <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">📋 오늘의 할 일</p>
+            <p className="text-sm text-[var(--text-strong)]">
+              오늘 예약 <span className="font-bold">{data.todayScheduled}건</span> · 이번 주 <span className="font-bold">{data.weekScheduled}건</span>
+            </p>
+            {trendText && (
+              <p className="text-sm text-[var(--text-muted)] mt-1">
+                도달 추세: {trendText}
+              </p>
+            )}
+            <p className="text-sm mt-2">
+              💡 {recommendation}
+            </p>
+            <div className="flex gap-2 mt-3">
+              <a href="/sns/studio" className="button-primary text-xs">콘텐츠 만들기</a>
+              <a href="/sns/calendar" className="button-secondary text-xs">캘린더 보기</a>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 예약된 게시물 미리보기 */}
+      {data.upcomingPosts.length > 0 && (
+        <div className="panel">
+          <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">📅 예약된 게시물</p>
+          <div className="space-y-2">
+            {data.upcomingPosts.map((post) => {
+              const dt = new Date(post.scheduledAt)
+              const now = new Date()
+              const isToday = dt.toDateString() === now.toDateString()
+              const tomorrow = new Date(now)
+              tomorrow.setDate(tomorrow.getDate() + 1)
+              const isTomorrow = dt.toDateString() === tomorrow.toDateString()
+              const dateLabel = isToday
+                ? '오늘'
+                : isTomorrow
+                  ? '내일'
+                  : `${dt.getMonth() + 1}/${dt.getDate()}`
+              const time = dt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+              const typeLabels: Record<string, string> = { TEXT: '텍스트', CAROUSEL: '카드뉴스', VIDEO: '비디오' }
+              return (
+                <div key={post.id} className="soft-panel flex items-center gap-3">
+                  <span className="accent-pill text-xs">{dateLabel} {time}</span>
+                  <span className="text-xs text-[var(--text-muted)]">{typeLabels[post.draftType] || post.draftType}</span>
+                  <span className="text-sm text-[var(--text-strong)] truncate">{post.draftTitle}</span>
+                </div>
+              )
+            })}
+          </div>
+          <div className="mt-3">
+            <a href="/sns/calendar" className="text-xs text-[var(--accent)] underline">전체 캘린더 보기 →</a>
+          </div>
+        </div>
+      )}
 
       {data.kpiGoals.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

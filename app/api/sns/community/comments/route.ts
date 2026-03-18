@@ -3,19 +3,26 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const mediaId = searchParams.get('mediaId')
+  const accessToken = searchParams.get('accessToken') || process.env.INSTAGRAM_ACCESS_TOKEN || ''
 
-  const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN
   if (!accessToken) {
-    return NextResponse.json({ error: 'Instagram 연동 필요' }, { status: 400 })
+    return NextResponse.json({ error: 'accessToken이 필요합니다. 설정 페이지에서 Instagram을 연동하세요.' }, { status: 400 })
   }
   if (!mediaId) {
     return NextResponse.json({ error: 'mediaId 필수' }, { status: 400 })
   }
 
-  const res = await fetch(
-    `https://graph.instagram.com/v19.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`
-  )
-  if (!res.ok) return NextResponse.json({ error: await res.text() }, { status: 500 })
-  const data = await res.json()
-  return NextResponse.json(data)
+  try {
+    const res = await fetch(
+      `https://graph.instagram.com/v19.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`
+    )
+    if (!res.ok) {
+      const errText = await res.text()
+      return NextResponse.json({ error: errText, data: [] }, { status: 200 })
+    }
+    const data = await res.json()
+    return NextResponse.json(data)
+  } catch (err) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : '댓글 조회 실패', data: [] }, { status: 200 })
+  }
 }

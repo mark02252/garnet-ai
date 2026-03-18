@@ -65,7 +65,9 @@ export default function CommunityPage() {
 
   async function loadCommentsFor(id: string) {
     if (!id.trim()) return
-    const res = await fetch(`/api/sns/community/comments?mediaId=${id}`)
+    const draft = await loadStoredMetaConnectionDraft(window.location.origin)
+    const accessToken = draft.value.accessToken || ''
+    const res = await fetch(`/api/sns/community/comments?mediaId=${id}&accessToken=${encodeURIComponent(accessToken)}`)
     const data = await res.json()
     setComments(data.data || [])
     setSelected(new Set())

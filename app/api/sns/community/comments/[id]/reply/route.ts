@@ -3,10 +3,11 @@ import { NextRequest, NextResponse } from 'next/server'
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params
   try {
-    const { text } = await req.json()
-    const accessToken = process.env.INSTAGRAM_ACCESS_TOKEN
+    const body = await req.json()
+    const { text } = body
+    const accessToken = body.accessToken || process.env.INSTAGRAM_ACCESS_TOKEN || ''
 
-    if (!accessToken) return NextResponse.json({ error: 'Instagram 연동 필요' }, { status: 400 })
+    if (!accessToken) return NextResponse.json({ error: 'accessToken이 필요합니다.' }, { status: 400 })
     if (!text?.trim()) return NextResponse.json({ error: '답변 텍스트 필수' }, { status: 400 })
 
     const res = await fetch(

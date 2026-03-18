@@ -272,14 +272,46 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     };
   }, []);
 
+  async function tryExchangeForLongLivedToken(draft: MetaConnectionDraft): Promise<MetaConnectionDraft> {
+    if (!draft.accessToken || !draft.appSecret) return draft;
+    // 이미 장기 토큰이면 스킵
+    if (draft.tokenSource === 'oauth_long_lived') return draft;
+
+    try {
+      const res = await fetch('/api/meta/token/exchange', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: draft.accessToken, appSecret: draft.appSecret }),
+      });
+      if (!res.ok) return draft;
+      const data = await res.json() as { accessToken?: string; expiresIn?: number };
+      if (data.accessToken) {
+        return {
+          ...draft,
+          accessToken: data.accessToken,
+          tokenSource: 'oauth_long_lived',
+          tokenExpiresIn: data.expiresIn ?? null,
+        };
+      }
+    } catch { /* 교환 실패 시 기존 토큰 유지 */ }
+    return draft;
+  }
+
   async function persist(nextDraft: MetaConnectionDraft, successMessage: string) {
     setSaving(true);
     setError('');
     setMessage('');
-    const result = await saveStoredMetaConnectionDraft(nextDraft);
+
+    // 단기 토큰이면 장기 토큰으로 자동 교환 시도
+    const exchanged = await tryExchangeForLongLivedToken(nextDraft);
+    const tokenExchanged = exchanged.tokenSource === 'oauth_long_lived' && nextDraft.tokenSource !== 'oauth_long_lived';
+
+    const result = await saveStoredMetaConnectionDraft(exchanged);
     if (result.ok) {
-      setDraft(nextDraft);
-      setMessage(successMessage);
+      setDraft(exchanged);
+      setMessage(tokenExchanged
+        ? `${successMessage} (장기 토큰으로 자동 교환됨 — 약 60일 유효)`
+        : successMessage);
     } else {
       setError(result.message || '연결 정보를 저장하지 못했습니다.');
     }

@@ -992,6 +992,11 @@ function startSchedulerTimer() {
 
   // 1분마다 PENDING 예약 확인
   setInterval(() => processScheduledPosts(baseUrl), 60_000)
+
+  // 24시간마다 토큰 자동 갱신 시도
+  setInterval(() => refreshTokenIfNeeded(baseUrl), 24 * 60 * 60_000)
+  // 앱 시작 후 10초 뒤 첫 갱신 체크
+  setTimeout(() => refreshTokenIfNeeded(baseUrl), 10_000)
 }
 
 async function processMissedSchedules(baseUrl: string) {
@@ -999,6 +1004,44 @@ async function processMissedSchedules(baseUrl: string) {
     await fetch(`${baseUrl}/api/sns/schedule/missed`, { method: 'POST' })
   } catch (e) {
     console.error('[Scheduler] missed 처리 오류:', e)
+  }
+}
+
+async function refreshTokenIfNeeded(baseUrl: string) {
+  try {
+    const raw = await readAppConfig('meta_connection_v1')
+    if (!raw) return
+    const parsed = JSON.parse(raw)
+    const accessToken = parsed?.accessToken || ''
+    const tokenSource = parsed?.tokenSource || ''
+    const tokenExpiresIn = parsed?.tokenExpiresIn
+
+    // 장기 토큰이고 만료까지 14일 이내면 갱신
+    if (tokenSource === 'oauth_long_lived' && accessToken) {
+      // tokenExpiresIn이 있으면 체크, 없으면 무조건 갱신 시도
+      const shouldRefresh = !tokenExpiresIn || tokenExpiresIn < 14 * 24 * 3600
+      if (shouldRefresh) {
+        const res = await fetch(`${baseUrl}/api/meta/token/refresh`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken }),
+        })
+        if (res.ok) {
+          const data = await res.json() as { accessToken?: string; expiresIn?: number }
+          if (data.accessToken) {
+            const updated = {
+              ...parsed,
+              accessToken: data.accessToken,
+              tokenExpiresIn: data.expiresIn ?? null,
+            }
+            await writeAppConfig('meta_connection_v1', JSON.stringify(updated))
+            console.log('[Token] 장기 토큰 자동 갱신 완료')
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.error('[Token] 자동 갱신 오류:', e)
   }
 }
 

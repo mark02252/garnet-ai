@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { EmptyState } from '@/components/empty-state'
 
 type Comment = { id: string; text: string; username: string; timestamp: string }
 type Reply = { commentId: string; username: string; originalText: string; reply: string }
@@ -238,9 +239,7 @@ export default function CommunityPage() {
       )}
 
       {comments.length === 0 && (
-        <div className="soft-card text-center py-12">
-          <p className="text-[var(--text-muted)]">포스팅을 선택하면 댓글을 자동으로 불러옵니다.</p>
-        </div>
+        <EmptyState icon="💬" title="포스팅을 선택하면 댓글을 자동으로 불러옵니다" />
       )}
     </div>
   )

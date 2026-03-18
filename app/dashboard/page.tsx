@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { LoadingSpinner } from '@/components/loading-spinner'
 import { ReachChart } from '@/components/dashboard/reach-chart'
 import { FollowerChart } from '@/components/dashboard/follower-chart'
 import { TopPosts } from '@/components/dashboard/top-posts'
@@ -159,7 +160,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="p-6">
-        <p className="text-sm text-[var(--text-muted)]">대시보드를 불러오는 중...</p>
+        <LoadingSpinner text="대시보드를 불러오는 중..." />
       </div>
     )
   }

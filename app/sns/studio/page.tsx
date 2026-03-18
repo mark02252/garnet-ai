@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { EmptyState } from '@/components/empty-state'
 
 type Draft = {
   id: string; type: string; title: string | null; content: string | null
@@ -147,6 +148,9 @@ function StudioContent() {
       </div>
 
       {/* 초안 목록 */}
+      {filteredDrafts.length === 0 ? (
+        <EmptyState icon="✏️" title="콘텐츠가 없습니다" actionLabel="첫 콘텐츠 만들기" />
+      ) : (
       <div className="space-y-3">
         {filteredDrafts.map(d => {
           const slides = d.slides ? (() => { try { return JSON.parse(d.slides) as unknown[] } catch { return [] } })() : []
@@ -183,6 +187,7 @@ function StudioContent() {
           )
         })}
       </div>
+      )}
     </div>
   )
 }

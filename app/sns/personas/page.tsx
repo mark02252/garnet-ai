@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
+import { EmptyState } from '@/components/empty-state'
 
 type Persona = {
   id: string
@@ -104,10 +105,7 @@ export default function PersonasPage() {
       {loading ? (
         <p className="text-[var(--text-muted)]">불러오는 중...</p>
       ) : personas.length === 0 ? (
-        <div className="soft-card text-center py-16">
-          <p className="text-[var(--text-muted)] mb-4">등록된 페르소나가 없습니다.</p>
-          <Link href="/sns/personas/new" className="button-primary">첫 페르소나 만들기</Link>
-        </div>
+        <EmptyState icon="👤" title="페르소나가 없습니다" actionLabel="새 페르소나 만들기" actionHref="/sns/personas/new" />
       ) : filtered.length === 0 ? (
         <p className="text-[var(--text-muted)]">검색 결과가 없습니다.</p>
       ) : (

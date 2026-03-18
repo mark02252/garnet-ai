@@ -2,6 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import {
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+} from 'recharts'
 
 type Snapshot = {
   id: string; date: string; reach: number; impressions: number
@@ -43,6 +46,8 @@ export default function AnalyticsPage() {
   const [report, setReport] = useState<Report | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
   const [reachDaily, setReachDaily] = useState<Array<{ date: string; reach: number }>>([])
+  const [days, setDays] = useState(30)
+  const [lastSyncAt, setLastSyncAt] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then((data: Persona[]) => {
@@ -53,7 +58,7 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     if (!personaId) return
-    fetch(`/api/sns/analytics?personaId=${personaId}&days=30`)
+    fetch(`/api/sns/analytics?personaId=${personaId}&days=${days}`)
       .then(r => r.json()).then(setSnapshots)
 
     // Load latest report for persona
@@ -72,16 +77,17 @@ export default function AnalyticsPage() {
           const res = await fetch('/api/dashboard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ days: 30, accountId, accessToken, personaId }),
+            body: JSON.stringify({ days, accountId, accessToken, personaId }),
           })
           if (res.ok) {
             const data = await res.json()
             if (data.reachDaily?.length > 0) setReachDaily(data.reachDaily)
+            if (data.lastSyncAt) setLastSyncAt(data.lastSyncAt)
           }
         }
       } catch {}
     })()
-  }, [personaId])
+  }, [personaId, days])
 
   // reach fallback: SnsAnalyticsSnapshot에 reach=0이면 InstagramReachDaily 사용
   const hasSnapshotReach = snapshots.some(s => s.reach > 0)
@@ -114,12 +120,12 @@ export default function AnalyticsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          lookbackDays: 30, accessToken, instagramBusinessAccountId: businessAccountId,
+          lookbackDays: days, accessToken, instagramBusinessAccountId: businessAccountId,
           graphApiVersion: 'v25.0', connectionMode: 'instagram_login',
         }),
       }).catch(() => {})
     }
-    const updated = await fetch(`/api/sns/analytics?personaId=${personaId}&days=30`).then(r => r.json())
+    const updated = await fetch(`/api/sns/analytics?personaId=${personaId}&days=${days}`).then(r => r.json())
     setSnapshots(updated)
     // Reach fallback: InstagramReachDaily 데이터로 보완
     if (businessAccountId) {
@@ -127,14 +133,16 @@ export default function AnalyticsPage() {
         const dashRes = await fetch('/api/dashboard', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ days: 30, accountId: businessAccountId, accessToken, personaId }),
+          body: JSON.stringify({ days, accountId: businessAccountId, accessToken, personaId }),
         })
         if (dashRes.ok) {
           const dashData = await dashRes.json()
           if (dashData.reachDaily?.length > 0) setReachDaily(dashData.reachDaily)
+          if (dashData.lastSyncAt) setLastSyncAt(dashData.lastSyncAt)
         }
       } catch {}
     }
+    setLastSyncAt(new Date().toISOString())
     setSyncing(false)
   }
 
@@ -204,6 +212,33 @@ export default function AnalyticsPage() {
           <select className="input" value={personaId} onChange={e => setPersonaId(e.target.value)}>
             {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
+          <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
+            {([7, 30, 90] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                className={`px-3 py-1 text-xs font-medium transition-colors ${
+                  days === d
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'bg-[var(--surface-sub)] text-[var(--text-muted)] hover:text-[var(--text-strong)]'
+                }`}
+                onClick={() => setDays(d)}
+              >
+                {d}일
+              </button>
+            ))}
+          </div>
+          {lastSyncAt && (
+            <p className="text-xs text-[var(--text-muted)]">
+              마지막 동기화: {(() => {
+                try {
+                  return new Intl.DateTimeFormat('ko-KR', {
+                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+                  }).format(new Date(lastSyncAt))
+                } catch { return lastSyncAt }
+              })()}
+            </p>
+          )}
           <button className="button-secondary" onClick={handleSync} disabled={syncing}>
             {syncing ? '수집 중...' : '지금 수집'}
           </button>
@@ -225,27 +260,22 @@ export default function AnalyticsPage() {
         ))}
       </div>
 
-      {/* 도달수 추이 막대 차트 */}
+      {/* 도달수 추이 라인 차트 */}
       {effectiveReachData.length > 0 && (
         <div className="card mb-6">
-          <p className="section-title mb-3">도달수 추이 (최근 30일)</p>
-          <div className="flex items-end gap-1 h-32">
-            {effectiveReachData.slice(-30).map((s, idx) => {
-              const max = Math.max(...effectiveReachData.map(x => x.reach), 1)
-              const pct = Math.round((s.reach / max) * 100)
-              return (
-                <div key={s.date || idx} className="flex-1 flex flex-col items-center gap-1 group relative">
-                  <div
-                    className="w-full bg-[var(--accent)] rounded-t opacity-80 hover:opacity-100 transition-opacity"
-                    style={{ height: `${Math.max(pct, 2)}%` }}
-                  />
-                  <span className="text-[8px] text-[var(--text-muted)] hidden group-hover:block absolute -bottom-4">
-                    {new Date(s.date).getDate()}일
-                  </span>
-                </div>
-              )
-            })}
-          </div>
+          <p className="section-title mb-3">도달수 추이 (최근 {days}일)</p>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={effectiveReachData.slice(-days)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-border)" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} />
+              <Tooltip
+                contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
+                formatter={(value) => [Number(value).toLocaleString(), '일별 도달']}
+              />
+              <Line type="monotone" dataKey="reach" stroke="#3182f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
         </div>
       )}
 

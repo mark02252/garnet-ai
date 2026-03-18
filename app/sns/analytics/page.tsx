@@ -42,6 +42,7 @@ export default function AnalyticsPage() {
   const [chatLoading, setChatLoading] = useState(false)
   const [report, setReport] = useState<Report | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
+  const [reachDaily, setReachDaily] = useState<Array<{ date: string; reach: number }>>([])
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then((data: Persona[]) => {
@@ -60,9 +61,36 @@ export default function AnalyticsPage() {
       .then(r => { if (r.ok) return r.json(); throw new Error('no report') })
       .then(data => setReport(data.report ?? null))
       .catch(() => setReport(null))
+
+    // Load InstagramReachDaily as fallback for reach chart
+    void (async () => {
+      try {
+        const draft = await loadStoredMetaConnectionDraft(window.location.origin)
+        const accountId = draft.value.instagramBusinessAccountId || ''
+        const accessToken = draft.value.accessToken || ''
+        if (accountId) {
+          const res = await fetch('/api/dashboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ days: 30, accountId, accessToken, personaId }),
+          })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.reachDaily?.length > 0) setReachDaily(data.reachDaily)
+          }
+        }
+      } catch {}
+    })()
   }, [personaId])
 
-  const totalReach = snapshots.reduce((s, n) => s + n.reach, 0)
+  // reach fallback: SnsAnalyticsSnapshot에 reach=0이면 InstagramReachDaily 사용
+  const hasSnapshotReach = snapshots.some(s => s.reach > 0)
+  const effectiveReachData = hasSnapshotReach
+    ? snapshots.map(s => ({ date: s.date.slice(0, 10), reach: s.reach }))
+    : reachDaily
+  const totalReach = hasSnapshotReach
+    ? snapshots.reduce((s, n) => s + n.reach, 0)
+    : reachDaily.reduce((s, n) => s + n.reach, 0)
   const avgEngagement = snapshots.length
     ? (snapshots.reduce((s, n) => s + n.engagement, 0) / snapshots.length).toFixed(1)
     : '0'
@@ -72,13 +100,41 @@ export default function AnalyticsPage() {
   async function handleSync() {
     if (!personaId) return
     setSyncing(true)
+    const draft = await loadStoredMetaConnectionDraft(window.location.origin)
+    const accessToken = draft.value.accessToken || ''
+    const businessAccountId = draft.value.instagramBusinessAccountId || ''
     await fetch('/api/sns/analytics/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ personaId }),
+      body: JSON.stringify({ personaId, accessToken, businessAccountId }),
     })
+    // InstagramReachDaily도 동기화
+    if (accessToken && businessAccountId) {
+      await fetch('/api/instagram/reach/agent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lookbackDays: 30, accessToken, instagramBusinessAccountId: businessAccountId,
+          graphApiVersion: 'v25.0', connectionMode: 'instagram_login',
+        }),
+      }).catch(() => {})
+    }
     const updated = await fetch(`/api/sns/analytics?personaId=${personaId}&days=30`).then(r => r.json())
     setSnapshots(updated)
+    // Reach fallback: InstagramReachDaily 데이터로 보완
+    if (businessAccountId) {
+      try {
+        const dashRes = await fetch('/api/dashboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: 30, accountId: businessAccountId, accessToken, personaId }),
+        })
+        if (dashRes.ok) {
+          const dashData = await dashRes.json()
+          if (dashData.reachDaily?.length > 0) setReachDaily(dashData.reachDaily)
+        }
+      } catch {}
+    }
     setSyncing(false)
   }
 
@@ -170,15 +226,15 @@ export default function AnalyticsPage() {
       </div>
 
       {/* 도달수 추이 막대 차트 */}
-      {snapshots.length > 0 && (
+      {effectiveReachData.length > 0 && (
         <div className="card mb-6">
           <p className="section-title mb-3">도달수 추이 (최근 30일)</p>
           <div className="flex items-end gap-1 h-32">
-            {snapshots.slice(-30).map((s) => {
-              const max = Math.max(...snapshots.map(x => x.reach), 1)
+            {effectiveReachData.slice(-30).map((s, idx) => {
+              const max = Math.max(...effectiveReachData.map(x => x.reach), 1)
               const pct = Math.round((s.reach / max) * 100)
               return (
-                <div key={s.id} className="flex-1 flex flex-col items-center gap-1 group relative">
+                <div key={s.date || idx} className="flex-1 flex flex-col items-center gap-1 group relative">
                   <div
                     className="w-full bg-[var(--accent)] rounded-t opacity-80 hover:opacity-100 transition-opacity"
                     style={{ height: `${Math.max(pct, 2)}%` }}

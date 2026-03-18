@@ -18,10 +18,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Instagram 연동 설정이 필요합니다. accessToken과 businessAccountId를 전달하거나 환경변수를 설정하세요.' }, { status: 400 })
     }
 
-    const [insights, followers] = await Promise.all([
-      fetchInstagramMediaInsights(accessToken, businessAccountId),
-      fetchInstagramFollowerCount(accessToken, businessAccountId),
-    ])
+    // 팔로워 수 가져오기
+    const followers = await fetchInstagramFollowerCount(accessToken, businessAccountId)
+
+    // 미디어 인사이트 가져오기 (insights 권한 없으면 기본 데이터로 폴백)
+    let insights: Awaited<ReturnType<typeof fetchInstagramMediaInsights>> = []
+    try {
+      insights = await fetchInstagramMediaInsights(accessToken, businessAccountId)
+    } catch {
+      // insights 권한 없을 때: 기본 미디어 데이터(like/comments)로 폴백
+      try {
+        const mediaRes = await fetch(
+          `https://graph.instagram.com/v19.0/${businessAccountId}/media?fields=id,timestamp,like_count,comments_count,media_type,caption&access_token=${accessToken}&limit=25`
+        )
+        if (mediaRes.ok) {
+          const { data } = await mediaRes.json() as { data: Array<{ id: string; timestamp: string; like_count: number; comments_count: number; media_type?: string; caption?: string }> }
+          insights = (data || []).map(m => ({
+            id: m.id,
+            timestamp: m.timestamp,
+            impressions: 0,
+            reach: 0,
+            engagement: m.like_count + m.comments_count,
+            like_count: m.like_count,
+            comments_count: m.comments_count,
+            media_type: m.media_type,
+            caption: m.caption,
+          }))
+        }
+      } catch { /* ignore */ }
+    }
 
     const byDate = new Map<string, { reach: number; impressions: number; engagement: number; postCount: number }>()
     for (const insight of insights) {

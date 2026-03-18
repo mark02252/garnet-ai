@@ -27,7 +27,21 @@ export async function fetchInstagramMediaInsights(
       const insightRes = await fetch(
         `https://graph.instagram.com/v19.0/${media.id}/insights?metric=impressions,reach,engagement&access_token=${accessToken}`
       )
-      if (!insightRes.ok) return null
+      if (!insightRes.ok) {
+        // insights 권한 없으면 기본 데이터로 폴백
+        return {
+          id: media.id,
+          timestamp: media.timestamp,
+          impressions: 0,
+          reach: 0,
+          engagement: media.like_count + media.comments_count,
+          like_count: media.like_count,
+          comments_count: media.comments_count,
+          caption: media.caption,
+          media_type: media.media_type,
+          permalink: media.permalink,
+        } as InstagramMediaInsight
+      }
       const { data } = await insightRes.json() as { data: Array<{ name: string; values: Array<{ value: number }> }> }
       const getValue = (name: string) => data.find(d => d.name === name)?.values[0]?.value ?? 0
       return {
@@ -41,7 +55,7 @@ export async function fetchInstagramMediaInsights(
         caption: media.caption,
         media_type: media.media_type,
         permalink: media.permalink,
-      } satisfies InstagramMediaInsight
+      } as InstagramMediaInsight
     })
   )
 

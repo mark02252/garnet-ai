@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchInstagramMediaInsights, fetchInstagramFollowerCount } from '@/lib/sns/instagram-api'
+import { loadMetaConnectionFromFile } from '@/lib/meta-connection-file-store'
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,9 +12,18 @@ export async function POST(req: NextRequest) {
     const persona = await prisma.snsPersona.findUnique({ where: { id: personaId } })
     if (!persona) return NextResponse.json({ error: '페르소나 없음' }, { status: 404 })
 
-    // body에서 직접 전달받은 토큰 우선, 없으면 환경변수 폴백
-    const accessToken = body.accessToken || process.env.INSTAGRAM_ACCESS_TOKEN || ''
-    const businessAccountId = body.businessAccountId || process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID || ''
+    // body → 파일 백업 → 환경변수 순서로 폴백
+    let accessToken = body.accessToken || ''
+    let businessAccountId = body.businessAccountId || ''
+    if (!accessToken || !businessAccountId) {
+      const fileData = await loadMetaConnectionFromFile()
+      if (fileData) {
+        if (!accessToken) accessToken = fileData.accessToken
+        if (!businessAccountId) businessAccountId = fileData.instagramBusinessAccountId
+      }
+    }
+    if (!accessToken) accessToken = process.env.INSTAGRAM_ACCESS_TOKEN || ''
+    if (!businessAccountId) businessAccountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID || ''
     if (!accessToken || !businessAccountId) {
       return NextResponse.json({ error: 'Instagram 연동 설정이 필요합니다. accessToken과 businessAccountId를 전달하거나 환경변수를 설정하세요.' }, { status: 400 })
     }

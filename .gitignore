@@ -47,3 +47,4 @@ npm-debug.log*
 # Vendor / bundled binaries
 vendor_prisma/
 superpowers/
+.garnet-config/

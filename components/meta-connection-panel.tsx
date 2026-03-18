@@ -312,6 +312,22 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       setMessage(tokenExchanged
         ? `${successMessage} (장기 토큰으로 자동 교환됨 — 약 60일 유효)`
         : successMessage);
+
+      // 파일 백업: dev 서버 재시작 시에도 토큰 유지
+      void fetch('/api/meta/connection/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          appId: exchanged.appId,
+          appSecret: exchanged.appSecret,
+          accessToken: exchanged.accessToken,
+          instagramBusinessAccountId: exchanged.instagramBusinessAccountId,
+          loginMode: exchanged.loginMode,
+          tokenSource: exchanged.tokenSource,
+          tokenExpiresIn: exchanged.tokenExpiresIn,
+          lastConnectedAt: exchanged.lastConnectedAt,
+        }),
+      }).catch(() => {});
     } else {
       setError(result.message || '연결 정보를 저장하지 못했습니다.');
     }

@@ -1,11 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchInstagramMediaInsights, fetchInstagramFollowerCount } from '@/lib/sns/instagram-api'
+import { loadMetaConnectionFromFile, saveMetaConnectionToFile } from '@/lib/meta-connection-file-store'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as {
     days?: number; accountId?: string; accessToken?: string; personaId?: string;
   }
+
+  // 클라이언트에서 토큰이 없으면 파일 백업에서 읽기
+  if (!body.accessToken || !body.accountId) {
+    const fileData = await loadMetaConnectionFromFile()
+    if (fileData) {
+      if (!body.accessToken) body.accessToken = fileData.accessToken
+      if (!body.accountId) body.accountId = fileData.instagramBusinessAccountId
+    }
+  }
+
+  // 클라이언트에서 토큰이 왔으면 파일에도 백업
+  if (body.accessToken && body.accountId) {
+    void saveMetaConnectionToFile({
+      accessToken: body.accessToken,
+      instagramBusinessAccountId: body.accountId,
+    })
+  }
+
   const days = body.days || 30
   const since = new Date()
   since.setDate(since.getDate() - days)

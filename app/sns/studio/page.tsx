@@ -20,9 +20,12 @@ function StudioContent() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [drafts, setDrafts] = useState<Draft[]>([])
   const [personaId, setPersonaId] = useState(initPersonaId)
-  const [type, setType] = useState<'TEXT' | 'CAROUSEL'>('TEXT')
+  const [type, setType] = useState<'TEXT' | 'CAROUSEL' | 'REFERENCE'>('TEXT')
   const [prompt, setPrompt] = useState('')
   const [slideCount, setSlideCount] = useState(5)
+  const [referenceUrl, setReferenceUrl] = useState('')
+  const [referenceText, setReferenceText] = useState('')
+  const [outputType, setOutputType] = useState<'TEXT' | 'CAROUSEL'>('TEXT')
   const [generating, setGenerating] = useState(false)
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [publishingId, setPublishingId] = useState<string | null>(null)
@@ -78,18 +81,48 @@ function StudioContent() {
   }
 
   async function generate() {
-    if (!prompt.trim()) return
+    if (type === 'REFERENCE') {
+      if (!referenceUrl.trim() && !referenceText.trim()) return
+    } else {
+      if (!prompt.trim()) return
+    }
     setGenerating(true)
     try {
-      const res = await fetch('/api/sns/content', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ personaId: personaId || null, type, prompt, slideCount }),
-      })
+      let res: Response
+      if (type === 'REFERENCE') {
+        res = await fetch('/api/sns/content/reference', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personaId: personaId || null,
+            url: referenceUrl,
+            referenceText,
+            outputType,
+            prompt,
+            slideCount,
+          }),
+        })
+      } else {
+        res = await fetch('/api/sns/content', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ personaId: personaId || null, type, prompt, slideCount }),
+        })
+      }
       const draft = await res.json()
+      if (!res.ok) {
+        alert(draft.error || '생성 실패')
+        return
+      }
       setDrafts(prev => [draft, ...prev])
       setPrompt('')
-      if (type === 'CAROUSEL') router.push(`/sns/studio/${draft.id}`)
+      if (type === 'REFERENCE') {
+        setReferenceUrl('')
+        setReferenceText('')
+        if (outputType === 'CAROUSEL') router.push(`/sns/studio/${draft.id}`)
+      } else if (type === 'CAROUSEL') {
+        router.push(`/sns/studio/${draft.id}`)
+      }
     } finally {
       setGenerating(false)
     }
@@ -112,14 +145,14 @@ function StudioContent() {
             {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
           <div className="flex gap-1">
-            {(['TEXT', 'CAROUSEL'] as const).map(t => (
+            {(['TEXT', 'CAROUSEL', 'REFERENCE'] as const).map(t => (
               <button key={t} onClick={() => setType(t)}
                 className={`pill-option ${type === t ? 'bg-[var(--accent)] text-white' : ''}`}>
-                {t === 'TEXT' ? '텍스트' : '카드뉴스'}
+                {t === 'TEXT' ? '텍스트' : t === 'CAROUSEL' ? '카드뉴스' : '참고 제작'}
               </button>
             ))}
           </div>
-          {type === 'CAROUSEL' && (
+          {(type === 'CAROUSEL' || (type === 'REFERENCE' && outputType === 'CAROUSEL')) && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-[var(--text-muted)]">슬라이드</span>
               <input type="number" className="input w-16" min={3} max={10} value={slideCount}
@@ -127,14 +160,39 @@ function StudioContent() {
             </div>
           )}
         </div>
-        <div className="flex gap-2">
-          <input className="input flex-1" value={prompt} onChange={e => setPrompt(e.target.value)}
-            placeholder={type === 'TEXT' ? '오늘의 마케팅 팁을 작성해줘' : '상위 1% 마케터의 5가지 비밀'}
-            onKeyDown={e => e.key === 'Enter' && generate()} />
-          <button className="button-primary px-6" onClick={generate} disabled={generating}>
-            {generating ? '생성 중...' : '생성'}
-          </button>
-        </div>
+        {type === 'REFERENCE' ? (
+          <div className="space-y-3">
+            <input className="input w-full" value={referenceUrl} onChange={e => setReferenceUrl(e.target.value)}
+              placeholder="참고할 콘텐츠 URL 또는 링크" />
+            <textarea className="input w-full" rows={3} value={referenceText} onChange={e => setReferenceText(e.target.value)}
+              placeholder="참고할 내용을 직접 붙여넣기 (선택)" />
+            <div className="flex gap-1">
+              {(['TEXT', 'CAROUSEL'] as const).map(t => (
+                <button key={t} onClick={() => setOutputType(t)}
+                  className={`pill-option ${outputType === t ? 'bg-[var(--accent)] text-white' : ''}`}>
+                  {t === 'TEXT' ? '텍스트로 제작' : '카드뉴스로 제작'}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input className="input flex-1" value={prompt} onChange={e => setPrompt(e.target.value)}
+                placeholder="어떻게 변형할까요? (예: 우리 브랜드 스타일로, 병맛 버전으로, 더 감성적으로)"
+                onKeyDown={e => e.key === 'Enter' && generate()} />
+              <button className="button-primary px-6" onClick={generate} disabled={generating}>
+                {generating ? '생성 중...' : '생성'}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <input className="input flex-1" value={prompt} onChange={e => setPrompt(e.target.value)}
+              placeholder={type === 'TEXT' ? '오늘의 마케팅 팁을 작성해줘' : '상위 1% 마케터의 5가지 비밀'}
+              onKeyDown={e => e.key === 'Enter' && generate()} />
+            <button className="button-primary px-6" onClick={generate} disabled={generating}>
+              {generating ? '생성 중...' : '생성'}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* 상태 필터 */}

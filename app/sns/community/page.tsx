@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/empty-state'
 type Comment = { id: string; text: string; username: string; timestamp: string }
 type Reply = { commentId: string; username: string; originalText: string; reply: string }
 type Persona = { id: string; name: string }
-type MediaItem = { id: string; timestamp: string; caption?: string; media_type?: string }
+type MediaItem = { id: string; timestamp: string; caption?: string; media_type?: string; comments_count?: number }
 
 export default function CommunityPage() {
   const [personas, setPersonas] = useState<Persona[]>([])
@@ -124,7 +124,8 @@ export default function CommunityPage() {
     const caption = m.caption ? m.caption.slice(0, 40) : '(캡션 없음)'
     const date = new Date(m.timestamp).toLocaleDateString()
     const type = m.media_type ?? ''
-    return `${caption} · ${date} · ${type}`
+    const commentCount = m.comments_count ?? 0
+    return `${caption} · ${date} · ${type} · 댓글 ${commentCount}개`
   }
 
   return (
@@ -238,8 +239,11 @@ export default function CommunityPage() {
         </>
       )}
 
-      {comments.length === 0 && (
+      {comments.length === 0 && !selectedMediaId && !mediaId && (
         <EmptyState icon="💬" title="포스팅을 선택하면 댓글을 자동으로 불러옵니다" />
+      )}
+      {comments.length === 0 && (selectedMediaId || mediaId) && (
+        <EmptyState icon="📭" title="이 게시물에 댓글이 없습니다" description="댓글이 있는 게시물을 선택해보세요. 드롭다운에서 댓글 수를 확인할 수 있습니다." />
       )}
     </div>
   )

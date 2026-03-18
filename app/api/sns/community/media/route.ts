@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://graph.instagram.com/v19.0/${businessAccountId}/media?fields=id,timestamp,caption,media_type&access_token=${accessToken}&limit=10`
+      `https://graph.instagram.com/v19.0/${businessAccountId}/media?fields=id,timestamp,caption,media_type,comments_count&access_token=${accessToken}&limit=20`
     )
     if (!res.ok) {
       return NextResponse.json({ error: await res.text() }, { status: res.status })

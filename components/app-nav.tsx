@@ -214,18 +214,19 @@ const navGroups: NavGroup[] = [
   {
     label: 'SNS 스튜디오',
     items: [
-      { href: '/sns/personas',  label: '페르소나',     icon: <SnsPersonaIcon /> },
-      { href: '/sns/studio',    label: '콘텐츠 제작소', icon: <SnsStudioIcon /> },
-      { href: '/sns/calendar',  label: '캘린더',        icon: <SnsCalendarIcon /> },
-      { href: '/sns/analytics', label: '성과 분석',     icon: <SnsAnalyticsIcon /> },
-      { href: '/sns/community', label: '커뮤니티',      icon: <SnsCommunityIcon /> },
+      { href: '/dashboard',      label: '마케팅 대시보드', icon: <DashboardIcon /> },
+      { href: '/sns/personas',    label: '페르소나',       icon: <SnsPersonaIcon /> },
+      { href: '/sns/studio',      label: '콘텐츠 제작소',  icon: <SnsStudioIcon /> },
+      { href: '/sns/calendar',    label: '캘린더',         icon: <SnsCalendarIcon /> },
+      { href: '/sns/analytics',   label: '성과 분석',      icon: <SnsAnalyticsIcon /> },
+      { href: '/sns/community',   label: '커뮤니티',       icon: <SnsCommunityIcon /> },
+      { href: '/social',          label: '인사이트',       icon: <SocialIcon /> },
     ],
   },
   {
     label: '성과',
     items: [
       { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
-      { href: '/dashboard', label: '성과 대시보드', icon: <DashboardIcon /> },
     ],
   },
   {
@@ -239,7 +240,6 @@ const navGroups: NavGroup[] = [
 ];
 
 const bottomItems: NavItem[] = [
-  { href: '/social', label: 'SNS 인사이트', icon: <SocialIcon /> },
   { href: '/settings', label: '설정', icon: <SettingsIcon /> },
 ];
 

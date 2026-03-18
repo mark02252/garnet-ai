@@ -102,6 +102,9 @@ export function TopPosts({ posts }: { posts: TopPost[] }) {
           ))}
         </div>
       </div>
+      <p className="text-[11px] text-[var(--text-muted)] mb-2">
+        * 오가닉 도달 기준. 광고 부스트 도달은 Facebook 연동 후 반영됩니다.
+      </p>
       <div className="space-y-2">
         {sorted.map((post, i) => (
           <div key={post.id} className="flex items-start gap-3 py-2 border-b border-[var(--surface-border)] last:border-0">

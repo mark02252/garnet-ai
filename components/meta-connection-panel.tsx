@@ -135,6 +135,8 @@ type MetaConnectionPanelProps = {
 
 export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProps) {
   const isSocialMode = mode === 'social';
+  const envAppId = process.env.NEXT_PUBLIC_META_APP_ID || ''
+  const envAppSecret = process.env.NEXT_PUBLIC_META_APP_SECRET || ''
   const [draft, setDraft] = useState<MetaConnectionDraft>(() => createDefaultMetaConnectionDraft());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -160,13 +162,16 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       const loaded = await loadStoredMetaConnectionDraft(window.location.origin);
       if (cancelled) return;
 
-      const next =
+      let next =
         loaded.value.redirectUri || !window.location.origin
           ? loaded.value
           : {
               ...loaded.value,
               redirectUri: `${window.location.origin}/meta/connect`
             };
+
+      if (envAppId && !next.appId) next = { ...next, appId: envAppId }
+      if (envAppSecret && !next.appSecret) next = { ...next, appSecret: envAppSecret }
 
       setDraft(next);
       setWizardAppId(next.appId);
@@ -882,27 +887,37 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Meta App ID</label>
-              <input
-                className="input"
-                value={draft.appId}
-                onChange={(e) => setDraft((prev) => ({ ...prev, appId: e.target.value }))}
-                placeholder="Meta 개발자 앱 대시보드의 숫자형 App ID"
-              />
-              <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
-                인스타그램 계정 ID나 비즈니스 계정 ID가 아니라, Meta for Developers 앱의 숫자형 `App ID`를 넣어야 합니다.
-              </p>
+              {envAppId ? (
+                <p className="text-sm text-emerald-600 py-2">환경변수에서 자동 설정됨</p>
+              ) : (
+                <>
+                  <input
+                    className="input"
+                    value={draft.appId}
+                    onChange={(e) => setDraft((prev) => ({ ...prev, appId: e.target.value }))}
+                    placeholder="Meta 개발자 앱 대시보드의 숫자형 App ID"
+                  />
+                  <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
+                    인스타그램 계정 ID나 비즈니스 계정 ID가 아니라, Meta for Developers 앱의 숫자형 `App ID`를 넣어야 합니다.
+                  </p>
+                </>
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">
                 App Secret {draft.loginMode === 'instagram_login' ? <span className="text-[var(--text-muted)]">(고급 연결용)</span> : null}
               </label>
-              <input
-                className="input"
-                type="password"
-                value={draft.appSecret}
-                onChange={(e) => setDraft((prev) => ({ ...prev, appSecret: e.target.value }))}
-                placeholder="개발자 앱의 App Secret"
-              />
+              {envAppSecret ? (
+                <p className="text-sm text-emerald-600 py-2">환경변수에서 자동 설정됨</p>
+              ) : (
+                <input
+                  className="input"
+                  type="password"
+                  value={draft.appSecret}
+                  onChange={(e) => setDraft((prev) => ({ ...prev, appSecret: e.target.value }))}
+                  placeholder="개발자 앱의 App Secret"
+                />
+              )}
             </div>
             <div>
               <label className="mb-1 block text-sm font-medium">Redirect URI</label>

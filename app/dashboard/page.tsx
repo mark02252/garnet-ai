@@ -433,6 +433,9 @@ export default function DashboardPage() {
       })()}
 
       <ReachChart data={data.reachDaily} />
+      <p className="text-[11px] text-[var(--text-muted)] mt-1">
+        * Instagram Login 연동 기준 데이터입니다. Facebook 연동 시 광고 포함 정확한 도달 데이터를 확인할 수 있습니다.
+      </p>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <TopPosts posts={data.topPosts} />

@@ -243,7 +243,7 @@ export default function CommunityPage() {
         <EmptyState icon="💬" title="포스팅을 선택하면 댓글을 자동으로 불러옵니다" />
       )}
       {comments.length === 0 && (selectedMediaId || mediaId) && (
-        <EmptyState icon="📭" title="이 게시물에 댓글이 없습니다" description="댓글이 있는 게시물을 선택해보세요. 드롭다운에서 댓글 수를 확인할 수 있습니다." />
+        <EmptyState icon="📭" title="이 게시물의 댓글을 불러올 수 없습니다." description="댓글 관리 기능은 Facebook 연동 후 사용할 수 있습니다." />
       )}
     </div>
   )

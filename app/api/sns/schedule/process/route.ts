@@ -1,7 +1,20 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { publishDraft } from '@/lib/sns/instagram-publisher'
 
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const body = (await req.json().catch(() => ({}))) as {
+    accessToken?: string
+    businessAccountId?: string
+  }
+
+  if (!body.accessToken || !body.businessAccountId) {
+    return NextResponse.json(
+      { error: 'accessToken과 businessAccountId가 필요합니다.' },
+      { status: 400 }
+    )
+  }
+
   const now = new Date()
   const pendingPosts = await prisma.snsScheduledPost.findMany({
     where: { status: 'PENDING', scheduledAt: { lte: now } },
@@ -11,15 +24,27 @@ export async function POST() {
   const results = await Promise.allSettled(
     pendingPosts.map(async (post) => {
       try {
-        // TODO: Instagram Graph API 발행 연동 (ig-mcp 또는 직접 호출)
-        await prisma.snsScheduledPost.update({
-          where: { id: post.id },
-          data: { status: 'PUBLISHED', publishedAt: now },
+        const result = await publishDraft({
+          accessToken: body.accessToken!,
+          businessAccountId: body.businessAccountId!,
+          draft: post.draft,
         })
-        await prisma.snsContentDraft.update({
-          where: { id: post.draftId },
-          data: { status: 'PUBLISHED', publishedAt: now },
-        })
+
+        if (result.success) {
+          await prisma.snsScheduledPost.update({
+            where: { id: post.id },
+            data: { status: 'PUBLISHED', publishedAt: now },
+          })
+          await prisma.snsContentDraft.update({
+            where: { id: post.draftId },
+            data: { status: 'PUBLISHED', publishedAt: now },
+          })
+        } else {
+          await prisma.snsScheduledPost.update({
+            where: { id: post.id },
+            data: { status: 'FAILED', errorMsg: result.error },
+          })
+        }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : '발행 실패'
         await prisma.snsScheduledPost.update({

@@ -26,6 +26,7 @@ type ReportTopPost = {
 }
 type ReportRecommendation = {
   topic: string; contentType: string; suggestedCaption: string; reason: string
+  suggestedHashtags?: string[]
 }
 type ReportAdSuggestion = {
   postId?: string; reason: string; suggestedBudget: number; expectedReach: number
@@ -61,6 +62,8 @@ export default function AnalyticsPage() {
   const [bestTimes, setBestTimes] = useState<BestTimeSlot[]>([])
   const [contentTypeStats, setContentTypeStats] = useState<ContentTypeStat[]>([])
   const [isConnected, setIsConnected] = useState(false)
+  const [createdDraft, setCreatedDraft] = useState<{id: string; title: string} | null>(null)
+  const [showContentKit, setShowContentKit] = useState(false)
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then((data: Persona[]) => {
@@ -227,20 +230,27 @@ export default function AnalyticsPage() {
     }
   }
 
-  async function handleCreateFromRecommendation(rec: { topic: string; contentType: string; suggestedCaption: string }) {
+  async function handleCreateFromRecommendation(rec: {
+    topic: string; contentType: string; suggestedCaption: string;
+    reason: string; suggestedHashtags?: string[]
+  }) {
+    const hashtags = rec.suggestedHashtags?.map(t => t.startsWith('#') ? t : `#${t}`).join(' ') || ''
+    const prompt = `주제: ${rec.topic}\n\n방향: ${rec.reason}\n\n예시 캡션:\n${rec.suggestedCaption}\n\n해시태그: ${hashtags}`
+
     const res = await fetch('/api/sns/content', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         personaId,
         type: rec.contentType,
-        prompt: `${rec.topic}\n\n${rec.suggestedCaption}`,
+        prompt,
       }),
     })
-    if (res.ok) {
-      const draft = await res.json()
-      window.location.href = `/sns/studio/${draft.id}`
-    }
+    if (!res.ok) return
+    const draft = await res.json()
+
+    setCreatedDraft(draft)
+    setShowContentKit(true)
   }
 
   return (
@@ -515,6 +525,29 @@ export default function AnalyticsPage() {
           <div className="soft-card p-3 text-sm text-[var(--text-base)] whitespace-pre-wrap">{chatAnswer}</div>
         )}
       </div>
+
+      {/* 콘텐츠 킷 확인 배너 */}
+      {showContentKit && createdDraft && (
+        <div className="panel border-2 border-[var(--accent)] bg-[var(--accent-soft)] mb-6">
+          <p className="text-sm font-semibold text-[var(--text-strong)]">
+            콘텐츠 킷이 생성되었습니다
+          </p>
+          <p className="text-xs text-[var(--text-muted)] mt-1">
+            &ldquo;{createdDraft.title}&rdquo; — 최적 시간에 자동 예약하거나 편집할 수 있습니다.
+          </p>
+          <div className="flex gap-2 mt-3">
+            <a href={`/sns/studio/${createdDraft.id}`} className="button-primary text-xs">
+              스튜디오에서 편집
+            </a>
+            <a href={`/sns/calendar?draftId=${createdDraft.id}`} className="button-secondary text-xs">
+              캘린더에서 예약
+            </a>
+            <button className="text-xs text-[var(--text-muted)]" onClick={() => setShowContentKit(false)}>
+              닫기
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* AI 성과 리포트 */}
       <div className="card">

@@ -173,6 +173,7 @@ export default function SettingsPage() {
   const [businessContextError, setBusinessContextError] = useState('');
   const [managedBusinessContext, setManagedBusinessContext] = useState<BusinessContext>(ensureBusinessContext(DEFAULT_BUSINESS_CONTEXT));
   const [developerMode, setDeveloperMode] = useState(false);
+  const [activeTab, setActiveTab] = useState<'connections' | 'agents' | 'mcp' | 'dev'>('connections');
   const [agentExecutionJson, setAgentExecutionJson] = useState('');
   const [agentExecutionMessage, setAgentExecutionMessage] = useState('');
   const [agentExecutionError, setAgentExecutionError] = useState('');
@@ -830,6 +831,29 @@ export default function SettingsPage() {
         </div>
       </section>
 
+      <nav className="flex gap-1 rounded-2xl bg-[var(--surface-sub)] p-1 w-fit">
+        {([
+          ['connections', '연결'],
+          ['agents', '에이전트'],
+          ['mcp', 'MCP'],
+          ['dev', '개발자 도구'],
+        ] as const).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            onClick={() => setActiveTab(key)}
+            className={`rounded-xl px-4 py-1.5 text-sm font-medium transition-colors ${
+              activeTab === key
+                ? 'bg-[var(--accent)] text-white shadow-sm'
+                : 'text-[var(--text-muted)] hover:text-[var(--text-base)]'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </nav>
+
+      {activeTab === 'connections' && (<>
       <section className="grid gap-3 lg:grid-cols-2 xl:grid-cols-4">
         <div className="status-tile">
           <p className="metric-label">현재 운영 모드</p>
@@ -856,7 +880,9 @@ export default function SettingsPage() {
       </section>
 
       <SupabaseAuthPanel />
+      </>)}
 
+      {activeTab === 'agents' && (<>
       <section className="panel space-y-3">
         <h3 className="section-title">AI 실행 환경</h3>
         <p className="text-xs text-[var(--text-muted)]">입력 후 `실행 키 설정 적용`을 눌러야 캠페인 스튜디오와 세미나 실행에 반영됩니다.</p>
@@ -1511,9 +1537,18 @@ export default function SettingsPage() {
         {agentExecutionMessage && <p className="text-xs text-emerald-700">{agentExecutionMessage}</p>}
         {agentExecutionError && <p className="text-xs text-rose-700">{agentExecutionError}</p>}
       </section>
+      </>)}
 
+      {activeTab === 'connections' && (
       <MetaConnectionPanel mode="settings" />
+      )}
 
+      {activeTab === 'mcp' && (<>
+      <McpConnectionHub onActiveConnectionChange={setActiveMcpConnection} onHubChange={setMcpHub} />
+      <McpInspector connection={activeMcpConnection} />
+      </>)}
+
+      {activeTab === 'dev' && (<>
       <section className="panel space-y-4">
         <h3 className="section-title">앱 업데이트</h3>
         <p className="text-sm text-[var(--text-muted)]">새 버전이 있으면 여기서 확인하고, 다운로드 후 앱 재시작으로 설치할 수 있습니다.</p>
@@ -1693,6 +1728,7 @@ export default function SettingsPage() {
           </div>
         )}
       </section>
+      </>)}
     </div>
   );
 }

@@ -70,6 +70,12 @@ function StudioContent() {
     }
   }
 
+  async function deleteDraft(draftId: string) {
+    if (!confirm('이 콘텐츠를 삭제할까요?')) return
+    await fetch(`/api/sns/content/${draftId}`, { method: 'DELETE' })
+    setDrafts(prev => prev.filter(d => d.id !== draftId))
+  }
+
   async function generate() {
     if (!prompt.trim()) return
     setGenerating(true)
@@ -161,9 +167,7 @@ function StudioContent() {
                 {preview && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{preview}</p>}
               </div>
               <div className="flex gap-2 shrink-0">
-                {d.type === 'CAROUSEL' && (
-                  <button className="button-secondary text-xs" onClick={() => router.push(`/sns/studio/${d.id}`)}>편집</button>
-                )}
+                <button className="button-secondary text-xs" onClick={() => router.push(`/sns/studio/${d.id}`)}>편집</button>
                 {(d.status === 'DRAFT' || d.status === 'SCHEDULED') && (
                   <button className="button-primary text-xs" disabled={publishingId === d.id}
                     onClick={() => publishDraft(d.id)}>
@@ -172,6 +176,8 @@ function StudioContent() {
                 )}
                 <button className="button-secondary text-xs"
                   onClick={() => router.push(`/sns/calendar?draftId=${d.id}`)}>예약</button>
+                <button className="text-xs text-rose-500 hover:text-rose-700 px-2"
+                  onClick={() => deleteDraft(d.id)}>삭제</button>
               </div>
             </div>
           )

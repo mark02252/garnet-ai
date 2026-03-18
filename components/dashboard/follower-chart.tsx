@@ -7,8 +7,12 @@ import {
 type FollowerDataPoint = { date: string; followers: number }
 
 export function FollowerChart({ data, currentFollowers }: { data: FollowerDataPoint[]; currentFollowers?: number }) {
-  // 데이터가 1건 이하 (아직 누적 안 됨) — 현재 팔로워 수만 표시
-  if (data.length <= 1) {
+  // 데이터 변화 있는지 확인
+  const uniqueValues = new Set(data.map(d => d.followers))
+  const hasChange = uniqueValues.size > 1
+
+  // 데이터가 부족하거나 변화 없으면 요약 카드 표시
+  if (data.length <= 1 || !hasChange) {
     const count = currentFollowers ?? data[0]?.followers ?? 0
     return (
       <div className="panel" style={{ minHeight: 240 }}>
@@ -17,7 +21,9 @@ export function FollowerChart({ data, currentFollowers }: { data: FollowerDataPo
           <div className="flex flex-col items-center justify-center py-8">
             <p className="text-3xl font-bold text-[var(--text-strong)]">{count.toLocaleString()}</p>
             <p className="text-xs text-[var(--text-muted)] mt-2">현재 팔로워</p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">매일 동기화하면 추이 차트가 생성됩니다</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">
+              {data.length > 1 ? '팔로워 변동이 감지되면 추이 차트로 전환됩니다' : '매일 동기화하면 추이 차트가 생성됩니다'}
+            </p>
           </div>
         ) : (
           <div className="flex items-center justify-center py-8">

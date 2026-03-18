@@ -50,6 +50,8 @@ export default function DraftEditorPage() {
   const [generatingVideo, setGeneratingVideo] = useState(false)
   const [videoUrl, setVideoUrl] = useState<string | null>(null)
   const [videoDuration, setVideoDuration] = useState<number>(4)
+  const [bgmUrl, setBgmUrl] = useState('')
+  const [videoTransition, setVideoTransition] = useState<'none' | 'fade'>('none')
 
   useEffect(() => {
     fetch(`/api/sns/content/${draftId}`)
@@ -161,6 +163,8 @@ export default function DraftEditorPage() {
           durationPerSlide: videoDuration,
           width: dims.width,
           height: dims.height,
+          bgmUrl: bgmUrl || undefined,
+          transition: videoTransition,
         }),
       })
       const data = await res.json()
@@ -381,7 +385,7 @@ export default function DraftEditorPage() {
           {slides.length > 0 && slides.some(s => s.imageUrl) && (
             <div className="card">
               <h3 className="text-sm font-medium mb-3">릴스 영상 생성</h3>
-              <div className="flex items-center gap-4 mb-3">
+              <div className="flex items-center gap-4 mb-3 flex-wrap">
                 <div>
                   <label className="text-xs text-[var(--text-muted)] block mb-1">슬라이드당 표시 시간</label>
                   <select
@@ -397,6 +401,17 @@ export default function DraftEditorPage() {
                   </select>
                 </div>
                 <div>
+                  <label className="text-xs text-[var(--text-muted)] block mb-1">전환 효과</label>
+                  <select
+                    className="input text-sm"
+                    value={videoTransition}
+                    onChange={e => setVideoTransition(e.target.value as 'none' | 'fade')}
+                  >
+                    <option value="none">없음</option>
+                    <option value="fade">페이드</option>
+                  </select>
+                </div>
+                <div>
                   <label className="text-xs text-[var(--text-muted)] block mb-1">비율</label>
                   <span className="text-sm">{ASPECT_RATIO_LABELS[aspectRatio]}</span>
                 </div>
@@ -404,6 +419,15 @@ export default function DraftEditorPage() {
                   <label className="text-xs text-[var(--text-muted)] block mb-1">예상 길이</label>
                   <span className="text-sm">{slides.filter(s => s.imageUrl).length * videoDuration}초</span>
                 </div>
+              </div>
+              <div className="mb-3">
+                <label className="text-xs text-[var(--text-muted)] block mb-1">BGM URL (선택사항)</label>
+                <input
+                  className="input w-full text-sm"
+                  placeholder="https://example.com/bgm.mp3"
+                  value={bgmUrl}
+                  onChange={e => setBgmUrl(e.target.value)}
+                />
               </div>
               <button
                 className="button-primary text-sm w-full"

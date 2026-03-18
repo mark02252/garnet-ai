@@ -13,6 +13,8 @@ export type VideoRenderInput = {
   width?: number             // default 1080
   height?: number            // default 1920 (9:16 for Reels)
   outputFormat?: 'mp4'
+  bgmUrl?: string            // optional background music URL
+  transition?: 'none' | 'fade'  // default 'none'
 }
 
 export type VideoRenderResult = {
@@ -21,7 +23,7 @@ export type VideoRenderResult = {
 }
 
 export async function renderSlidesToVideo(input: VideoRenderInput): Promise<VideoRenderResult> {
-  const { slides, durationPerSlide = 4, width = 1080, height = 1920 } = input
+  const { slides, durationPerSlide = 4, width = 1080, height = 1920, bgmUrl, transition = 'none' } = input
 
   if (slides.length === 0) throw new Error('슬라이드가 없습니다.')
   if (!slides.some(s => s.imageUrl)) throw new Error('이미지가 있는 슬라이드가 필요합니다.')
@@ -53,34 +55,79 @@ export async function renderSlidesToVideo(input: VideoRenderInput): Promise<Vide
     const concatFile = join(tmpDir, 'concat.txt')
     await writeFile(concatFile, concatContent + `\nfile '${lastImage}'`)
 
-    // 3. Run ffmpeg
-    const outputPath = join(tmpDir, 'output.mp4')
+    // 3. Download BGM if provided
+    let bgmPath: string | null = null
+    if (bgmUrl) {
+      const bgmRes = await fetch(bgmUrl)
+      const bgmBuffer = Buffer.from(await bgmRes.arrayBuffer())
+      const bgmExt = bgmUrl.includes('.wav') ? 'wav' : 'mp3'
+      bgmPath = join(tmpDir, `bgm.${bgmExt}`)
+      await writeFile(bgmPath, bgmBuffer)
+    }
+
+    // 4. Build video filter chain
+    const totalDuration = imagePaths.length * durationPerSlide
+    const scaleFilter = `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`
+
+    let vfChain = scaleFilter
+    if (transition === 'fade') {
+      // Global fade-in at start (0.5s) and fade-out at end (0.5s)
+      const fadeOutStart = Math.max(0, totalDuration - 0.5)
+      vfChain += `,fade=t=in:st=0:d=0.5,fade=t=out:st=${fadeOutStart}:d=0.5`
+    }
+
+    // 5. Run ffmpeg — video pass
+    const videoOnlyPath = bgmPath ? join(tmpDir, 'video_only.mp4') : join(tmpDir, 'output.mp4')
 
     await new Promise<void>((resolve, reject) => {
       ffmpeg()
         .input(concatFile)
         .inputOptions(['-f', 'concat', '-safe', '0'])
         .outputOptions([
-          '-vf', `scale=${width}:${height}:force_original_aspect_ratio=decrease,pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:black`,
+          '-vf', vfChain,
           '-c:v', 'libx264',
           '-pix_fmt', 'yuv420p',
           '-r', '30',
           '-movflags', '+faststart',
         ])
-        .output(outputPath)
+        .output(videoOnlyPath)
         .on('end', () => resolve())
-        .on('error', (err: Error) => reject(new Error(`ffmpeg 오류: ${err.message}`)))
+        .on('error', (err: Error) => reject(new Error(`ffmpeg 영상 오류: ${err.message}`)))
         .run()
     })
 
-    // 4. Upload to Supabase
+    // 6. Overlay BGM if provided
+    const outputPath = join(tmpDir, 'output.mp4')
+
+    if (bgmPath) {
+      const fadeOutStart = Math.max(0, totalDuration - 2)
+      await new Promise<void>((resolve, reject) => {
+        ffmpeg()
+          .input(videoOnlyPath)
+          .input(bgmPath!)
+          .outputOptions([
+            '-c:v', 'copy',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-af', `afade=t=out:st=${fadeOutStart}:d=2`,
+            '-shortest',
+            '-movflags', '+faststart',
+          ])
+          .output(outputPath)
+          .on('end', () => resolve())
+          .on('error', (err: Error) => reject(new Error(`ffmpeg BGM 오류: ${err.message}`)))
+          .run()
+      })
+    }
+
+    // 7. Upload to Supabase
     const videoBuffer = await readFile(outputPath)
     const fileName = `sns/videos/${Date.now()}-${Math.random().toString(36).slice(2)}.mp4`
     const videoUrl = await uploadSnsFile(fileName, videoBuffer, 'video/mp4')
 
     return {
       videoUrl,
-      durationSeconds: imagePaths.length * durationPerSlide,
+      durationSeconds: totalDuration,
     }
   } finally {
     // Cleanup temp dir

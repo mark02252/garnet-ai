@@ -9,6 +9,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const durationPerSlide = body.durationPerSlide || 4
     const width = body.width || 1080
     const height = body.height || 1920
+    const bgmUrl: string | undefined = body.bgmUrl || undefined
+    const transition: 'none' | 'fade' = body.transition === 'fade' ? 'fade' : 'none'
 
     const draft = await prisma.snsContentDraft.findUnique({ where: { id } })
     if (!draft?.slides) {
@@ -26,6 +28,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       durationPerSlide,
       width,
       height,
+      bgmUrl,
+      transition,
     })
 
     // Save video URL to draft

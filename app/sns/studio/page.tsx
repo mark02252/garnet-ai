@@ -11,6 +11,23 @@ type Draft = {
   persona?: { name: string } | null
 }
 type Persona = { id: string; name: string }
+type Template = {
+  id: string; name: string; category: string; type: string
+  promptTemplate: string; slideCount: number; usageCount: number
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+  ALL: '전체',
+  TIP: '팁',
+  BEHIND: '비하인드',
+  EVENT: '이벤트',
+  REVIEW: '후기',
+  TREND: '트렌드',
+  QNA: 'Q&A',
+  LAUNCH: '신제품',
+  MEME: '밈',
+  GENERAL: '일반',
+}
 
 function StudioContent() {
   const router = useRouter()
@@ -30,6 +47,12 @@ function StudioContent() {
   const [statusFilter, setStatusFilter] = useState<string>('ALL')
   const [publishingId, setPublishingId] = useState<string | null>(null)
 
+  // Template state
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templateCategory, setTemplateCategory] = useState('ALL')
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null)
+
   const STATUS_FILTERS = [
     { key: 'ALL', label: '전체' },
     { key: 'DRAFT', label: '초안' },
@@ -44,6 +67,12 @@ function StudioContent() {
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then(setPersonas)
+    // Load templates (seed first, then fetch)
+    fetch('/api/sns/templates/seed', { method: 'POST' })
+      .then(() => fetch('/api/sns/templates'))
+      .then(r => r.json())
+      .then(setTemplates)
+      .catch(() => {})
   }, [])
 
   useEffect(() => { loadDrafts() }, [loadDrafts])
@@ -51,6 +80,37 @@ function StudioContent() {
   const filteredDrafts = statusFilter === 'ALL'
     ? drafts
     : drafts.filter(d => d.status === statusFilter)
+
+  const templateCategories = ['ALL', ...Array.from(new Set(templates.map(t => t.category)))]
+  const filteredTemplates = templateCategory === 'ALL'
+    ? templates
+    : templates.filter(t => t.category === templateCategory)
+
+  function selectTemplate(tpl: Template) {
+    setActiveTemplateId(tpl.id)
+    // Set type based on template type
+    if (tpl.type === 'CAROUSEL') {
+      setType('CAROUSEL')
+    } else {
+      setType('TEXT')
+    }
+    setSlideCount(tpl.slideCount)
+    setPrompt(tpl.promptTemplate)
+    setShowTemplates(false)
+  }
+
+  async function incrementUsageCount(templateId: string) {
+    // Fire-and-forget usage count increment
+    try {
+      await fetch('/api/sns/templates', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _action: 'increment', id: templateId }),
+      }).catch(() => {})
+    } catch {
+      // ignore
+    }
+  }
 
   async function publishDraft(draftId: string) {
     setPublishingId(draftId)
@@ -88,6 +148,12 @@ function StudioContent() {
     }
     setGenerating(true)
     try {
+      // Increment template usage if one was selected
+      if (activeTemplateId) {
+        incrementUsageCount(activeTemplateId)
+        setActiveTemplateId(null)
+      }
+
       let res: Response
       if (type === 'REFERENCE') {
         res = await fetch('/api/sns/content/reference', {
@@ -152,6 +218,12 @@ function StudioContent() {
               </button>
             ))}
           </div>
+          <button
+            onClick={() => setShowTemplates(v => !v)}
+            className={`pill-option ${showTemplates ? 'bg-[var(--accent)] text-white' : ''}`}
+          >
+            템플릿
+          </button>
           {(type === 'CAROUSEL' || (type === 'REFERENCE' && outputType === 'CAROUSEL')) && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-[var(--text-muted)]">슬라이드</span>
@@ -160,6 +232,34 @@ function StudioContent() {
             </div>
           )}
         </div>
+
+        {/* 템플릿 섹션 */}
+        {showTemplates && (
+          <div className="space-y-3">
+            <div className="flex gap-1 flex-wrap">
+              {templateCategories.map(cat => (
+                <button key={cat} onClick={() => setTemplateCategory(cat)}
+                  className={`pill-option text-xs ${templateCategory === cat ? 'bg-[var(--accent)] text-white' : ''}`}>
+                  {CATEGORY_LABELS[cat] || cat}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {filteredTemplates.map(tpl => (
+                <button key={tpl.id} onClick={() => selectTemplate(tpl)}
+                  className="text-left p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors">
+                  <p className="text-sm font-medium mb-1">{tpl.name}</p>
+                  <p className="text-xs text-[var(--text-muted)] line-clamp-2">{tpl.promptTemplate}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="accent-pill text-xs">{tpl.type === 'TEXT' ? '텍스트' : '카드뉴스'}</span>
+                    <span className="text-xs text-[var(--text-muted)]">{CATEGORY_LABELS[tpl.category] || tpl.category}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {type === 'REFERENCE' ? (
           <div className="space-y-3">
             <input className="input w-full" value={referenceUrl} onChange={e => setReferenceUrl(e.target.value)}

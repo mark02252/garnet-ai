@@ -510,3 +510,20 @@ model SnsPerformanceReport {
 
   @@index([personaId, createdAt])
 }
+
+// G. 콘텐츠 템플릿 라이브러리
+model SnsContentTemplate {
+  id             String      @id @default(cuid())
+  name           String
+  category       String      @default("GENERAL")
+  type           ContentType @default(TEXT)
+  promptTemplate String
+  slideCount     Int         @default(5)
+  hashtags       String      @default("[]")
+  isActive       Boolean     @default(true)
+  usageCount     Int         @default(0)
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([category])
+}

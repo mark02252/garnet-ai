@@ -1,5 +1,7 @@
 'use client'
 
+import { formatCompactNumber } from '@/lib/format-number'
+
 type TopPost = {
   id: string; timestamp: string; reach: number;
   caption?: string; media_type?: string; permalink?: string;
@@ -39,7 +41,7 @@ export function TopPosts({ posts }: { posts: TopPost[] }) {
             </div>
             <div className="text-right shrink-0">
               <span className="text-sm font-semibold text-[var(--text-strong)]">
-                {post.like_count != null ? `♥ ${post.like_count}` : post.reach.toLocaleString()}
+                {post.like_count != null ? `♥ ${formatCompactNumber(post.like_count)}` : formatCompactNumber(post.reach)}
               </span>
               {post.comments_count != null && post.comments_count > 0 && (
                 <p className="text-[11px] text-[var(--text-muted)]">댓글 {post.comments_count}</p>

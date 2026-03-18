@@ -3,6 +3,7 @@
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
+import { formatChartTick, formatCompactNumber } from '@/lib/format-number'
 
 type ReachDataPoint = { date: string; reach: number; avg7d?: number }
 
@@ -36,10 +37,10 @@ export function ReachChart({ data }: { data: ReachDataPoint[] }) {
         <LineChart data={enriched} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-border)" />
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
-          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} />
+          <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} tickFormatter={formatChartTick} />
           <Tooltip
             contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
-            formatter={(value, name) => [Number(value).toLocaleString(), name === 'reach' ? '일별 도달' : '7일 평균']}
+            formatter={(value, name) => [formatCompactNumber(Number(value)), name === 'reach' ? '일별 도달' : '7일 평균']}
           />
           <Line type="monotone" dataKey="reach" stroke="#3182f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
           <Line type="monotone" dataKey="avg7d" stroke="#6b7684" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />

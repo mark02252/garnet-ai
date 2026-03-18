@@ -5,6 +5,7 @@ import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
+import { formatChartTick, formatCompactNumber } from '@/lib/format-number'
 
 type Snapshot = {
   id: string; date: string; reach: number; impressions: number
@@ -321,7 +322,7 @@ export default function AnalyticsPage() {
               </div>
               <div className="flex items-center gap-4 mt-1 text-xs text-[var(--text-muted)]">
                 {(currentFollowers > 0 || latestFollowers > 0) && (
-                  <span>팔로워 {(currentFollowers || latestFollowers).toLocaleString()}</span>
+                  <span>팔로워 {formatCompactNumber(currentFollowers || latestFollowers)}</span>
                 )}
                 {lastSyncAt && (
                   <span>마지막 동기화: {(() => {
@@ -341,9 +342,9 @@ export default function AnalyticsPage() {
       {/* KPI 타일 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          ['총 도달수', totalReach.toLocaleString()],
+          ['총 도달수', formatCompactNumber(totalReach)],
           ['평균 인게이지먼트', `${avgEngagement}%`],
-          ['팔로워', latestFollowers.toLocaleString()],
+          ['팔로워', formatCompactNumber(latestFollowers)],
           ['발행 수', String(totalPosts)],
         ].map(([label, value]) => (
           <div key={label} className="card">
@@ -361,10 +362,10 @@ export default function AnalyticsPage() {
             <LineChart data={effectiveReachData.slice(-days)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-border)" />
               <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} tickFormatter={formatChartTick} />
               <Tooltip
                 contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
-                formatter={(value) => [Number(value).toLocaleString(), '일별 도달']}
+                formatter={(value) => [formatCompactNumber(Number(value)), '일별 도달']}
               />
               <Line type="monotone" dataKey="reach" stroke="#3182f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
             </LineChart>
@@ -384,7 +385,7 @@ export default function AnalyticsPage() {
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm text-[var(--text-base)]">{stat.label}</span>
                     <span className="text-sm font-semibold text-[var(--text-strong)]">
-                      {stat.avgReach.toLocaleString()} <span className="text-xs font-normal text-[var(--text-muted)]">({stat.count}건)</span>
+                      {formatCompactNumber(stat.avgReach)} <span className="text-xs font-normal text-[var(--text-muted)]">({stat.count}건)</span>
                     </span>
                   </div>
                   <div className="w-full h-5 bg-[var(--surface-sub)] rounded-full overflow-hidden">
@@ -491,7 +492,7 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                   <div className="text-right shrink-0 space-y-0.5">
-                    <p className="text-sm font-semibold text-[var(--text-strong)]">도달 {post.reach.toLocaleString()}</p>
+                    <p className="text-sm font-semibold text-[var(--text-strong)]">도달 {formatCompactNumber(post.reach)}</p>
                     {post.like_count != null && (
                       <p className="text-[11px] text-[var(--text-muted)]">♥ {post.like_count}{post.comments_count ? ` · 댓글 ${post.comments_count}` : ''}</p>
                     )}
@@ -565,7 +566,7 @@ export default function AnalyticsPage() {
               <div className="status-tile">
                 <p className="metric-label">총 도달</p>
                 <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">
-                  {report.summary.totalReach.toLocaleString()}
+                  {formatCompactNumber(report.summary.totalReach)}
                 </p>
               </div>
               <div className="status-tile">
@@ -594,7 +595,7 @@ export default function AnalyticsPage() {
                           {post.caption ? post.caption.slice(0, 60) + (post.caption.length > 60 ? '...' : '') : `게시물 #${i + 1}`}
                         </p>
                         <div className="flex items-center gap-2">
-                          <span className="accent-pill">도달 {post.reach.toLocaleString()}</span>
+                          <span className="accent-pill">도달 {formatCompactNumber(post.reach)}</span>
                           <span className="accent-pill">참여율 {post.engagementRate}%</span>
                         </div>
                       </div>
@@ -639,8 +640,8 @@ export default function AnalyticsPage() {
                     <div key={i} className="list-card">
                       <p className="text-sm text-[var(--text-strong)]">{ad.reason}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="accent-pill">예산 ₩{ad.suggestedBudget.toLocaleString()}</span>
-                        <span className="accent-pill">예상 도달 {ad.expectedReach.toLocaleString()}</span>
+                        <span className="accent-pill">예산 ₩{formatCompactNumber(ad.suggestedBudget)}</span>
+                        <span className="accent-pill">예상 도달 {formatCompactNumber(ad.expectedReach)}</span>
                       </div>
                     </div>
                   ))}

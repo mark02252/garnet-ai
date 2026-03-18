@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ApprovalActionList } from '@/components/approval-action-list';
+import { CollapsibleSection } from '@/components/collapsible-section';
 import { NotionPublishButton } from '@/components/notion-publish-button';
 import { SlackNotifyButton } from '@/components/slack-notify-button';
 import { PageSectionTabs } from '@/components/page-section-tabs';
@@ -453,149 +454,127 @@ export default async function OperationsPage() {
       </section>
 
       {/* ── KPI Tiles ── */}
-      <section id="overview" className="grid gap-3 md:grid-cols-2 xl:grid-cols-4 scroll-mt-24">
-        <div className="status-tile">
-          <p className="metric-label">즉시 대응</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{priorities.length || 1}건</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">오늘 바로 열어봐야 할 우선순위</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">승인 대기</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{approvalQueue.length}건</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">보고서, 플레이북, 분석 전환 대기</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">진행 중 흐름</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">실행 후 아직 마무리되지 않은 트랙</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">누적 플레이북</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{confirmedLearning}개</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 확정 자산</p>
-        </div>
+      <section id="overview" className="scroll-mt-24">
+        <CollapsibleSection title="상태 요약" defaultOpen={true}>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="status-tile">
+              <p className="metric-label">즉시 대응</p>
+              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{priorities.length || 1}건</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">오늘 바로 열어봐야 할 우선순위</p>
+            </div>
+            <div className="status-tile">
+              <p className="metric-label">승인 대기</p>
+              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{approvalQueue.length}건</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">보고서, 플레이북, 분석 전환 대기</p>
+            </div>
+            <div className="status-tile">
+              <p className="metric-label">진행 중 흐름</p>
+              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">실행 후 아직 마무리되지 않은 트랙</p>
+            </div>
+            <div className="status-tile">
+              <p className="metric-label">누적 플레이북</p>
+              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{confirmedLearning}개</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 확정 자산</p>
+            </div>
+          </div>
+        </CollapsibleSection>
       </section>
 
       {/* ── Quick Commands ── */}
-      <section id="questions" className="panel space-y-4 scroll-mt-24">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Command Deck</p>
-          <h2 className="section-title">바로 열기</h2>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">자주 보는 흐름만 빠르게 이동합니다.</p>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          {quickCommandCards.map((item) => (
-            <Link key={item.title} href={item.href} className="list-card block">
-              <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
-                {item.tag}
-              </span>
-              <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
-            </Link>
-          ))}
-        </div>
+      <section id="questions" className="scroll-mt-24">
+        <CollapsibleSection title="바로 열기" defaultOpen={true}>
+          <p className="mb-3 text-sm text-[var(--text-muted)]">자주 보는 흐름만 빠르게 이동합니다.</p>
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {quickCommandCards.map((item) => (
+              <Link key={item.title} href={item.href} className="list-card block">
+                <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
+                  {item.tag}
+                </span>
+                <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
+              </Link>
+            ))}
+          </div>
+        </CollapsibleSection>
       </section>
 
       <div className="grid gap-5 xl:grid-cols-[minmax(0,1.28fr)_340px]">
         <div className="space-y-5">
           {/* ── Today's Priorities ── */}
-          <section id="campaigns" className="panel space-y-4 scroll-mt-24">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Top Priorities</p>
-                <h2 className="section-title">오늘 먼저 볼 일</h2>
-              </div>
-              <span className="accent-pill">{priorities.length || 1} items</span>
-            </div>
-            {priorities.length === 0 ? (
-              <div className="surface-note">
-                <strong>긴급 병목은 크지 않습니다.</strong> 오늘은 최신 실행을 보고서와 플레이북으로 정리하는 자산화 작업에 집중해도 좋습니다.
-              </div>
-            ) : (
-              <div className="grid gap-3 md:grid-cols-2">
-                {priorities.map((item) => (
-                  <Link key={item.title} href={item.href} className="list-card block">
-                    <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-3 py-1 text-[11px] font-semibold text-[var(--text-base)]">
-                      {item.tag}
-                    </span>
-                    <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
-                    <span className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.18)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
-                      {item.cta}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
+          <section id="campaigns" className="scroll-mt-24">
+            <CollapsibleSection title="오늘 먼저 볼 일" defaultOpen={true} badge={<span className="accent-pill">{priorities.length || 1} items</span>}>
+              {priorities.length === 0 ? (
+                <div className="surface-note">
+                  <strong>긴급 병목은 크지 않습니다.</strong> 오늘은 최신 실행을 보고서와 플레이북으로 정리하는 자산화 작업에 집중해도 좋습니다.
+                </div>
+              ) : (
+                <div className="grid gap-3 md:grid-cols-2">
+                  {priorities.map((item) => (
+                    <Link key={item.title} href={item.href} className="list-card block">
+                      <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-3 py-1 text-[11px] font-semibold text-[var(--text-base)]">
+                        {item.tag}
+                      </span>
+                      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+                      <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
+                      <span className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.18)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+                        {item.cta}
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </CollapsibleSection>
           </section>
 
           {/* ── Campaign Rooms ── */}
-          <section id="timeline" className="panel space-y-4 scroll-mt-24">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Campaign Rooms</p>
-                <h2 className="section-title">지금 관리 중인 캠페인 흐름</h2>
+          <section id="timeline" className="scroll-mt-24">
+            <CollapsibleSection title="지금 관리 중인 캠페인 흐름" defaultOpen={true} trailing={<Link href="/campaigns" className="button-secondary">전체 캠페인 룸 보기</Link>}>
+              <div className="grid gap-3 md:grid-cols-2">
+                {campaignRooms.map((room) => (
+                  <article key={room.id} className="list-card">
+                    <div className="flex items-center justify-between gap-2">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                          room.status === 'ACTIVE'
+                            ? 'bg-emerald-100 text-emerald-700'
+                            : room.status === 'NEEDS_REVIEW'
+                              ? 'bg-amber-100 text-amber-700'
+                              : 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                        }`}
+                      >
+                        {room.statusLabel}
+                      </span>
+                      <span className="pill-option">{room.approvals.length} approvals</span>
+                    </div>
+                    <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{room.title}</p>
+                    <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{room.summary}</p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="pill-option">브리프 {room.counts.briefs}</span>
+                      <span className="pill-option">보고서 {room.counts.reports}</span>
+                      <span className="pill-option">플레이북 {room.counts.playbooks}</span>
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link href={room.primaryHref} className="button-secondary px-3 py-2 text-xs">최신 흐름</Link>
+                      <Link href="/campaigns" className="button-secondary px-3 py-2 text-xs">캠페인 룸</Link>
+                    </div>
+                  </article>
+                ))}
               </div>
-              <Link href="/campaigns" className="button-secondary">전체 캠페인 룸 보기</Link>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {campaignRooms.map((room) => (
-                <article key={room.id} className="list-card">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                        room.status === 'ACTIVE'
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : room.status === 'NEEDS_REVIEW'
-                            ? 'bg-amber-100 text-amber-700'
-                            : 'bg-[var(--accent-soft)] text-[var(--accent)]'
-                      }`}
-                    >
-                      {room.statusLabel}
-                    </span>
-                    <span className="pill-option">{room.approvals.length} approvals</span>
-                  </div>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{room.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{room.summary}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <span className="pill-option">브리프 {room.counts.briefs}</span>
-                    <span className="pill-option">보고서 {room.counts.reports}</span>
-                    <span className="pill-option">플레이북 {room.counts.playbooks}</span>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <Link href={room.primaryHref} className="button-secondary px-3 py-2 text-xs">최신 흐름</Link>
-                    <Link href="/campaigns" className="button-secondary px-3 py-2 text-xs">캠페인 룸</Link>
-                  </div>
-                </article>
-              ))}
-            </div>
+            </CollapsibleSection>
           </section>
 
           {/* ── Approval Inbox ── */}
-          <section className="panel space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Approval Inbox</p>
-                <h2 className="section-title">승인 대기함</h2>
-              </div>
-              <span className="accent-pill">{approvalQueue.length} approvals</span>
-            </div>
+          <CollapsibleSection title="승인 대기함" defaultOpen={true} badge={<span className="accent-pill">{approvalQueue.length} approvals</span>}>
             <ApprovalActionList
               items={approvalQueue}
               showRoomTitle
               emptyMessage="지금은 승인 대기 항목이 많지 않습니다. 다음 브리프를 시작하거나, 이번 주 데이터를 더 깊게 읽어도 좋습니다."
             />
-          </section>
+          </CollapsibleSection>
 
           {/* ── Focus Board ── */}
-          <section className="panel space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Focus Board</p>
-                <h2 className="section-title">지금 집중 중인 흐름</h2>
-              </div>
-              <Link href="/history" className="button-secondary">전체 실행 보기</Link>
-            </div>
+          <CollapsibleSection title="지금 집중 중인 흐름" defaultOpen={false} trailing={<Link href="/history" className="button-secondary">전체 실행 보기</Link>}>
             <div className="grid gap-3 md:grid-cols-2">
               {focusBoard.map((item) => (
                 <Link key={`${item.eyebrow}-${item.title}`} href={item.href} className="list-card block">
@@ -609,17 +588,10 @@ export default async function OperationsPage() {
                 </Link>
               ))}
             </div>
-          </section>
+          </CollapsibleSection>
 
           {/* ── Coverage Board ── */}
-          <section className="panel space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Coverage Board</p>
-                <h2 className="section-title">운영 자산화 진행률</h2>
-              </div>
-              <Link href="/learning" className="button-secondary">플레이북 보기</Link>
-            </div>
+          <CollapsibleSection title="운영 자산화 진행률" defaultOpen={false} trailing={<Link href="/learning" className="button-secondary">플레이북 보기</Link>}>
             <div className="grid gap-3 md:grid-cols-2">
               {[
                 { label: '보고서 연결률', value: deliverableCoverage, helper: `${deliverableCount}/${totalRuns} runs` },
@@ -639,17 +611,10 @@ export default async function OperationsPage() {
                 </div>
               ))}
             </div>
-          </section>
+          </CollapsibleSection>
 
           {/* ── Recent Flow / Timeline ── */}
-          <section className="panel space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Recent Flow</p>
-                <h2 className="section-title">최근 운영 흐름</h2>
-              </div>
-              <span className="pill-option">{timeline.length} events</span>
-            </div>
+          <CollapsibleSection title="최근 운영 흐름" defaultOpen={false} badge={<span className="pill-option">{timeline.length} events</span>}>
             <div className="grid gap-3">
               {timeline.map((item) => (
                 <Link key={item.id} href={item.href} className="list-card block">
@@ -666,23 +631,19 @@ export default async function OperationsPage() {
                 </Link>
               ))}
             </div>
-          </section>
+          </CollapsibleSection>
         </div>
 
         {/* ── Right Sidebar ── */}
         <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
           {/* Decision Rail */}
-          <section className="panel space-y-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Decision Rail</p>
-              <h2 className="section-title">오늘의 결정 메모</h2>
-            </div>
+          <CollapsibleSection title="오늘의 결정 메모" defaultOpen={false}>
             <div className="surface-note">
               <strong>핵심 키워드:</strong> #{leadSignal}
               <br />
               지금 가장 먼저 해야 할 일은 실행 결과를 다음 액션과 자산으로 이어붙이는 것입니다.
             </div>
-            <div className="grid gap-3">
+            <div className="mt-3 grid gap-3">
               <div className="list-card">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 1</p>
                 <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">세미나와 캠페인 스튜디오를 바로 연결하세요</p>
@@ -699,14 +660,10 @@ export default async function OperationsPage() {
                 <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">분석 대기 데이터는 인사이트가 붙는 순간 전략 회의의 질을 크게 높여줍니다.</p>
               </div>
             </div>
-          </section>
+          </CollapsibleSection>
 
           {/* Signal Tags */}
-          <section className="panel space-y-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Signal Tags</p>
-              <h2 className="section-title">반복되는 질문과 신호</h2>
-            </div>
+          <CollapsibleSection title="반복되는 질문과 신호" defaultOpen={false}>
             {topSignals.length === 0 ? (
               <div className="soft-panel text-sm text-[var(--text-muted)]">아직 반복 신호가 충분하지 않습니다.</div>
             ) : (
@@ -724,14 +681,10 @@ export default async function OperationsPage() {
                 ))}
               </div>
             )}
-          </section>
+          </CollapsibleSection>
 
           {/* Latest Assets */}
-          <section className="panel space-y-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Latest Assets</p>
-              <h2 className="section-title">방금 업데이트된 자산</h2>
-            </div>
+          <CollapsibleSection title="방금 업데이트된 자산" defaultOpen={false}>
             <div className="space-y-3">
               {latestSeminar && (
                 <Link
@@ -779,25 +732,23 @@ export default async function OperationsPage() {
                 </Link>
               )}
             </div>
-          </section>
+          </CollapsibleSection>
 
           {/* Failed Sessions */}
           {failedSeminars.length > 0 && (
-            <section className="panel space-y-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Attention</p>
-                <h2 className="section-title">확인 필요한 세션</h2>
+            <CollapsibleSection title="확인 필요한 세션" defaultOpen={true}>
+              <div className="space-y-3">
+                {failedSeminars.slice(0, 3).map((session) => (
+                  <Link key={session.id} href="/seminar" className="list-card block">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-[var(--text-strong)]">{session.title || session.topic}</p>
+                      <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700">실패</span>
+                    </div>
+                    <p className="mt-2 text-xs text-[var(--text-muted)]">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
+                  </Link>
+                ))}
               </div>
-              {failedSeminars.slice(0, 3).map((session) => (
-                <Link key={session.id} href="/seminar" className="list-card block">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold text-[var(--text-strong)]">{session.title || session.topic}</p>
-                    <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700">실패</span>
-                  </div>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
-                </Link>
-              ))}
-            </section>
+            </CollapsibleSection>
           )}
         </aside>
       </div>

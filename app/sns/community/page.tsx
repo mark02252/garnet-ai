@@ -1,20 +1,26 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 
 type Comment = { id: string; text: string; username: string; timestamp: string }
 type Reply = { commentId: string; username: string; originalText: string; reply: string }
 type Persona = { id: string; name: string }
+type MediaItem = { id: string; timestamp: string; caption?: string; media_type?: string }
 
 export default function CommunityPage() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [personaId, setPersonaId] = useState('')
+  const [mediaList, setMediaList] = useState<MediaItem[]>([])
+  const [selectedMediaId, setSelectedMediaId] = useState('')
   const [mediaId, setMediaId] = useState('')
+  const [manualMode, setManualMode] = useState(false)
   const [comments, setComments] = useState<Comment[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [replies, setReplies] = useState<Map<string, string>>(new Map())
   const [generating, setGenerating] = useState(false)
   const [publishing, setPublishing] = useState<string | null>(null)
+  const [loadingMedia, setLoadingMedia] = useState(false)
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then((data: Persona[]) => {
@@ -23,11 +29,52 @@ export default function CommunityPage() {
     })
   }, [])
 
-  async function loadComments() {
-    if (!mediaId.trim()) return
-    const res = await fetch(`/api/sns/community/comments?mediaId=${mediaId}`)
+  // Fetch recent media list on mount
+  useEffect(() => {
+    void (async () => {
+      setLoadingMedia(true)
+      try {
+        const draft = await loadStoredMetaConnectionDraft(window.location.origin)
+        const accessToken = draft.value.accessToken || ''
+        const businessAccountId = draft.value.instagramBusinessAccountId || ''
+        if (!accessToken || !businessAccountId) {
+          setLoadingMedia(false)
+          return
+        }
+        const res = await fetch(
+          `/api/sns/community/media?accessToken=${encodeURIComponent(accessToken)}&businessAccountId=${encodeURIComponent(businessAccountId)}`
+        )
+        if (res.ok) {
+          const data = await res.json()
+          setMediaList(data.data || [])
+        }
+      } catch {
+        // silently fail — user can use manual input
+      }
+      setLoadingMedia(false)
+    })()
+  }, [])
+
+  // Auto-load comments when a media is selected from the dropdown
+  useEffect(() => {
+    if (selectedMediaId) {
+      loadCommentsFor(selectedMediaId)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedMediaId])
+
+  async function loadCommentsFor(id: string) {
+    if (!id.trim()) return
+    const res = await fetch(`/api/sns/community/comments?mediaId=${id}`)
     const data = await res.json()
     setComments(data.data || [])
+    setSelected(new Set())
+    setReplies(new Map())
+  }
+
+  async function loadComments() {
+    if (!mediaId.trim()) return
+    await loadCommentsFor(mediaId)
   }
 
   async function generateReplies() {
@@ -70,6 +117,13 @@ export default function CommunityPage() {
     })
   }
 
+  function formatMediaLabel(m: MediaItem) {
+    const caption = m.caption ? m.caption.slice(0, 40) : '(캡션 없음)'
+    const date = new Date(m.timestamp).toLocaleDateString()
+    const type = m.media_type ?? ''
+    return `${caption} · ${date} · ${type}`
+  }
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
@@ -78,18 +132,50 @@ export default function CommunityPage() {
       </div>
 
       {/* 컨트롤 */}
-      <div className="card mb-4 flex flex-wrap gap-3 items-end">
-        <div>
-          <label className="text-xs text-[var(--text-muted)] block mb-1">페르소나</label>
-          <select className="input" value={personaId} onChange={e => setPersonaId(e.target.value)}>
-            {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
+      <div className="card mb-4 flex flex-col gap-3">
+        <div className="flex flex-wrap gap-3 items-end">
+          <div>
+            <label className="text-xs text-[var(--text-muted)] block mb-1">페르소나</label>
+            <select className="input" value={personaId} onChange={e => setPersonaId(e.target.value)}>
+              {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </div>
+          <div className="flex-1 min-w-[200px]">
+            <label className="text-xs text-[var(--text-muted)] block mb-1">최근 포스팅</label>
+            {loadingMedia ? (
+              <p className="text-xs text-[var(--text-muted)] py-2">미디어 불러오는 중...</p>
+            ) : mediaList.length > 0 ? (
+              <select
+                className="input w-full"
+                value={selectedMediaId}
+                onChange={e => setSelectedMediaId(e.target.value)}
+              >
+                <option value="">포스팅을 선택하세요</option>
+                {mediaList.map(m => (
+                  <option key={m.id} value={m.id}>{formatMediaLabel(m)}</option>
+                ))}
+              </select>
+            ) : (
+              <p className="text-xs text-[var(--text-muted)] py-2">
+                연동된 미디어가 없습니다. 아래 직접 입력을 사용하세요.
+              </p>
+            )}
+          </div>
         </div>
-        <div>
-          <label className="text-xs text-[var(--text-muted)] block mb-1">포스팅 ID (Media ID)</label>
-          <input className="input" value={mediaId} onChange={e => setMediaId(e.target.value)} placeholder="17896..." />
-        </div>
-        <button className="button-secondary" onClick={loadComments}>댓글 불러오기</button>
+
+        {/* 직접 입력 (collapsed fallback) */}
+        <details className="text-sm">
+          <summary className="cursor-pointer text-[var(--text-muted)] hover:text-[var(--text-base)]">
+            직접 입력
+          </summary>
+          <div className="flex flex-wrap gap-3 items-end mt-2">
+            <div>
+              <label className="text-xs text-[var(--text-muted)] block mb-1">포스팅 ID (Media ID)</label>
+              <input className="input" value={mediaId} onChange={e => setMediaId(e.target.value)} placeholder="17896..." />
+            </div>
+            <button className="button-secondary" onClick={loadComments}>댓글 불러오기</button>
+          </div>
+        </details>
       </div>
 
       {/* 댓글 목록 */}
@@ -151,7 +237,7 @@ export default function CommunityPage() {
 
       {comments.length === 0 && (
         <div className="soft-card text-center py-12">
-          <p className="text-[var(--text-muted)]">포스팅 ID를 입력하고 댓글을 불러오세요.</p>
+          <p className="text-[var(--text-muted)]">포스팅을 선택하면 댓글을 자동으로 불러옵니다.</p>
         </div>
       )}
     </div>

@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState, Suspense } from 'react'
+import { useEffect, useState, useCallback, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
+import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 
 type Draft = {
   id: string; type: string; title: string | null; content: string | null
@@ -22,15 +23,52 @@ function StudioContent() {
   const [prompt, setPrompt] = useState('')
   const [slideCount, setSlideCount] = useState(5)
   const [generating, setGenerating] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<string>('ALL')
+  const [publishingId, setPublishingId] = useState<string | null>(null)
+
+  const STATUS_FILTERS = [
+    { key: 'ALL', label: '전체' },
+    { key: 'DRAFT', label: '초안' },
+    { key: 'SCHEDULED', label: '예약됨' },
+    { key: 'PUBLISHED', label: '발행됨' },
+  ] as const
+
+  const loadDrafts = useCallback(() => {
+    const url = personaId ? `/api/sns/content?personaId=${personaId}` : '/api/sns/content'
+    fetch(url).then(r => r.json()).then(setDrafts)
+  }, [personaId])
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then(setPersonas)
   }, [])
 
-  useEffect(() => {
-    const url = personaId ? `/api/sns/content?personaId=${personaId}` : '/api/sns/content'
-    fetch(url).then(r => r.json()).then(setDrafts)
-  }, [personaId])
+  useEffect(() => { loadDrafts() }, [loadDrafts])
+
+  const filteredDrafts = statusFilter === 'ALL'
+    ? drafts
+    : drafts.filter(d => d.status === statusFilter)
+
+  async function publishDraft(draftId: string) {
+    setPublishingId(draftId)
+    try {
+      const { value: conn } = await loadStoredMetaConnectionDraft(window.location.origin)
+      const res = await fetch(`/api/sns/content/${draftId}/publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          accessToken: conn.accessToken,
+          businessAccountId: conn.instagramBusinessAccountId,
+        }),
+      })
+      if (!res.ok) throw new Error('발행 실패')
+      loadDrafts()
+    } catch (err) {
+      console.error(err)
+      alert(err instanceof Error ? err.message : '발행 중 오류가 발생했습니다')
+    } finally {
+      setPublishingId(null)
+    }
+  }
 
   async function generate() {
     if (!prompt.trim()) return
@@ -92,27 +130,47 @@ function StudioContent() {
         </div>
       </div>
 
+      {/* 상태 필터 */}
+      <div className="flex gap-1 mb-4">
+        {STATUS_FILTERS.map(f => (
+          <button key={f.key} onClick={() => setStatusFilter(f.key)}
+            className={`pill-option ${statusFilter === f.key ? 'bg-[var(--accent)] text-white' : ''}`}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
       {/* 초안 목록 */}
       <div className="space-y-3">
-        {drafts.map(d => {
+        {filteredDrafts.map(d => {
           const slides = d.slides ? (() => { try { return JSON.parse(d.slides) as unknown[] } catch { return [] } })() : []
+          const preview = d.type === 'CAROUSEL'
+            ? `${slides.length}장 슬라이드`
+            : d.content
+              ? d.content.length > 60 ? d.content.slice(0, 60) + '…' : d.content
+              : null
           return (
             <div key={d.id} className="card flex items-start gap-4">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="pill-option text-xs">{d.type}</span>
+                  <span className="accent-pill text-xs">{d.type === 'TEXT' ? '텍스트' : '카드뉴스'}</span>
                   {d.persona && <span className="text-xs text-[var(--text-muted)]">{d.persona.name}</span>}
                   <span className={`text-xs ${d.status === 'PUBLISHED' ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>{d.status}</span>
                 </div>
                 <p className="text-sm font-medium truncate">{d.title || '제목 없음'}</p>
-                {d.content && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{d.content}</p>}
-                {d.type === 'CAROUSEL' && <p className="text-xs text-[var(--text-muted)] mt-1">슬라이드 {slides.length}장</p>}
+                {preview && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{preview}</p>}
               </div>
               <div className="flex gap-2 shrink-0">
                 {d.type === 'CAROUSEL' && (
                   <button className="button-secondary text-xs" onClick={() => router.push(`/sns/studio/${d.id}`)}>편집</button>
                 )}
-                <button className="button-primary text-xs"
+                {(d.status === 'DRAFT' || d.status === 'SCHEDULED') && (
+                  <button className="button-primary text-xs" disabled={publishingId === d.id}
+                    onClick={() => publishDraft(d.id)}>
+                    {publishingId === d.id ? '발행 중...' : '발행'}
+                  </button>
+                )}
+                <button className="button-secondary text-xs"
                   onClick={() => router.push(`/sns/calendar?draftId=${d.id}`)}>예약</button>
               </div>
             </div>

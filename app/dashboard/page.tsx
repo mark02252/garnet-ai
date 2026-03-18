@@ -38,46 +38,115 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [report, setReport] = useState<any>(null)
+  const [syncing, setSyncing] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
+
+  // 대시보드 데이터 + 리포트 로드
+  const connectionRef = { accountId: '', accessToken: '', personaId: '' }
+
+  async function loadDashboard() {
+    try {
+      const draft = await loadStoredMetaConnectionDraft(window.location.origin)
+      const accountId = draft.value.instagramBusinessAccountId || ''
+      const accessToken = draft.value.accessToken || ''
+      connectionRef.accountId = accountId
+      connectionRef.accessToken = accessToken
+
+      let personaId = ''
+      try {
+        const pRes = await fetch('/api/sns/personas')
+        if (pRes.ok) {
+          const personas = await pRes.json() as Array<{ id: string; instagramHandle?: string | null }>
+          const linked = personas.find((p) => p.instagramHandle)
+          if (linked) personaId = linked.id
+        }
+      } catch { /* ignore */ }
+      connectionRef.personaId = personaId
+
+      const res = await fetch('/api/dashboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 30, accountId, accessToken, personaId }),
+      })
+      if (!res.ok) throw new Error('API 오류')
+      const json = await res.json() as DashboardData
+      setData(json)
+
+      if (personaId) {
+        try {
+          const reportRes = await fetch(`/api/sns/analytics/report?personaId=${personaId}`)
+          if (reportRes.ok) {
+            const reportData = await reportRes.json()
+            setReport(reportData.report)
+          }
+        } catch { /* ignore */ }
+      }
+
+      return json
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '대시보드 데이터를 불러오지 못했습니다.')
+      return null
+    }
+  }
+
+  async function handleSync() {
+    if (syncing) return
+    setSyncing(true)
+    setSyncMessage('')
+    try {
+      const { accountId, accessToken, personaId } = connectionRef
+      // 1. Instagram 도달 동기화
+      if (accountId && accessToken) {
+        await fetch('/api/instagram/reach/agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lookbackDays: 30,
+            accessToken,
+            instagramBusinessAccountId: accountId,
+            graphApiVersion: 'v25.0',
+            connectionMode: 'instagram_login',
+          }),
+        })
+      }
+      // 2. SNS 분석 동기화
+      if (accountId && accessToken) {
+        await fetch('/api/sns/analytics/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accessToken,
+            businessAccountId: accountId,
+            personaId,
+          }),
+        })
+      }
+      // 3. 대시보드 다시 로드
+      setLoading(true)
+      await loadDashboard()
+      setSyncMessage('동기화 완료')
+    } catch {
+      setSyncMessage('동기화 실패')
+    } finally {
+      setSyncing(false)
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
     void (async () => {
-      try {
-        const draft = await loadStoredMetaConnectionDraft(window.location.origin)
-        const accountId = draft.value.instagramBusinessAccountId || ''
-        const accessToken = draft.value.accessToken || ''
+      const result = await loadDashboard()
+      setLoading(false)
 
-        let personaId = ''
-        try {
-          const pRes = await fetch('/api/sns/personas')
-          if (pRes.ok) {
-            const personas = await pRes.json() as Array<{ id: string; instagramHandle?: string | null }>
-            const linked = personas.find((p) => p.instagramHandle)
-            if (linked) personaId = linked.id
-          }
-        } catch { /* ignore */ }
-
-        const res = await fetch('/api/dashboard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ days: 30, accountId, accessToken, personaId }),
-        })
-        if (!res.ok) throw new Error('API 오류')
-        const json = await res.json() as DashboardData
-        setData(json)
-
-        if (personaId) {
-          try {
-            const reportRes = await fetch(`/api/sns/analytics/report?personaId=${personaId}`)
-            if (reportRes.ok) {
-              const reportData = await reportRes.json()
-              setReport(reportData.report)
-            }
-          } catch { /* ignore */ }
+      // 자동 동기화: 마지막 동기화가 1시간 이상 지났으면 자동 실행
+      if (result?.lastSyncAt) {
+        const elapsed = Date.now() - new Date(result.lastSyncAt).getTime()
+        if (elapsed > 60 * 60 * 1000) {
+          void handleSync()
         }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : '대시보드 데이터를 불러오지 못했습니다.')
-      } finally {
-        setLoading(false)
+      } else if (connectionRef.accountId) {
+        // 동기화 기록 없으면 첫 동기화 실행
+        void handleSync()
       }
     })()
   }, [])
@@ -105,9 +174,20 @@ export default function DashboardPage() {
           <p className="dashboard-eyebrow">Garnet</p>
           <h1 className="dashboard-title">마케팅 대시보드</h1>
         </div>
-        <p className="text-xs text-[var(--text-muted)]">
-          마지막 동기화: {formatSyncTime(data.lastSyncAt)}
-        </p>
+        <div className="flex items-center gap-3">
+          {syncMessage && <p className="text-xs text-emerald-600">{syncMessage}</p>}
+          <p className="text-xs text-[var(--text-muted)]">
+            마지막 동기화: {formatSyncTime(data.lastSyncAt)}
+          </p>
+          <button
+            type="button"
+            className="button-secondary text-xs"
+            onClick={() => void handleSync()}
+            disabled={syncing}
+          >
+            {syncing ? '동기화 중...' : '동기화'}
+          </button>
+        </div>
       </div>
 
       {data.kpiGoals.length > 0 ? (

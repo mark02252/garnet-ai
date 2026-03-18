@@ -231,6 +231,105 @@ export default function AnalyticsPage() {
     }
   }
 
+  function handleExportReport() {
+    if (!report) return
+
+    const printWindow = window.open('', '_blank')
+    if (!printWindow) return
+
+    const persona = personas.find(p => p.id === personaId)
+
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>성과 분석 리포트 — ${persona?.name || 'Garnet'}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #333; }
+          h1 { font-size: 24px; margin-bottom: 4px; }
+          h2 { font-size: 16px; margin-top: 32px; margin-bottom: 12px; border-bottom: 1px solid #eee; padding-bottom: 8px; }
+          .subtitle { color: #888; font-size: 13px; }
+          .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 20px 0; }
+          .metric { background: #f5f6f7; border-radius: 8px; padding: 16px; }
+          .metric-value { font-size: 24px; font-weight: bold; }
+          .metric-label { font-size: 12px; color: #888; margin-top: 4px; }
+          .card { background: #f9fafb; border-radius: 8px; padding: 12px; margin: 8px 0; }
+          .tag { display: inline-block; background: #e8ebed; padding: 2px 8px; border-radius: 12px; font-size: 11px; margin: 2px; }
+          ul { padding-left: 20px; }
+          li { margin: 4px 0; }
+          .footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid #eee; font-size: 11px; color: #888; }
+        </style>
+      </head>
+      <body>
+        <h1>성과 분석 리포트</h1>
+        <p class="subtitle">${persona?.name || ''} · ${report.createdAt?.slice(0, 10) || new Date().toISOString().slice(0, 10)} · Garnet</p>
+
+        <h2>성과 요약</h2>
+        <div class="metrics">
+          <div class="metric">
+            <div class="metric-value">${(report.summary?.totalReach || 0).toLocaleString()}</div>
+            <div class="metric-label">총 도달</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">${report.summary?.avgEngagementRate || 0}%</div>
+            <div class="metric-label">평균 참여율</div>
+          </div>
+          <div class="metric">
+            <div class="metric-value">${report.summary?.trend || '-'}</div>
+            <div class="metric-label">추세</div>
+          </div>
+        </div>
+
+        ${report.topPosts?.length ? `
+          <h2>Top 게시물</h2>
+          ${report.topPosts.map((p: ReportTopPost, i: number) => `
+            <div class="card">
+              <strong>${i + 1}. ${p.caption?.slice(0, 60) || ''}</strong>
+              <br><small>도달: ${p.reach?.toLocaleString() || '?'} · ${p.whyGood || ''}</small>
+            </div>
+          `).join('')}
+        ` : ''}
+
+        ${report.recommendations?.length ? `
+          <h2>추천 콘텐츠</h2>
+          ${report.recommendations.map((r: ReportRecommendation, i: number) => `
+            <div class="card">
+              <strong>${i + 1}. ${r.topic}</strong>
+              <br><small>${r.reason || ''}</small>
+              ${r.suggestedHashtags?.length ? `<br>${r.suggestedHashtags.map((t: string) => `<span class="tag">${t}</span>`).join(' ')}` : ''}
+            </div>
+          `).join('')}
+        ` : ''}
+
+        ${report.patterns ? `
+          <h2>패턴 인사이트</h2>
+          <ul>
+            ${report.patterns.bestTimeSlots?.length ? `<li>최적 시간: ${report.patterns.bestTimeSlots.join(', ')}</li>` : ''}
+            ${report.patterns.bestContentTypes?.length ? `<li>최적 유형: ${report.patterns.bestContentTypes.join(', ')}</li>` : ''}
+            ${report.patterns.insights?.length ? `<li>${report.patterns.insights.join('; ')}</li>` : ''}
+          </ul>
+        ` : ''}
+
+        ${report.adSuggestions?.length ? `
+          <h2>광고 예산 제안</h2>
+          ${report.adSuggestions.map((a: ReportAdSuggestion) => `
+            <div class="card">
+              <strong>${a.reason || ''}</strong>
+              <br><small>예산: ₩${(a.suggestedBudget || 0).toLocaleString()} · 예상 도달: ${(a.expectedReach || 0).toLocaleString()}</small>
+            </div>
+          `).join('')}
+        ` : ''}
+
+        <div class="footer">
+          이 리포트는 Garnet AI 마케팅 OS에서 자동 생성되었습니다.
+        </div>
+      </body>
+      </html>
+    `)
+    printWindow.document.close()
+    printWindow.print()
+  }
+
   async function handleCreateFromRecommendation(rec: {
     topic: string; contentType: string; suggestedCaption: string;
     reason: string; suggestedHashtags?: string[]
@@ -554,9 +653,18 @@ export default function AnalyticsPage() {
       <div className="card">
         <div className="flex items-center justify-between mb-4">
           <p className="section-title">AI 성과 리포트</p>
-          <button className="button-primary" onClick={handleGenerateReport} disabled={reportLoading}>
-            {reportLoading ? '생성 중...' : 'AI 성과 리포트 생성'}
-          </button>
+          <div className="flex items-center gap-2">
+            <button className="button-primary" onClick={handleGenerateReport} disabled={reportLoading}>
+              {reportLoading ? '생성 중...' : 'AI 성과 리포트 생성'}
+            </button>
+            <button
+              className="button-secondary text-xs"
+              onClick={handleExportReport}
+              disabled={!report}
+            >
+              PDF 내보내기
+            </button>
+          </div>
         </div>
 
         {report && (

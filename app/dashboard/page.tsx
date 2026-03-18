@@ -21,6 +21,7 @@ type DashboardData = {
   reachDaily: ReachPoint[]
   followerTrend: FollowerPoint[]
   topPosts: TopPost[]
+  currentFollowers: number
   lastSyncAt: string | null
 }
 
@@ -226,7 +227,7 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         <TopPosts posts={data.topPosts} />
-        <FollowerChart data={data.followerTrend} />
+        <FollowerChart data={data.followerTrend} currentFollowers={data.currentFollowers} />
       </div>
 
       <div className="panel">

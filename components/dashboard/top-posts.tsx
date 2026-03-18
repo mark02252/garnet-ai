@@ -3,6 +3,7 @@
 type TopPost = {
   id: string; timestamp: string; reach: number;
   caption?: string; media_type?: string; permalink?: string;
+  like_count?: number; comments_count?: number;
 }
 
 function mediaTypeLabel(type?: string) {
@@ -27,7 +28,7 @@ export function TopPosts({ posts }: { posts: TopPost[] }) {
 
   return (
     <div className="panel">
-      <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">Top 게시물 (도달 기준)</p>
+      <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">Top 게시물 (인기순)</p>
       <div className="space-y-2">
         {posts.map((post, i) => (
           <div key={post.id} className="flex items-start gap-3 py-2 border-b border-[var(--surface-border)] last:border-0">
@@ -36,7 +37,14 @@ export function TopPosts({ posts }: { posts: TopPost[] }) {
               <p className="text-sm text-[var(--text-base)] truncate">{post.caption?.slice(0, 50) || '(캡션 없음)'}</p>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">{mediaTypeLabel(post.media_type)} · {formatDate(post.timestamp)}</p>
             </div>
-            <span className="text-sm font-semibold text-[var(--text-strong)] shrink-0">{post.reach.toLocaleString()}</span>
+            <div className="text-right shrink-0">
+              <span className="text-sm font-semibold text-[var(--text-strong)]">
+                {post.like_count != null ? `♥ ${post.like_count}` : post.reach.toLocaleString()}
+              </span>
+              {post.comments_count != null && post.comments_count > 0 && (
+                <p className="text-[11px] text-[var(--text-muted)]">댓글 {post.comments_count}</p>
+              )}
+            </div>
           </div>
         ))}
       </div>

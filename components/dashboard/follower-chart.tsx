@@ -6,11 +6,24 @@ import {
 
 type FollowerDataPoint = { date: string; followers: number }
 
-export function FollowerChart({ data }: { data: FollowerDataPoint[] }) {
-  if (data.length === 0) {
+export function FollowerChart({ data, currentFollowers }: { data: FollowerDataPoint[]; currentFollowers?: number }) {
+  // 데이터가 1건 이하 (아직 누적 안 됨) — 현재 팔로워 수만 표시
+  if (data.length <= 1) {
+    const count = currentFollowers ?? data[0]?.followers ?? 0
     return (
-      <div className="panel flex items-center justify-center" style={{ minHeight: 240 }}>
-        <p className="text-sm text-[var(--text-muted)]">분석 동기화를 실행하면 팔로워 추이가 표시됩니다.</p>
+      <div className="panel" style={{ minHeight: 240 }}>
+        <p className="text-sm font-semibold text-[var(--text-strong)] mb-4">팔로워</p>
+        {count > 0 ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-3xl font-bold text-[var(--text-strong)]">{count.toLocaleString()}</p>
+            <p className="text-xs text-[var(--text-muted)] mt-2">현재 팔로워</p>
+            <p className="text-xs text-[var(--text-muted)] mt-1">매일 동기화하면 추이 차트가 생성됩니다</p>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-8">
+            <p className="text-sm text-[var(--text-muted)]">동기화를 실행하면 팔로워 정보가 표시됩니다.</p>
+          </div>
+        )}
       </div>
     )
   }

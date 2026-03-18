@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { fetchInstagramMediaInsights } from '@/lib/sns/instagram-api'
+import { fetchInstagramMediaInsights, fetchInstagramFollowerCount } from '@/lib/sns/instagram-api'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as {
@@ -61,14 +61,29 @@ export async function POST(req: NextRequest) {
         if (accessToken) {
           const allInsights = await fetchInstagramMediaInsights(accessToken, accountId)
           topPosts = allInsights
-            .sort((a, b) => b.reach - a.reach)
+            .sort((a, b) => {
+              // reach가 있으면 reach 기준, 없으면 좋아요+댓글 기준
+              const scoreA = a.reach > 0 ? a.reach : (a.like_count + a.comments_count) * 100
+              const scoreB = b.reach > 0 ? b.reach : (b.like_count + b.comments_count) * 100
+              return scoreB - scoreA
+            })
             .slice(0, 5)
             .map((p) => ({
-              id: p.id, timestamp: p.timestamp, reach: p.reach,
+              id: p.id, timestamp: p.timestamp,
+              reach: p.reach > 0 ? p.reach : p.like_count + p.comments_count,
               caption: p.caption, media_type: p.media_type, permalink: p.permalink,
+              like_count: p.like_count, comments_count: p.comments_count,
             }))
         }
       } catch { /* Instagram API error — don't affect other data */ }
+    }
+
+    // 현재 팔로워 수 (실시간)
+    let currentFollowers = 0
+    if (accountId && body.accessToken) {
+      try {
+        currentFollowers = await fetchInstagramFollowerCount(body.accessToken, accountId)
+      } catch { /* ignore */ }
     }
 
     const lastReachSync = await prisma.instagramReachDaily.findFirst({
@@ -84,7 +99,7 @@ export async function POST(req: NextRequest) {
       .sort((a, b) => (b as Date).getTime() - (a as Date).getTime())[0] || null
 
     return NextResponse.json({
-      kpiGoals, reachDaily, followerTrend, topPosts,
+      kpiGoals, reachDaily, followerTrend, topPosts, currentFollowers,
       lastSyncAt: lastSyncAt ? (lastSyncAt as Date).toISOString() : null,
     })
   } catch (error) {

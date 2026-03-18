@@ -24,10 +24,9 @@ export async function fetchInstagramMediaInsights(
 
   const insights = await Promise.allSettled(
     mediaList.map(async (media) => {
-      // VIDEO/REEL은 reach만, IMAGE/CAROUSEL은 reach,impressions 지원
-      const metric = media.media_type === 'VIDEO' ? 'reach' : 'reach,impressions'
+      // Instagram Login for Business: 모든 미디어 타입에서 reach만 지원
       const insightRes = await fetch(
-        `https://graph.instagram.com/v25.0/${media.id}/insights?metric=${metric}&access_token=${accessToken}`
+        `https://graph.instagram.com/v25.0/${media.id}/insights?metric=reach&access_token=${accessToken}`
       )
       if (!insightRes.ok) {
         // insights 권한 없으면 기본 데이터로 폴백

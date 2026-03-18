@@ -7,6 +7,9 @@ export type InstagramMediaInsight = {
   engagement: number
   like_count: number
   comments_count: number
+  caption?: string
+  media_type?: string
+  permalink?: string
 }
 
 export async function fetchInstagramMediaInsights(
@@ -14,10 +17,10 @@ export async function fetchInstagramMediaInsights(
   businessAccountId: string
 ): Promise<InstagramMediaInsight[]> {
   const mediaRes = await fetch(
-    `https://graph.instagram.com/v19.0/${businessAccountId}/media?fields=id,timestamp,like_count,comments_count&access_token=${accessToken}&limit=25`
+    `https://graph.instagram.com/v19.0/${businessAccountId}/media?fields=id,timestamp,like_count,comments_count,caption,media_type,permalink&access_token=${accessToken}&limit=25`
   )
   if (!mediaRes.ok) throw new Error(`Instagram API 오류: ${await mediaRes.text()}`)
-  const { data: mediaList } = await mediaRes.json() as { data: Array<{ id: string; timestamp: string; like_count: number; comments_count: number }> }
+  const { data: mediaList } = await mediaRes.json() as { data: Array<{ id: string; timestamp: string; like_count: number; comments_count: number; caption?: string; media_type?: string; permalink?: string }> }
 
   const insights = await Promise.allSettled(
     mediaList.map(async (media) => {
@@ -35,13 +38,16 @@ export async function fetchInstagramMediaInsights(
         engagement: getValue('engagement'),
         like_count: media.like_count,
         comments_count: media.comments_count,
+        caption: media.caption,
+        media_type: media.media_type,
+        permalink: media.permalink,
       } satisfies InstagramMediaInsight
     })
   )
 
   return insights
-    .filter((r): r is PromiseFulfilledResult<InstagramMediaInsight | null> => r.status === 'fulfilled' && r.value !== null)
-    .map(r => r.value as InstagramMediaInsight)
+    .filter((r) => r.status === 'fulfilled' && r.value !== null)
+    .map(r => (r as PromiseFulfilledResult<InstagramMediaInsight>).value)
 }
 
 export async function fetchInstagramFollowerCount(

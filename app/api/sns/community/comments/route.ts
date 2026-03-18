@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   try {
     const res = await fetch(
-      `https://graph.instagram.com/v19.0/${mediaId}/comments?fields=id,text,username,timestamp&access_token=${accessToken}`
+      `https://graph.instagram.com/v25.0/${mediaId}/comments?fields=id,text,username,timestamp,like_count&access_token=${accessToken}`
     )
     if (!res.ok) {
       const errText = await res.text()

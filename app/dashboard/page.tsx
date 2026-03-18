@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 import { ReachChart } from '@/components/dashboard/reach-chart'
 import { FollowerChart } from '@/components/dashboard/follower-chart'
@@ -42,15 +42,15 @@ export default function DashboardPage() {
   const [syncMessage, setSyncMessage] = useState('')
 
   // 대시보드 데이터 + 리포트 로드
-  const connectionRef = { accountId: '', accessToken: '', personaId: '' }
+  const connectionRef = useRef({ accountId: '', accessToken: '', personaId: '' })
 
   async function loadDashboard() {
     try {
       const draft = await loadStoredMetaConnectionDraft(window.location.origin)
       const accountId = draft.value.instagramBusinessAccountId || ''
       const accessToken = draft.value.accessToken || ''
-      connectionRef.accountId = accountId
-      connectionRef.accessToken = accessToken
+      connectionRef.current.accountId = accountId
+      connectionRef.current.accessToken = accessToken
 
       let personaId = ''
       try {
@@ -61,7 +61,7 @@ export default function DashboardPage() {
           if (linked) personaId = linked.id
         }
       } catch { /* ignore */ }
-      connectionRef.personaId = personaId
+      connectionRef.current.personaId = personaId
 
       const res = await fetch('/api/dashboard', {
         method: 'POST',
@@ -94,7 +94,7 @@ export default function DashboardPage() {
     setSyncing(true)
     setSyncMessage('')
     try {
-      const { accountId, accessToken, personaId } = connectionRef
+      const { accountId, accessToken, personaId } = connectionRef.current
       // 1. Instagram 도달 동기화
       if (accountId && accessToken) {
         await fetch('/api/instagram/reach/agent', {
@@ -144,7 +144,7 @@ export default function DashboardPage() {
         if (elapsed > 60 * 60 * 1000) {
           void handleSync()
         }
-      } else if (connectionRef.accountId) {
+      } else if (connectionRef.current.accountId) {
         // 동기화 기록 없으면 첫 동기화 실행
         void handleSync()
       }

@@ -220,7 +220,6 @@ const navGroups: NavGroup[] = [
       { href: '/sns/calendar',    label: '캘린더',         icon: <SnsCalendarIcon /> },
       { href: '/sns/analytics',   label: '성과 분석',      icon: <SnsAnalyticsIcon /> },
       { href: '/sns/community',   label: '커뮤니티',       icon: <SnsCommunityIcon /> },
-      { href: '/social',          label: '인사이트',       icon: <SocialIcon /> },
     ],
   },
   {

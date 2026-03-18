@@ -79,14 +79,18 @@ export async function POST(req: NextRequest) {
         const accessToken = body.accessToken || ''
         if (accessToken) {
           const allInsights = await fetchInstagramMediaInsights(accessToken, accountId)
-          topPosts = allInsights
+          // 기간 필터 적용: 선택한 기간 내 게시물만
+          const filtered = allInsights.filter(p => {
+            if (!p.timestamp) return true
+            return new Date(p.timestamp) >= since
+          })
+          topPosts = (filtered.length > 0 ? filtered : allInsights)
             .sort((a, b) => {
-              // reach가 있으면 reach 기준, 없으면 좋아요+댓글 기준
               const scoreA = a.reach > 0 ? a.reach : (a.like_count + a.comments_count) * 100
               const scoreB = b.reach > 0 ? b.reach : (b.like_count + b.comments_count) * 100
               return scoreB - scoreA
             })
-            .slice(0, 5)
+            .slice(0, 10)
             .map((p) => ({
               id: p.id, timestamp: p.timestamp,
               reach: p.reach > 0 ? p.reach : p.like_count + p.comments_count,

@@ -2,22 +2,27 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const year = Number(searchParams.get('year') || new Date().getFullYear())
-  const month = Number(searchParams.get('month') || new Date().getMonth() + 1)
+  try {
+    const { searchParams } = new URL(req.url)
+    const year = Number(searchParams.get('year') || new Date().getFullYear())
+    const month = Number(searchParams.get('month') || new Date().getMonth() + 1)
 
-  const from = new Date(year, month - 1, 1)
-  const to   = new Date(year, month, 1)
+    const from = new Date(year, month - 1, 1)
+    const to   = new Date(year, month, 1)
 
-  const scheduled = await prisma.snsScheduledPost.findMany({
-    where: { scheduledAt: { gte: from, lt: to } },
-    include: {
-      draft: { select: { type: true, title: true, content: true } },
-      persona: { select: { name: true } },
-    },
-    orderBy: { scheduledAt: 'asc' },
-  })
-  return NextResponse.json(scheduled)
+    const scheduled = await prisma.snsScheduledPost.findMany({
+      where: { scheduledAt: { gte: from, lt: to } },
+      include: {
+        draft: { select: { type: true, title: true, content: true } },
+        persona: { select: { name: true } },
+      },
+      orderBy: { scheduledAt: 'asc' },
+    })
+    return NextResponse.json(scheduled)
+  } catch (error) {
+    console.error('GET /api/sns/schedule error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '예약 목록 조회 실패' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {

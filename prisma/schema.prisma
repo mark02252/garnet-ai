@@ -439,7 +439,7 @@ model SnsContentDraft {
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
 
-  persona   SnsPersona?      @relation(fields: [personaId], references: [id])
+  persona   SnsPersona?      @relation(fields: [personaId], references: [id], onDelete: SetNull)
   scheduled SnsScheduledPost[]
 
   @@index([personaId])
@@ -458,8 +458,8 @@ model SnsScheduledPost {
   errorMsg    String?
   createdAt   DateTime        @default(now())
 
-  draft   SnsContentDraft @relation(fields: [draftId], references: [id])
-  persona SnsPersona      @relation(fields: [personaId], references: [id])
+  draft   SnsContentDraft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  persona SnsPersona      @relation(fields: [personaId], references: [id], onDelete: Cascade)
 
   @@index([status, scheduledAt])
 }
@@ -478,7 +478,7 @@ model SnsAnalyticsSnapshot {
   topPostId   String?
   createdAt   DateTime        @default(now())
 
-  persona SnsPersona @relation(fields: [personaId], references: [id])
+  persona SnsPersona @relation(fields: [personaId], references: [id], onDelete: Cascade)
 
   @@unique([personaId, date])
 }
@@ -506,7 +506,7 @@ model SnsPerformanceReport {
   reportJson String
   createdAt  DateTime @default(now())
 
-  persona SnsPersona @relation(fields: [personaId], references: [id])
+  persona SnsPersona @relation(fields: [personaId], references: [id], onDelete: Cascade)
 
   @@index([personaId, createdAt])
 }

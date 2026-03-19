@@ -9,8 +9,9 @@ export async function GET() {
       include: { _count: { select: { contentDrafts: true } } },
     })
     return NextResponse.json(personas)
-  } catch {
-    return NextResponse.json([], { status: 200 })
+  } catch (error) {
+    console.error('GET /api/sns/personas error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '페르소나 목록 조회 실패' }, { status: 500 })
   }
 }
 
@@ -32,7 +33,8 @@ export async function POST(req: NextRequest) {
       },
     })
     return NextResponse.json(persona, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: '페르소나 생성에 실패했습니다.' }, { status: 500 })
+  } catch (error) {
+    console.error('POST /api/sns/personas error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '페르소나 생성에 실패했습니다.' }, { status: 500 })
   }
 }

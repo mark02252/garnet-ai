@@ -3,14 +3,19 @@ import { prisma } from '@/lib/prisma'
 import { runLLM } from '@/lib/llm'
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url)
-  const personaId = searchParams.get('personaId')
-  const drafts = await prisma.snsContentDraft.findMany({
-    where: personaId ? { personaId } : {},
-    orderBy: { createdAt: 'desc' },
-    include: { persona: { select: { name: true, tone: true, keywords: true } } },
-  })
-  return NextResponse.json(drafts)
+  try {
+    const { searchParams } = new URL(req.url)
+    const personaId = searchParams.get('personaId')
+    const drafts = await prisma.snsContentDraft.findMany({
+      where: personaId ? { personaId } : {},
+      orderBy: { createdAt: 'desc' },
+      include: { persona: { select: { name: true, tone: true, keywords: true } } },
+    })
+    return NextResponse.json(drafts)
+  } catch (error) {
+    console.error('GET /api/sns/content error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '콘텐츠 목록 조회 실패' }, { status: 500 })
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -93,7 +98,8 @@ JSON 배열로만 응답하세요:
     })
 
     return NextResponse.json(draft, { status: 201 })
-  } catch {
-    return NextResponse.json({ error: '콘텐츠 생성 실패' }, { status: 500 })
+  } catch (error) {
+    console.error('POST /api/sns/content error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '콘텐츠 생성 실패' }, { status: 500 })
   }
 }

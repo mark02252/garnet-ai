@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth-middleware'
 
 export async function GET(_: NextRequest, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params
@@ -25,13 +26,21 @@ export async function PATCH(req: NextRequest, context: { params: Promise<{ id: s
       },
     })
     return NextResponse.json(draft)
-  } catch {
-    return NextResponse.json({ error: '업데이트 실패' }, { status: 500 })
+  } catch (error) {
+    console.error('PATCH /api/sns/content/[id] error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '업데이트 실패' }, { status: 500 })
   }
 }
 
-export async function DELETE(_: NextRequest, context: { params: Promise<{ id: string }> }) {
-  const { id } = await context.params
-  await prisma.snsContentDraft.delete({ where: { id } })
-  return NextResponse.json({ ok: true })
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
+  const auth = await authenticateRequest(req)
+  if (!auth.authenticated) return unauthorizedResponse()
+  try {
+    const { id } = await context.params
+    await prisma.snsContentDraft.delete({ where: { id } })
+    return NextResponse.json({ ok: true })
+  } catch (error) {
+    console.error('DELETE /api/sns/content/[id] error:', error)
+    return NextResponse.json({ error: error instanceof Error ? error.message : '삭제 실패' }, { status: 500 })
+  }
 }

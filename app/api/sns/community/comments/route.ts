@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { loadMetaConnectionFromFile } from '@/lib/meta-connection-file-store'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const mediaId = searchParams.get('mediaId')
-  const accessToken = searchParams.get('accessToken') || process.env.INSTAGRAM_ACCESS_TOKEN || ''
+  let accessToken = searchParams.get('accessToken') || process.env.INSTAGRAM_ACCESS_TOKEN || ''
+  if (!accessToken) {
+    const fileData = await loadMetaConnectionFromFile()
+    if (fileData) accessToken = fileData.accessToken
+  }
 
   if (!accessToken) {
     return NextResponse.json({ error: 'accessToken이 필요합니다. 설정 페이지에서 Instagram을 연동하세요.' }, { status: 400 })

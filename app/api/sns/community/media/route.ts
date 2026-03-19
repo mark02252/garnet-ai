@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { loadMetaConnectionFromFile } from '@/lib/meta-connection-file-store'
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
-  const accessToken = searchParams.get('accessToken') || process.env.INSTAGRAM_ACCESS_TOKEN || ''
-  const businessAccountId = searchParams.get('businessAccountId') || process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID || ''
+  let accessToken = searchParams.get('accessToken') || process.env.INSTAGRAM_ACCESS_TOKEN || ''
+  let businessAccountId = searchParams.get('businessAccountId') || process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID || ''
+  if (!accessToken || !businessAccountId) {
+    const fileData = await loadMetaConnectionFromFile()
+    if (fileData) {
+      if (!accessToken) accessToken = fileData.accessToken
+      if (!businessAccountId) businessAccountId = fileData.instagramBusinessAccountId
+    }
+  }
 
   if (!accessToken || !businessAccountId) {
     return NextResponse.json(

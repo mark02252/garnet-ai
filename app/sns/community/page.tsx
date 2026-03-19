@@ -42,9 +42,7 @@ export default function CommunityPage() {
           setLoadingMedia(false)
           return
         }
-        const res = await fetch(
-          `/api/sns/community/media?accessToken=${encodeURIComponent(accessToken)}&businessAccountId=${encodeURIComponent(businessAccountId)}`
-        )
+        const res = await fetch(`/api/sns/community/media`)
         if (res.ok) {
           const data = await res.json()
           setMediaList(data.data || [])
@@ -66,9 +64,7 @@ export default function CommunityPage() {
 
   async function loadCommentsFor(id: string) {
     if (!id.trim()) return
-    const draft = await loadStoredMetaConnectionDraft(window.location.origin)
-    const accessToken = draft.value.accessToken || ''
-    const res = await fetch(`/api/sns/community/comments?mediaId=${id}&accessToken=${encodeURIComponent(accessToken)}`)
+    const res = await fetch(`/api/sns/community/comments?mediaId=${id}`)
     const data = await res.json()
     setComments(data.data || [])
     setSelected(new Set())

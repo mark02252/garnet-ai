@@ -30,7 +30,7 @@ export async function GET(req: Request) {
     include: {
       memoryLog: true
     },
-    take: 200
+    take: 50
   });
 
   const filtered = tag

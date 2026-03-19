@@ -41,7 +41,7 @@ export async function GET(req: Request) {
       }
     },
     orderBy: { createdAt: 'desc' },
-    take: 300
+    take: 100
   });
 
   return NextResponse.json(

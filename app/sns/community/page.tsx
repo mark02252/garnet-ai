@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 import { EmptyState } from '@/components/empty-state'
+import { LoadingSpinner } from '@/components/loading-spinner'
 
 type Comment = { id: string; text: string; username: string; timestamp: string }
 type Reply = { commentId: string; username: string; originalText: string; reply: string }
@@ -143,7 +144,7 @@ export default function CommunityPage() {
           <div className="flex-1 min-w-[200px]">
             <label className="text-xs text-[var(--text-muted)] block mb-1">최근 포스팅</label>
             {loadingMedia ? (
-              <p className="text-xs text-[var(--text-muted)] py-2">미디어 불러오는 중...</p>
+              <LoadingSpinner text="미디어 불러오는 중..." />
             ) : mediaList.length > 0 ? (
               <select
                 className="input w-full"

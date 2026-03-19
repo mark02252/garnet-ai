@@ -443,6 +443,7 @@ model SnsContentDraft {
   scheduled SnsScheduledPost[]
 
   @@index([personaId])
+  @@index([createdAt])
   @@index([status])
 }
 
@@ -462,6 +463,7 @@ model SnsScheduledPost {
   persona SnsPersona      @relation(fields: [personaId], references: [id], onDelete: Cascade)
 
   @@index([status, scheduledAt])
+  @@index([personaId])
 }
 
 // D. 성과 스냅샷

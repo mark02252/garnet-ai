@@ -1539,9 +1539,31 @@ export default function SettingsPage() {
       </section>
       </>)}
 
-      {activeTab === 'connections' && (
+      {activeTab === 'connections' && (<>
       <MetaConnectionPanel mode="settings" />
-      )}
+
+      {/* 외부 연동 */}
+      <div className="panel space-y-4">
+        <h3 className="section-title">외부 연동</h3>
+        <p className="text-xs text-[var(--text-muted)]">환경변수로 설정하거나 아래에서 직접 입력할 수 있습니다.</p>
+        <div className="grid gap-3 md:grid-cols-2">
+          <div>
+            <label className="mb-1 block text-sm font-medium">Slack Webhook URL</label>
+            <input className="input" placeholder="https://hooks.slack.com/services/..."
+              defaultValue={typeof window !== 'undefined' ? localStorage.getItem('garnet_slack_webhook') || '' : ''}
+              onChange={e => localStorage.setItem('garnet_slack_webhook', e.target.value)} />
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">Slack 앱 → Incoming Webhooks → URL 복사</p>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium">Notion API Key</label>
+            <input className="input" type="password" placeholder="secret_..."
+              defaultValue={typeof window !== 'undefined' ? localStorage.getItem('garnet_notion_key') || '' : ''}
+              onChange={e => localStorage.setItem('garnet_notion_key', e.target.value)} />
+            <p className="mt-1 text-[11px] text-[var(--text-muted)]">Notion → 설정 → 내 연결 → Internal Integration → Secret</p>
+          </div>
+        </div>
+      </div>
+      </>)}
 
       {activeTab === 'mcp' && (<>
       <McpConnectionHub onActiveConnectionChange={setActiveMcpConnection} onHubChange={setMcpHub} />

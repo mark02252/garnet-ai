@@ -12,7 +12,7 @@ const createSchema = z.object({
 export async function GET() {
   const datasets = await prisma.dataset.findMany({
     orderBy: { createdAt: 'desc' },
-    take: 300
+    take: 50
   });
 
   return NextResponse.json(datasets);

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 import { LoadingSpinner } from '@/components/loading-spinner'
+import { ErrorBoundary } from '@/components/error-boundary'
 import { ReachChart } from '@/components/dashboard/reach-chart'
 import { FollowerChart } from '@/components/dashboard/follower-chart'
 import { TopPosts } from '@/components/dashboard/top-posts'
@@ -185,6 +186,7 @@ export default function DashboardPage() {
   }
 
   return (
+    <ErrorBoundary>
     <div className="p-6 space-y-6 max-w-[1200px] mx-auto">
       <div className="flex items-baseline justify-between">
         <div>
@@ -463,5 +465,6 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+    </ErrorBoundary>
   )
 }

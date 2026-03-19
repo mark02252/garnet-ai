@@ -1,5 +1,5 @@
 // lib/sns/image-generator.ts
-import { GoogleGenAI } from '@google/genai'
+import { GoogleGenAI, type Part } from '@google/genai'
 import { uploadSnsFile } from '@/lib/sns/upload'
 import { applyCanvaTemplate } from '@/lib/sns/canva-pipeline'
 
@@ -23,7 +23,7 @@ export async function generateSlideImage(
   const ai = new GoogleGenAI({ apiKey })
 
   // 프롬프트 + 레퍼런스 이미지 (최대 14장)
-  const contents: unknown[] = [{ text: imagePrompt }]
+  const contents: Part[] = [{ text: imagePrompt }]
   for (const url of referenceImageUrls.slice(0, 14)) {
     const res = await fetch(url)
     const buffer = await res.arrayBuffer()

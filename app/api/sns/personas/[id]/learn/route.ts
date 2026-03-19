@@ -22,7 +22,7 @@ export async function POST(req: NextRequest, context: { params: Promise<{ id: st
           content,
           source: 'manual',
         })),
-        skipDuplicates: true,
+        skipDuplicates: true as never,
       })
     } else {
       if (!brandName || !purpose) {

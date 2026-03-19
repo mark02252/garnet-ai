@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchInstagramMediaInsights, fetchInstagramFollowerCount } from '@/lib/sns/instagram-api'
 import { loadMetaConnectionFromFile, saveMetaConnectionToFile } from '@/lib/meta-connection-file-store'
+import { sendSlackMessage, buildPerformanceAlert } from '@/lib/integrations/slack'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({})) as {
@@ -166,6 +167,11 @@ export async function POST(req: NextRequest) {
       if (last3.every(r => r.reach === 0)) {
         alerts.push({ type: 'info', message: '최근 3일간 도달이 없습니다. 새 콘텐츠를 게시해보세요.' })
       }
+    }
+
+    // Send alerts to Slack (fire-and-forget; no-op if SLACK_WEBHOOK_URL is unset)
+    for (const alert of alerts) {
+      void sendSlackMessage(buildPerformanceAlert(alert.message, alert.type))
     }
 
     const lastReachSync = await prisma.instagramReachDaily.findFirst({

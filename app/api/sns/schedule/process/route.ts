@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { publishDraft } from '@/lib/sns/instagram-publisher'
+import { sendSlackMessage, buildPublishNotification } from '@/lib/integrations/slack'
 
 export async function POST(req: NextRequest) {
   const body = (await req.json().catch(() => ({}))) as {
@@ -39,11 +40,13 @@ export async function POST(req: NextRequest) {
             where: { id: post.draftId },
             data: { status: 'PUBLISHED', publishedAt: now },
           })
+          void sendSlackMessage(buildPublishNotification(post.draft?.title || '게시물', 'success'))
         } else {
           await prisma.snsScheduledPost.update({
             where: { id: post.id },
             data: { status: 'FAILED', errorMsg: result.error },
           })
+          void sendSlackMessage(buildPublishNotification(post.draft?.title || '게시물', 'failed'))
         }
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : '발행 실패'

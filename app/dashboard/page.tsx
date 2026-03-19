@@ -210,7 +210,7 @@ export default function DashboardPage() {
               </button>
             ))}
           </div>
-          {syncMessage && <p className="text-xs text-emerald-600">{syncMessage}</p>}
+          {syncMessage && <p className="text-xs text-[var(--accent)]">{syncMessage}</p>}
           <p className="text-xs text-[var(--text-muted)]">
             마지막 동기화: {formatSyncTime(data.lastSyncAt)}
           </p>

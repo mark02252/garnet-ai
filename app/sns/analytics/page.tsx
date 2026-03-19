@@ -354,8 +354,8 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 space-y-6 max-w-5xl mx-auto">
+      <div className="flex items-center justify-between">
         <div>
           <p className="dashboard-eyebrow">SNS 스튜디오</p>
           <h1 className="dashboard-title">성과 분석</h1>
@@ -401,8 +401,8 @@ export default function AnalyticsPage() {
       {personaId && (() => {
         const currentPersona = personas.find(p => p.id === personaId)
         return (
-          <div className="card mb-6 flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+          <div className="card flex items-center gap-4">
+            <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm shrink-0">
               {(currentPersona?.name || 'P')[0]}
             </div>
             <div className="flex-1 min-w-0">
@@ -439,7 +439,7 @@ export default function AnalyticsPage() {
       })()}
 
       {/* KPI 타일 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           ['총 도달수', formatCompactNumber(totalReach)],
           ['평균 인게이지먼트', `${avgEngagement}%`],
@@ -455,7 +455,7 @@ export default function AnalyticsPage() {
 
       {/* 도달수 추이 라인 차트 */}
       {effectiveReachData.length > 0 && (
-        <div className="card mb-6">
+        <div className="card">
           <p className="section-title mb-3">도달수 추이 (최근 {days}일)</p>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={effectiveReachData.slice(-days)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
@@ -477,7 +477,7 @@ export default function AnalyticsPage() {
 
       {/* 콘텐츠 유형별 성과 비교 */}
       {contentTypeStats.length > 0 && (
-        <div className="card mb-6">
+        <div className="card">
           <p className="section-title mb-3">콘텐츠 유형별 평균 도달</p>
           <div className="space-y-3">
             {(() => {
@@ -507,7 +507,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* 최적 게시 시간 + 인게이지먼트 요약 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* 최적 게시 시간 */}
         <div className="card">
           <p className="section-title mb-3">최적 게시 시간</p>
@@ -574,7 +574,7 @@ export default function AnalyticsPage() {
 
       {/* Top 게시물 (상세) */}
       {dashTopPosts.length > 0 && (
-        <div className="card mb-6">
+        <div className="card">
           <p className="section-title mb-3">Top 게시물</p>
           <div className="space-y-2">
             {dashTopPosts.map((post, i) => {
@@ -610,7 +610,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* AI 디스커션 */}
-      <div className="card mb-6">
+      <div className="card">
         <p className="section-title mb-3">AI 디스커션</p>
         <div className="flex gap-2 mb-3">
           <input
@@ -631,7 +631,7 @@ export default function AnalyticsPage() {
 
       {/* 콘텐츠 킷 확인 배너 */}
       {showContentKit && createdDraft && (
-        <div className="panel border-2 border-[var(--accent)] bg-[var(--accent-soft)] mb-6">
+        <div className="panel border-2 border-[var(--accent)] bg-[var(--accent-soft)]">
           <p className="text-sm font-semibold text-[var(--text-strong)]">
             콘텐츠 킷이 생성되었습니다
           </p>

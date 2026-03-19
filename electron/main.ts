@@ -224,9 +224,8 @@ function ensureDbSchema() {
     const { DatabaseSync } = require('node:sqlite') as typeof import('node:sqlite');
     const db = new DatabaseSync(dbPath);
 
-    // Check if schema already exists
-    const row = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='Run'").get();
-    if (row) { db.close(); return; }
+    // Always run CREATE TABLE IF NOT EXISTS to add any new tables
+    // (safe to re-run — IF NOT EXISTS prevents duplicates)
 
     db.exec(`
       PRAGMA journal_mode=WAL;
@@ -497,6 +496,121 @@ function ensureDbSchema() {
         CONSTRAINT "SeminarFinalReport_sessionId_fkey" FOREIGN KEY ("sessionId") REFERENCES "SeminarSession"("id") ON DELETE CASCADE ON UPDATE CASCADE
       );
       CREATE INDEX IF NOT EXISTS "SeminarFinalReport_updatedAt_idx" ON "SeminarFinalReport"("updatedAt");
+
+      -- SNS Studio tables (v0.3.0+)
+      CREATE TABLE IF NOT EXISTS "SnsPersona" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "platform" TEXT NOT NULL DEFAULT 'INSTAGRAM',
+        "learnMode" TEXT NOT NULL DEFAULT 'FROM_TEMPLATE',
+        "brandConcept" TEXT,
+        "targetAudience" TEXT,
+        "writingStyle" TEXT,
+        "tone" TEXT,
+        "keywords" TEXT NOT NULL DEFAULT '[]',
+        "sampleSentences" TEXT NOT NULL DEFAULT '[]',
+        "instagramHandle" TEXT,
+        "isActive" INTEGER NOT NULL DEFAULT 1,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE TABLE IF NOT EXISTS "SnsPersonaPost" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "personaId" TEXT NOT NULL,
+        "content" TEXT NOT NULL,
+        "postedAt" DATETIME,
+        "source" TEXT,
+        CONSTRAINT "SnsPersonaPost_personaId_fkey" FOREIGN KEY ("personaId") REFERENCES "SnsPersona"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS "SnsContentDraft" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "personaId" TEXT,
+        "type" TEXT NOT NULL DEFAULT 'TEXT',
+        "planningMode" TEXT NOT NULL DEFAULT 'CREATIVE',
+        "title" TEXT,
+        "content" TEXT,
+        "slides" TEXT,
+        "videoUrl" TEXT,
+        "status" TEXT NOT NULL DEFAULT 'DRAFT',
+        "publishedAt" DATETIME,
+        "platform" TEXT NOT NULL DEFAULT 'INSTAGRAM',
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SnsContentDraft_personaId_fkey" FOREIGN KEY ("personaId") REFERENCES "SnsPersona"("id") ON DELETE SET NULL ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "SnsContentDraft_personaId_idx" ON "SnsContentDraft"("personaId");
+      CREATE INDEX IF NOT EXISTS "SnsContentDraft_createdAt_idx" ON "SnsContentDraft"("createdAt");
+      CREATE INDEX IF NOT EXISTS "SnsContentDraft_status_idx" ON "SnsContentDraft"("status");
+
+      CREATE TABLE IF NOT EXISTS "SnsScheduledPost" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "draftId" TEXT NOT NULL UNIQUE,
+        "personaId" TEXT NOT NULL,
+        "platform" TEXT NOT NULL DEFAULT 'INSTAGRAM',
+        "scheduledAt" DATETIME NOT NULL,
+        "publishedAt" DATETIME,
+        "status" TEXT NOT NULL DEFAULT 'PENDING',
+        "errorMsg" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SnsScheduledPost_draftId_fkey" FOREIGN KEY ("draftId") REFERENCES "SnsContentDraft"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT "SnsScheduledPost_personaId_fkey" FOREIGN KEY ("personaId") REFERENCES "SnsPersona"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "SnsScheduledPost_status_scheduledAt_idx" ON "SnsScheduledPost"("status", "scheduledAt");
+      CREATE INDEX IF NOT EXISTS "SnsScheduledPost_personaId_idx" ON "SnsScheduledPost"("personaId");
+
+      CREATE TABLE IF NOT EXISTS "SnsAnalyticsSnapshot" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "personaId" TEXT NOT NULL,
+        "platform" TEXT NOT NULL DEFAULT 'INSTAGRAM',
+        "date" DATETIME NOT NULL,
+        "reach" INTEGER NOT NULL DEFAULT 0,
+        "impressions" INTEGER NOT NULL DEFAULT 0,
+        "engagement" REAL NOT NULL DEFAULT 0,
+        "followers" INTEGER NOT NULL DEFAULT 0,
+        "postCount" INTEGER NOT NULL DEFAULT 0,
+        "topPostId" TEXT,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SnsAnalyticsSnapshot_personaId_fkey" FOREIGN KEY ("personaId") REFERENCES "SnsPersona"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE UNIQUE INDEX IF NOT EXISTS "SnsAnalyticsSnapshot_personaId_date_key" ON "SnsAnalyticsSnapshot"("personaId", "date");
+
+      CREATE TABLE IF NOT EXISTS "SnsCommentTemplate" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "personaId" TEXT NOT NULL,
+        "triggerKeywords" TEXT NOT NULL DEFAULT '[]',
+        "replyType" TEXT NOT NULL DEFAULT 'comment',
+        "template" TEXT NOT NULL,
+        "isActive" INTEGER NOT NULL DEFAULT 1,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SnsCommentTemplate_personaId_fkey" FOREIGN KEY ("personaId") REFERENCES "SnsPersona"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS "SnsPerformanceReport" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "personaId" TEXT NOT NULL,
+        "period" TEXT NOT NULL DEFAULT '30d',
+        "reportJson" TEXT NOT NULL,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT "SnsPerformanceReport_personaId_fkey" FOREIGN KEY ("personaId") REFERENCES "SnsPersona"("id") ON DELETE CASCADE ON UPDATE CASCADE
+      );
+      CREATE INDEX IF NOT EXISTS "SnsPerformanceReport_personaId_createdAt_idx" ON "SnsPerformanceReport"("personaId", "createdAt");
+
+      CREATE TABLE IF NOT EXISTS "SnsContentTemplate" (
+        "id" TEXT NOT NULL PRIMARY KEY,
+        "name" TEXT NOT NULL,
+        "category" TEXT NOT NULL DEFAULT 'GENERAL',
+        "type" TEXT NOT NULL DEFAULT 'TEXT',
+        "promptTemplate" TEXT NOT NULL,
+        "slideCount" INTEGER NOT NULL DEFAULT 5,
+        "hashtags" TEXT NOT NULL DEFAULT '[]',
+        "isActive" INTEGER NOT NULL DEFAULT 1,
+        "usageCount" INTEGER NOT NULL DEFAULT 0,
+        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+      );
+      CREATE INDEX IF NOT EXISTS "SnsContentTemplate_category_idx" ON "SnsContentTemplate"("category");
     `);
 
     db.close();

@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { buildSharedBootstrapPayload } from '@/lib/shared-sync/local-export';
 import { syncAllToSupabase } from '@/lib/supabase/workspace-sync';
+import { authenticateRequest, unauthorizedResponse } from '@/lib/supabase/auth-middleware';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,8 +13,14 @@ const bodySchema = z.object({
   limit: z.number().int().min(1).max(500).optional()
 });
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Verify authentication (anonymous allowed in dev / when Supabase not configured)
+    const auth = await authenticateRequest(req);
+    if (!auth.authenticated) {
+      return unauthorizedResponse();
+    }
+
     const body = bodySchema.parse(await req.json());
 
     const payload = await buildSharedBootstrapPayload(body.limit);

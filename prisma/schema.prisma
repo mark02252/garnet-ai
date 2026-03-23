@@ -529,3 +529,21 @@ model SnsContentTemplate {
 
   @@index([category])
 }
+
+enum JobRunStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model JobRun {
+  id          String       @id @default(cuid())
+  jobId       String
+  status      JobRunStatus
+  message     String?
+  durationMs  Int?
+  error       String?
+  createdAt   DateTime     @default(now())
+
+  @@index([jobId, createdAt])
+}

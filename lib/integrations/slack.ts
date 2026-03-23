@@ -40,6 +40,43 @@ export function buildPerformanceAlert(message: string, type: 'warning' | 'succes
   return { text: `${emoji} [Garnet 성과 알림] ${message}` }
 }
 
+export function buildApprovalNotification(params: {
+  itemType: string
+  itemId: string
+  label: string
+  pendingCount: number
+}) {
+  return {
+    text: `*[승인 요청]* ${params.label}\n항목: ${params.itemType} (${params.itemId.slice(0, 8)})\n현재 대기: ${params.pendingCount}건`,
+    blocks: [
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*승인 요청이 도착했습니다*\n\n*${params.label}*\n항목 유형: \`${params.itemType}\`\n대기 중: ${params.pendingCount}건`
+        }
+      },
+      {
+        type: 'actions',
+        elements: [
+          {
+            type: 'button',
+            text: { type: 'plain_text', text: '운영 센터에서 확인' },
+            url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/operations`
+          }
+        ]
+      }
+    ]
+  }
+}
+
+export function buildRecommendationAlert(title: string, reason: string, priority: string) {
+  const emoji = priority === 'urgent' ? '[긴급]' : priority === 'high' ? '[높음]' : '[참고]'
+  return {
+    text: `${emoji} *${title}*\n${reason}`
+  }
+}
+
 export function buildDailyBriefing(params: {
   todayScheduled: number
   weekScheduled: number

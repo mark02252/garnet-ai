@@ -3,13 +3,22 @@ import { exportToNotionPage } from '@/lib/integrations/notion'
 
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}))
-  if (!body.parentPageId || !body.title) {
-    return NextResponse.json({ error: 'parentPageId와 title이 필요합니다.' }, { status: 400 })
+  const parentPageId = body.parentPageId || process.env.NOTION_PARENT_PAGE_ID
+  if (!parentPageId || !body.title) {
+    return NextResponse.json(
+      { error: 'parentPageId(또는 NOTION_PARENT_PAGE_ID 환경변수)와 title이 필요합니다.' },
+      { status: 400 }
+    )
   }
   const result = await exportToNotionPage({
-    parentPageId: body.parentPageId,
+    parentPageId,
     title: body.title,
     content: body.content || '',
   })
   return NextResponse.json(result)
+}
+
+export async function GET() {
+  const configured = !!(process.env.NOTION_API_KEY && process.env.NOTION_PARENT_PAGE_ID)
+  return NextResponse.json({ configured })
 }

@@ -12,6 +12,15 @@ import {
 import { buildDomainRoutePrompt, buildRoleDomainHint, inferDomainRoute } from '@/lib/domain-router';
 import { getLLMProvider } from '@/lib/env';
 import type { DomainAgentProfile, MeetingExecutionOptions, RunInput, RuntimeConfig } from '@/lib/types';
+import { MeetingRole as MR } from '@prisma/client';
+
+const ROLE_MODEL_HINTS: Partial<Record<MeetingRole, RuntimeConfig['llmProvider']>> = {
+  [MR.PM]: 'openai',
+  [MR.STRATEGIST]: 'openai',
+  [MR.CONTENT_DIRECTOR]: 'claude',
+  [MR.PERFORMANCE_MARKETER]: 'gemini',
+  [MR.OPERATIONS_MANAGER]: 'groq'
+};
 
 type JsonDeliverable = {
   documentType: 'CAMPAIGN_PLAN' | 'CONTENT_PACKAGE' | 'EXPERIMENT_DESIGN';
@@ -980,12 +989,16 @@ export async function runMarketingMeeting(
     }
 
     try {
+      const roleProvider = ROLE_MODEL_HINTS[params.role];
+      const roleRuntime = roleProvider && roleProvider !== runtime?.llmProvider
+        ? { ...runtime, llmProvider: roleProvider } as RuntimeConfig
+        : runtime;
       const output = await runLLM(
         baseSystemPrompt,
         params.prompt,
         params.temperature ?? 0.35,
         params.maxTokens ?? 2400,
-        runtime
+        roleRuntime
       );
       const normalized =
         params.normalizeOutput === false

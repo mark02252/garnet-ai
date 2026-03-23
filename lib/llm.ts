@@ -811,3 +811,234 @@ export async function runLLM(
     throw new Error(formatFinalError(primaryError, fallbackErrors));
   }
 }
+
+// ── Streaming support ──────────────────────────────────────────────────────
+
+async function* streamOpenAI(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxTokens: number,
+  runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const apiKey = pickValue(runtime?.openaiApiKey, process.env.OPENAI_API_KEY);
+  if (!apiKey) throw new ProviderError('openai', 'MISSING_CONFIG', 'OpenAI API 키가 없습니다.');
+  const model = pickValue(runtime?.openaiModel, process.env.OPENAI_MODEL, OPENAI_DEFAULT_MODEL);
+  const client = new OpenAI({ apiKey });
+
+  const stream = await client.responses.stream({
+    model,
+    temperature,
+    max_output_tokens: maxTokens,
+    input: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: userPrompt }
+    ],
+    stream: true
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'response.output_text.delta') {
+      const delta = (event as { delta?: string }).delta;
+      if (delta) yield delta;
+    }
+  }
+}
+
+async function* streamGemini(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxTokens: number,
+  runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
+  const model = pickValue(runtime?.geminiModel, process.env.GEMINI_MODEL, GEMINI_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini API 키가 없습니다.');
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    model
+  )}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
+
+  const response = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: { temperature, maxOutputTokens: maxTokens }
+    })
+  });
+
+  if (!response.ok) {
+    const rawText = await response.text();
+    throw mapGeminiHttpError(response.status, rawText);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new ProviderError('gemini', 'UNKNOWN', 'Gemini 스트림을 열 수 없습니다.');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(jsonStr) as {
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+        };
+        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) yield text;
+      } catch { /* skip malformed json */ }
+    }
+  }
+}
+
+async function* streamClaude(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxTokens: number,
+  runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const apiKey = pickValue(runtime?.anthropicApiKey, process.env.ANTHROPIC_API_KEY);
+  const model = pickValue(runtime?.anthropicModel, process.env.ANTHROPIC_MODEL, CLAUDE_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('claude', 'MISSING_CONFIG', 'ANTHROPIC_API_KEY가 없습니다.');
+
+  const client = new Anthropic({ apiKey });
+
+  const stream = client.messages.stream({
+    model,
+    max_tokens: maxTokens,
+    temperature,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userPrompt }]
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      yield event.delta.text;
+    }
+  }
+}
+
+async function* streamGroq(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxTokens: number,
+  runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const apiKey = pickValue(runtime?.groqApiKey, process.env.GROQ_API_KEY);
+  const model = pickValue(runtime?.groqModel, process.env.GROQ_MODEL, GROQ_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('groq', 'MISSING_CONFIG', 'GROQ_API_KEY가 없습니다.');
+
+  const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      model,
+      temperature,
+      max_tokens: maxTokens,
+      stream: true,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ]
+    })
+  });
+
+  if (!response.ok) {
+    const rawText = await response.text();
+    throw mapGroqHttpError(response.status, rawText);
+  }
+
+  const reader = response.body?.getReader();
+  if (!reader) throw new ProviderError('groq', 'UNKNOWN', 'Groq 스트림을 열 수 없습니다.');
+
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const lines = buffer.split('\n');
+    buffer = lines.pop() || '';
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const jsonStr = line.slice(6).trim();
+      if (!jsonStr || jsonStr === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(jsonStr) as {
+          choices?: Array<{ delta?: { content?: string } }>;
+        };
+        const content = parsed.choices?.[0]?.delta?.content;
+        if (content) yield content;
+      } catch { /* skip */ }
+    }
+  }
+}
+
+function streamByProvider(
+  provider: LlmProvider,
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxTokens: number,
+  runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  if (provider === 'openai') return streamOpenAI(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  if (provider === 'gemini') return streamGemini(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  if (provider === 'claude') return streamClaude(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  if (provider === 'groq') return streamGroq(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  // local / openclaw: fallback to non-streaming
+  throw new ProviderError(provider, 'UNAVAILABLE', `${providerLabel(provider)}은(는) 스트리밍을 지원하지 않습니다.`);
+}
+
+export async function* streamLLM(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature = 0.35,
+  maxTokens = 2400,
+  runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const primary = resolveProvider(runtime);
+
+  try {
+    yield* streamByProvider(primary, systemPrompt, userPrompt, temperature, maxTokens, runtime);
+    return;
+  } catch (error) {
+    const primaryError = normalizeUnknownError(primary, error);
+    if (!shouldTryFallback(primary, primaryError)) {
+      throw new Error(formatPrimaryFailure(primaryError));
+    }
+
+    const fallbackProviders = buildFallbackProviders(primary, runtime, primaryError);
+    for (const provider of fallbackProviders) {
+      try {
+        yield* streamByProvider(provider, systemPrompt, userPrompt, temperature, maxTokens, runtime);
+        return;
+      } catch { /* try next */ }
+    }
+
+    // All streaming failed, try non-streaming as last resort
+    const result = await runLLM(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+    yield result;
+  }
+}

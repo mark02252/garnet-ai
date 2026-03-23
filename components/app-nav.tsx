@@ -99,6 +99,15 @@ function GoalsIcon() {
   );
 }
 
+function AnalyticsIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M3 20L9 14L13 18L21 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M17 10H21V14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function ContentIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
@@ -226,6 +235,7 @@ const navGroups: NavGroup[] = [
     label: '성과',
     items: [
       { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
+      { href: '/analytics', label: 'GA4 Analytics', icon: <AnalyticsIcon /> },
     ],
   },
   {

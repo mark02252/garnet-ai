@@ -5,6 +5,7 @@ import { McpConnectionHub } from '@/components/mcp-connection-hub';
 import { McpInspector } from '@/components/mcp-inspector';
 import { MetaConnectionPanel } from '@/components/meta-connection-panel';
 import { PlaywrightSmokePack } from '@/components/playwright-smoke-pack';
+import { JobSchedulerPanel } from '@/components/job-scheduler-panel';
 import { SupabaseAuthPanel } from '@/components/supabase-auth-panel';
 import {
   AGENT_EXECUTION_KEY,
@@ -1640,6 +1641,18 @@ export default function SettingsPage() {
             <span>현재 설치된 앱에서 바로 업데이트 상태를 조회할 수 있습니다.</span>
           )}
         </div>
+      </section>
+
+      {/* ── Automation ── */}
+      <section className="panel space-y-5">
+        <div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">Automation</p>
+          <h3 className="mt-2 text-[1.25rem] font-semibold tracking-[-0.03em] text-[var(--text-strong)]">자동화 스케줄러</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+            일간 브리핑, 주간 KPI 리뷰, GA4 분석 등 자동화 작업을 관리합니다.
+          </p>
+        </div>
+        <JobSchedulerPanel />
       </section>
 
       <section className="panel space-y-5">

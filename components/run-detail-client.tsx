@@ -160,6 +160,11 @@ export function RunDetailClient({ run }: { run: RunDetail }) {
             <a href={`/api/runs/${run.id}/export`} className="button-primary">
               JSON 내보내기
             </a>
+            {run.deliverable && (
+              <a href={`/api/runs/${run.id}/export-pptx`} className="button-secondary">
+                PPTX 슬라이드
+              </a>
+            )}
           </div>
         </div>
         <div className="dashboard-chip-grid">

@@ -4,6 +4,7 @@ import { CollapsibleSection } from '@/components/collapsible-section';
 import { NotionPublishButton } from '@/components/notion-publish-button';
 import { SlackNotifyButton } from '@/components/slack-notify-button';
 import { PageSectionTabs } from '@/components/page-section-tabs';
+import { RecommendationsPanel } from '@/components/recommendations-panel';
 import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
 import { listSeminarSessions, type SeminarSession } from '@/lib/seminar-storage';
@@ -423,7 +424,8 @@ export default async function OperationsPage() {
                 { label: '상태 요약', href: '#overview' },
                 { label: '빠른 질문', href: '#questions' },
                 { label: '캠페인', href: '#campaigns' },
-                { label: '타임라인', href: '#timeline' }
+                { label: '타임라인', href: '#timeline' },
+                { label: '추천 액션', href: '#recommendations' }
               ]}
             />
             <div className="mt-5 flex flex-wrap gap-2">
@@ -752,6 +754,13 @@ export default async function OperationsPage() {
           )}
         </aside>
       </div>
+
+      {/* ── Recommendations ── */}
+      <section id="recommendations" className="mt-6">
+        <h2 className="text-base font-bold text-[var(--text-strong)] mb-3">추천 액션</h2>
+        <p className="text-xs text-[var(--text-muted)] mb-4">KPI 달성률, 승인 대기, 캠페인 상태를 종합 분석한 다음 행동 추천입니다.</p>
+        <RecommendationsPanel />
+      </section>
     </div>
   );
 }

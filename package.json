@@ -32,6 +32,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@google-analytics/data": "^5.2.1",
     "@google/genai": "^1.45.0",
     "@modelcontextprotocol/sdk": "^1.27.1",
     "@prisma/client": "^6.4.1",

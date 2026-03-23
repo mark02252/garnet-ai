@@ -27,7 +27,7 @@ const runtimeSchema = z
     localApiKey: z.string().optional(),
     openclawAgent: z.string().optional(),
     searchApiKey: z.string().optional(),
-    searchProvider: z.enum(['serper']).optional(),
+    searchProvider: z.enum(['serper', 'brave', 'naver']).optional(),
     searchIncludeDomains: z.string().optional(),
     searchExcludeDomains: z.string().optional(),
     seminarDebateCycles: z.number().min(1).max(3).optional(),

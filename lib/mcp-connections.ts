@@ -294,7 +294,7 @@ const MCP_PRESET_CONNECTIONS: McpConnectionDraft[] = [
     id: 'brave-search',
     name: 'Brave Search MCP',
     description: '캠페인 스튜디오에서 실시간 시장 조사와 경쟁사 분석을 제공합니다.',
-    phase: 3,
+    phase: 1,
     scope: 'research',
     transport: 'stdio',
     setupMode: 'command',
@@ -309,7 +309,7 @@ const MCP_PRESET_CONNECTIONS: McpConnectionDraft[] = [
     basicPassword: '',
     documentationUrl: 'https://github.com/modelcontextprotocol/servers/tree/main/src/brave-search',
     setupHint: 'brave.com/search/api에서 API Key를 발급해 bearer token에 입력하세요.',
-    note: 'Wave 3 — 캠페인 실시간 리서치',
+    note: 'Wave 1 — 캠페인 실시간 리서치 (검색 fallback 연동)',
     recommendedScreens: ['캠페인 스튜디오']
   },
   {

@@ -1,6 +1,6 @@
 export type RuntimeDraft = {
   runProfile: 'manual' | 'free';
-  llmProvider: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw';
+  llmProvider: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude';
   openaiApiKey: string;
   openaiModel: string;
   geminiApiKey: string;
@@ -11,6 +11,8 @@ export type RuntimeDraft = {
   localModel: string;
   localApiKey: string;
   openclawAgent: string;
+  anthropicApiKey: string;
+  anthropicModel: string;
   searchApiKey: string;
   searchIncludeDomains: string;
   searchExcludeDomains: string;
@@ -33,6 +35,8 @@ export const defaultRuntimeDraft: RuntimeDraft = {
   localModel: '',
   localApiKey: '',
   openclawAgent: '',
+  anthropicApiKey: '',
+  anthropicModel: '',
   searchApiKey: '',
   searchIncludeDomains: '',
   searchExcludeDomains: ''
@@ -52,7 +56,7 @@ function pickRunProfile(value: unknown, fallback: RuntimeDraft['runProfile']) {
 }
 
 function pickProvider(value: unknown, fallback: RuntimeDraft['llmProvider']) {
-  return value === 'openai' || value === 'gemini' || value === 'groq' || value === 'local' || value === 'openclaw'
+  return value === 'openai' || value === 'gemini' || value === 'groq' || value === 'local' || value === 'openclaw' || value === 'claude'
     ? value
     : fallback;
 }
@@ -73,6 +77,8 @@ export function mergeRuntimeDraft(defaults: RuntimeDraft, parsed: unknown): Runt
     localModel: pickString(candidate.localModel, defaults.localModel),
     localApiKey: pickString(candidate.localApiKey, defaults.localApiKey),
     openclawAgent: pickString(candidate.openclawAgent, defaults.openclawAgent),
+    anthropicApiKey: pickString(candidate.anthropicApiKey, defaults.anthropicApiKey),
+    anthropicModel: pickString(candidate.anthropicModel, defaults.anthropicModel),
     searchApiKey: pickString(candidate.searchApiKey, defaults.searchApiKey),
     searchIncludeDomains: pickString(candidate.searchIncludeDomains, defaults.searchIncludeDomains),
     searchExcludeDomains: pickString(candidate.searchExcludeDomains, defaults.searchExcludeDomains)

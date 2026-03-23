@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import Anthropic from '@anthropic-ai/sdk';
 import { resolveOpenClawBin, withOpenClawEnv } from '@/lib/openclaw-cli';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
@@ -6,7 +7,7 @@ import type { RuntimeConfig } from '@/lib/types';
 
 const execFileAsync = promisify(execFile);
 
-type LlmProvider = 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw';
+type LlmProvider = 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude';
 type RunProfile = 'manual' | 'free';
 type ErrorCode =
   | 'MISSING_CONFIG'
@@ -38,6 +39,7 @@ const OPENAI_DEFAULT_MODEL = 'gpt-4.1-mini';
 const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
 const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 const OPENCLAW_DEFAULT_AGENT = 'main';
+const CLAUDE_DEFAULT_MODEL = 'claude-sonnet-4-5-20250514';
 const MAX_RAW_ERROR_LEN = 600;
 
 function hasValue(value?: string | null) {
@@ -53,7 +55,7 @@ function pickValue(...values: Array<string | undefined>) {
 
 function normalizeProvider(raw?: string): LlmProvider {
   const value = (raw || '').trim().toLowerCase();
-  if (value === 'gemini' || value === 'groq' || value === 'local' || value === 'openclaw') return value;
+  if (value === 'gemini' || value === 'groq' || value === 'local' || value === 'openclaw' || value === 'claude') return value;
   return 'openai';
 }
 
@@ -71,6 +73,7 @@ function providerLabel(provider: LlmProvider) {
   if (provider === 'gemini') return 'Gemini';
   if (provider === 'groq') return 'Groq';
   if (provider === 'local') return '로컬 LLM';
+  if (provider === 'claude') return 'Claude';
   return 'OpenClaw';
 }
 
@@ -297,15 +300,19 @@ function hasConfig(provider: LlmProvider, runtime?: RuntimeConfig) {
       hasValue(pickValue(runtime?.localModel, process.env.LOCAL_LLM_MODEL))
     );
   }
+  if (provider === 'claude') {
+    return hasValue(pickValue(runtime?.anthropicApiKey, process.env.ANTHROPIC_API_KEY));
+  }
   return true;
 }
 
 function getPrimaryFallbackOrder(primary: LlmProvider) {
-  if (primary === 'openclaw') return ['gemini', 'groq', 'openai', 'local'] as LlmProvider[];
-  if (primary === 'gemini') return ['groq', 'openclaw', 'openai', 'local'] as LlmProvider[];
-  if (primary === 'groq') return ['gemini', 'openai', 'openclaw', 'local'] as LlmProvider[];
-  if (primary === 'openai') return ['groq', 'gemini', 'openclaw', 'local'] as LlmProvider[];
-  return ['openclaw', 'groq', 'gemini', 'openai'] as LlmProvider[];
+  if (primary === 'openclaw') return ['gemini', 'groq', 'claude', 'openai', 'local'] as LlmProvider[];
+  if (primary === 'gemini') return ['groq', 'claude', 'openclaw', 'openai', 'local'] as LlmProvider[];
+  if (primary === 'groq') return ['gemini', 'claude', 'openai', 'openclaw', 'local'] as LlmProvider[];
+  if (primary === 'openai') return ['claude', 'groq', 'gemini', 'openclaw', 'local'] as LlmProvider[];
+  if (primary === 'claude') return ['openai', 'gemini', 'groq', 'openclaw', 'local'] as LlmProvider[];
+  return ['openclaw', 'groq', 'gemini', 'claude', 'openai'] as LlmProvider[];
 }
 
 function parseFallbackOrderFromEnv(primary: LlmProvider) {
@@ -494,6 +501,70 @@ async function runGroq(
   return content;
 }
 
+function mapClaudeError(error: unknown): ProviderError {
+  const e = error as { status?: number; message?: string; error?: { type?: string } };
+  const status = Number(e?.status || 0);
+  const message = String(e?.message || '');
+  const errorType = String(e?.error?.type || '');
+
+  if (status === 401 || status === 403) {
+    return new ProviderError('claude', 'AUTH', 'Claude API 키 인증에 실패했습니다.', message);
+  }
+  if (status === 429 && errorType === 'rate_limit_error') {
+    return new ProviderError('claude', 'RATE_LIMIT', 'Claude 요청 한도가 일시적으로 초과되었습니다.', message);
+  }
+  if (status === 429) {
+    return new ProviderError('claude', 'QUOTA', 'Claude 할당량이 초과되었습니다.', message);
+  }
+  if (status >= 500) {
+    return new ProviderError('claude', 'UNAVAILABLE', 'Claude 서버 응답이 불안정합니다.', message);
+  }
+  if (message.toLowerCase().includes('context')) {
+    return new ProviderError('claude', 'CONTEXT', 'Claude 모델 컨텍스트 한도를 초과했습니다.', message);
+  }
+  return new ProviderError('claude', 'UNKNOWN', `Claude 오류: ${compact(message || '실행 실패')}`, message);
+}
+
+async function runClaude(
+  systemPrompt: string,
+  userPrompt: string,
+  temperature: number,
+  maxTokens: number,
+  runtime?: RuntimeConfig
+) {
+  const apiKey = pickValue(runtime?.anthropicApiKey, process.env.ANTHROPIC_API_KEY);
+  const model = pickValue(runtime?.anthropicModel, process.env.ANTHROPIC_MODEL, CLAUDE_DEFAULT_MODEL);
+  if (!apiKey) {
+    throw new ProviderError('claude', 'MISSING_CONFIG', 'ANTHROPIC_API_KEY가 없습니다.');
+  }
+
+  const client = new Anthropic({ apiKey });
+
+  try {
+    const response = await client.messages.create({
+      model,
+      max_tokens: maxTokens,
+      temperature,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }]
+    });
+
+    const text = response.content
+      .filter((block): block is Anthropic.TextBlock => block.type === 'text')
+      .map((block) => block.text)
+      .join('\n')
+      .trim();
+
+    if (!text) {
+      throw new ProviderError('claude', 'UNKNOWN', 'Claude 응답이 비어 있습니다.');
+    }
+    return text;
+  } catch (error) {
+    if (error instanceof ProviderError) throw error;
+    throw mapClaudeError(error);
+  }
+}
+
 function localCompletionsUrl(baseUrl: string) {
   const clean = baseUrl.trim().replace(/\/$/, '');
   if (clean.endsWith('/v1')) return `${clean}/chat/completions`;
@@ -635,6 +706,7 @@ async function runByProvider(
   if (provider === 'openai') return runOpenAI(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'gemini') return runGemini(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'groq') return runGroq(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  if (provider === 'claude') return runClaude(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'local') return runLocal(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   return runOpenClaw(systemPrompt, userPrompt, temperature, maxTokens, runtime);
 }

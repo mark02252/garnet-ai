@@ -353,7 +353,7 @@ export default function HomePage() {
       localApiKey: runtime.localApiKey.trim(),
       openclawAgent: runtime.openclawAgent.trim(),
       searchApiKey: runtime.searchApiKey.trim(),
-      searchProvider: 'serper' as const,
+      searchProvider: ((runtime as Record<string, string>).searchProvider?.trim() || 'serper') as 'serper' | 'brave' | 'naver',
       searchIncludeDomains: runtime.searchIncludeDomains.trim(),
       searchExcludeDomains: runtime.searchExcludeDomains.trim()
     };

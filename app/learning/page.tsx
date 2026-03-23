@@ -37,9 +37,9 @@ function formatDate(value: string) {
 }
 
 function statusTone(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {
-  if (status === 'CONFIRMED') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'ARCHIVED') return 'bg-[var(--surface-sub)] text-[var(--text-muted)]';
-  return 'bg-amber-100 text-amber-700';
+  if (status === 'CONFIRMED') return 'bg-[var(--status-active-bg)] text-[var(--status-active)]';
+  if (status === 'ARCHIVED') return 'bg-[var(--status-draft-bg)] text-[var(--status-draft)]';
+  return 'bg-[var(--status-paused-bg)] text-[var(--status-paused)]';
 }
 
 function statusLabel(status: 'DRAFT' | 'CONFIRMED' | 'ARCHIVED') {

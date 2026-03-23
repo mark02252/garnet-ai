@@ -513,11 +513,11 @@ export async function runWebSearchWithRuntime(
   const excludeDomains = parseDomainRules(runtime?.searchExcludeDomains ?? process.env.SEARCH_EXCLUDE_DOMAINS);
   const apiKey = runtime?.searchApiKey || process.env.SEARCH_API_KEY || '';
 
-  if (provider !== 'serper') {
-    throw new Error(`Unsupported provider: ${provider}. Set SEARCH_PROVIDER=serper`);
-  }
+  const braveApiKey = process.env.BRAVE_SEARCH_API_KEY || '';
+  const naverClientId = process.env.NAVER_CLIENT_ID || '';
+  const naverClientSecret = process.env.NAVER_CLIENT_SECRET || '';
 
-  async function fetchRows(query: string) {
+  async function fetchSerperRows(query: string) {
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: {
@@ -526,18 +526,96 @@ export async function runWebSearchWithRuntime(
       },
       body: JSON.stringify({ q: query, num: 16, gl: 'kr', hl: 'ko' })
     });
-
     if (!response.ok) {
-      throw new Error(`Search API failed (${response.status})`);
+      throw new Error(`Serper Search failed (${response.status})`);
     }
     const json = (await response.json()) as SerperResponse;
     return json.organic || [];
   }
 
+  async function fetchBraveRows(query: string) {
+    const url = `https://api.search.brave.com/res/v1/web/search?q=${encodeURIComponent(query)}&count=16&search_lang=ko&country=kr`;
+    const response = await fetch(url, {
+      headers: {
+        'Accept': 'application/json',
+        'Accept-Encoding': 'gzip',
+        'X-Subscription-Token': braveApiKey
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`Brave Search failed (${response.status})`);
+    }
+    const json = (await response.json()) as {
+      web?: { results?: Array<{ title?: string; description?: string; url?: string }> };
+    };
+    return (json.web?.results || []).map((r) => ({
+      title: r.title,
+      snippet: r.description,
+      link: r.url
+    }));
+  }
+
+  async function fetchNaverRows(query: string) {
+    const blogUrl = `https://openapi.naver.com/v1/search/blog.json?query=${encodeURIComponent(query)}&display=8&sort=sim`;
+    const newsUrl = `https://openapi.naver.com/v1/search/news.json?query=${encodeURIComponent(query)}&display=8&sort=sim`;
+    const headers = {
+      'X-Naver-Client-Id': naverClientId,
+      'X-Naver-Client-Secret': naverClientSecret
+    };
+
+    const [blogRes, newsRes] = await Promise.allSettled([
+      fetch(blogUrl, { headers }),
+      fetch(newsUrl, { headers })
+    ]);
+
+    const naverRows: Array<{ title?: string; snippet?: string; link?: string }> = [];
+    for (const res of [blogRes, newsRes]) {
+      if (res.status === 'fulfilled' && res.value.ok) {
+        const json = (await res.value.json()) as {
+          items?: Array<{ title?: string; description?: string; link?: string }>;
+        };
+        for (const item of json.items || []) {
+          naverRows.push({
+            title: (item.title || '').replace(/<[^>]*>/g, ''),
+            snippet: (item.description || '').replace(/<[^>]*>/g, ''),
+            link: item.link
+          });
+        }
+      }
+    }
+    return naverRows;
+  }
+
+  async function fetchRowsWithFallback(query: string) {
+    // 1차: primary provider
+    if (provider === 'serper' && apiKey) {
+      try { return await fetchSerperRows(query); } catch { /* fallthrough */ }
+    }
+    if (provider === 'brave' && braveApiKey) {
+      try { return await fetchBraveRows(query); } catch { /* fallthrough */ }
+    }
+    if (provider === 'naver' && naverClientId) {
+      try { return await fetchNaverRows(query); } catch { /* fallthrough */ }
+    }
+
+    // 2차: fallback (serper → brave → naver)
+    if (provider !== 'serper' && apiKey) {
+      try { return await fetchSerperRows(query); } catch { /* fallthrough */ }
+    }
+    if (provider !== 'brave' && braveApiKey) {
+      try { return await fetchBraveRows(query); } catch { /* fallthrough */ }
+    }
+    if (provider !== 'naver' && naverClientId) {
+      try { return await fetchNaverRows(query); } catch { /* fallthrough */ }
+    }
+
+    return [];
+  }
+
   const queries = buildSearchQueries(effectiveTopic, effectiveBrand, effectiveRegion, goal);
   let rows: Array<{ title?: string; snippet?: string; link?: string }> = [];
   for (const q of queries) {
-    const batch = await fetchRows(q);
+    const batch = await fetchRowsWithFallback(q);
     rows = rows.concat(batch);
     if (rows.length >= 8) break;
   }
@@ -560,7 +638,7 @@ export async function runWebSearchWithRuntime(
       title: item.title || 'Untitled',
       snippet: item.snippet || '',
       url: item.link || '',
-      provider: 'serper',
+      provider: provider || 'serper',
       fetchedAt: now
     }))
     .filter((item) => item.url && item.title);

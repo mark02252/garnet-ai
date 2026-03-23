@@ -60,7 +60,8 @@ const PROVIDER_LABELS: Record<RuntimeDraft['llmProvider'], string> = {
   gemini: 'Gemini',
   groq: 'Groq',
   local: 'Local',
-  openclaw: 'OpenClaw'
+  openclaw: 'OpenClaw',
+  claude: 'Claude'
 };
 
 function ensurePool(value?: DomainAgentPoolConfig | null) {

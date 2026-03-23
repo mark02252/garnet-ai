@@ -90,7 +90,7 @@ export type RunInput = {
 
 export type RuntimeConfig = {
   runProfile?: 'manual' | 'free';
-  llmProvider?: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw';
+  llmProvider?: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude';
   openaiApiKey?: string;
   openaiModel?: string;
   geminiApiKey?: string;
@@ -101,8 +101,10 @@ export type RuntimeConfig = {
   localModel?: string;
   localApiKey?: string;
   openclawAgent?: string;
+  anthropicApiKey?: string;
+  anthropicModel?: string;
   searchApiKey?: string;
-  searchProvider?: 'serper';
+  searchProvider?: 'serper' | 'brave' | 'naver';
   searchIncludeDomains?: string;
   searchExcludeDomains?: string;
   seminarDebateCycles?: number;

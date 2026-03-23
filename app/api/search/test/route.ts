@@ -17,7 +17,7 @@ const bodySchema = z.object({
   runtime: z
     .object({
       searchApiKey: z.string().optional(),
-      searchProvider: z.enum(['serper']).optional(),
+      searchProvider: z.enum(['serper', 'brave', 'naver']).optional(),
       searchIncludeDomains: z.string().optional(),
       searchExcludeDomains: z.string().optional()
     })

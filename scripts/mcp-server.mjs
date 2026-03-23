@@ -583,6 +583,44 @@ server.registerTool(
   }
 );
 
+// ── GA4 Analytics ─────────────────────────────────────────────────────────
+
+server.registerTool(
+  'get_ga4_traffic_summary',
+  {
+    title: 'Get GA4 Traffic Summary',
+    description: 'Fetch daily traffic, channel breakdown, and top pages from Google Analytics 4 for the given date range.',
+    inputSchema: {
+      startDate: z.string().default('30daysAgo'),
+      endDate: z.string().default('today')
+    }
+  },
+  async ({ startDate = '30daysAgo', endDate = 'today' }) => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const url = `${baseUrl}/api/ga4/report?startDate=${encodeURIComponent(startDate)}&endDate=${encodeURIComponent(endDate)}&type=all`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        return {
+          content: [{ type: 'text', text: `GA4 report failed: ${err.error || res.status}` }],
+          isError: true
+        };
+      }
+      const data = await res.json();
+      return {
+        content: textContent(data),
+        structuredContent: data
+      };
+    } catch (e) {
+      return {
+        content: [{ type: 'text', text: `GA4 fetch error: ${e.message || e}` }],
+        isError: true
+      };
+    }
+  }
+);
+
 // ── KPI Goals ──────────────────────────────────────────────────────────────
 
 server.registerTool(

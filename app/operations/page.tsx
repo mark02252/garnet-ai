@@ -51,11 +51,11 @@ function percentage(part: number, total: number) {
 }
 
 function seminarTone(status: SeminarSession['status']) {
-  if (status === 'RUNNING') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'COMPLETED') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
-  if (status === 'PLANNED') return 'bg-amber-100 text-amber-700';
-  if (status === 'FAILED') return 'bg-rose-100 text-rose-700';
-  return 'bg-[#f5f6f7] text-[#6b7684]';
+  if (status === 'RUNNING') return 'bg-[var(--status-active-bg)] text-[var(--status-active)]';
+  if (status === 'COMPLETED') return 'bg-[var(--status-completed-bg)] text-[var(--status-completed)]';
+  if (status === 'PLANNED') return 'bg-[var(--status-paused-bg)] text-[var(--status-paused)]';
+  if (status === 'FAILED') return 'bg-[var(--status-failed-bg)] text-[var(--status-failed)]';
+  return 'bg-[var(--status-draft-bg)] text-[var(--status-draft)]';
 }
 
 function seminarLabel(status: SeminarSession['status']) {

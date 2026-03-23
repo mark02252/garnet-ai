@@ -11,6 +11,8 @@ export function getMissingEnvKeys() {
     if (!process.env.LOCAL_LLM_MODEL) missing.push('LOCAL_LLM_MODEL');
   } else if (provider === 'groq') {
     if (!process.env.GROQ_API_KEY) missing.push('GROQ_API_KEY');
+  } else if (provider === 'claude') {
+    if (!process.env.ANTHROPIC_API_KEY) missing.push('ANTHROPIC_API_KEY');
   } else if (provider === 'openclaw') {
     // OpenClaw는 로컬 로그인 기반이므로 별도 API 키가 필수는 아님.
   } else if (provider === 'gemini') {

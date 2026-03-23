@@ -6,9 +6,9 @@ import { getCampaignRoomDetail } from '@/lib/campaign-rooms';
 export const dynamic = 'force-dynamic';
 
 function roomStatusTone(status: 'ACTIVE' | 'NEEDS_REVIEW' | 'READY') {
-  if (status === 'ACTIVE') return 'bg-emerald-100 text-emerald-700';
-  if (status === 'NEEDS_REVIEW') return 'bg-amber-100 text-amber-700';
-  return 'bg-[var(--accent-soft)] text-[var(--accent)]';
+  if (status === 'ACTIVE') return 'bg-[var(--status-active-bg)] text-[var(--status-active)]';
+  if (status === 'NEEDS_REVIEW') return 'bg-[var(--status-paused-bg)] text-[var(--status-paused)]';
+  return 'bg-[var(--status-completed-bg)] text-[var(--status-completed)]';
 }
 
 function timelineTone(type: 'run' | 'report' | 'seminar' | 'playbook' | 'approval') {

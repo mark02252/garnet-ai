@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import {
   canInspectMcpConnection,
   createDefaultMcpHubDraft,
@@ -43,6 +43,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
   const [selectedId, setSelectedId] = useState('aimd-local');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [showToken, setShowToken] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [saveError, setSaveError] = useState('');
   const [checkingId, setCheckingId] = useState('');
@@ -350,18 +351,26 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                 </div>
                 {selectedConnection.authMode === 'bearer' && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Bearer Token</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={selectedConnection.bearerToken}
-                      onChange={(e) =>
-                        updateConnection(selectedConnection.id, (current) => ({
-                          ...current,
-                          bearerToken: e.target.value
-                        }))
-                      }
-                    />
+                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">
+                      Bearer Token {selectedConnection.bearerToken && <span className="text-[var(--text-muted)]">({selectedConnection.bearerToken.length}자)</span>}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        className="input flex-1"
+                        type={showToken ? 'text' : 'password'}
+                        autoComplete="off"
+                        value={selectedConnection.bearerToken}
+                        onChange={(e) =>
+                          updateConnection(selectedConnection.id, (current) => ({
+                            ...current,
+                            bearerToken: e.target.value
+                          }))
+                        }
+                      />
+                      <button type="button" className="button-secondary shrink-0 text-xs" onClick={() => setShowToken(v => !v)}>
+                        {showToken ? '숨기기' : '보기'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -387,18 +396,26 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
 
                 {selectedConnection.setupMode !== 'oauth' && selectedConnection.authMode === 'bearer' && (
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">Bearer Token</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={selectedConnection.bearerToken}
-                      onChange={(e) =>
-                        updateConnection(selectedConnection.id, (current) => ({
-                          ...current,
-                          bearerToken: e.target.value
-                        }))
-                      }
-                    />
+                    <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">
+                      Bearer Token {selectedConnection.bearerToken && <span className="text-[var(--text-muted)]">({selectedConnection.bearerToken.length}자)</span>}
+                    </label>
+                    <div className="flex gap-2">
+                      <input
+                        className="input flex-1"
+                        type={showToken ? 'text' : 'password'}
+                        autoComplete="off"
+                        value={selectedConnection.bearerToken}
+                        onChange={(e) =>
+                          updateConnection(selectedConnection.id, (current) => ({
+                            ...current,
+                            bearerToken: e.target.value
+                          }))
+                        }
+                      />
+                      <button type="button" className="button-secondary shrink-0 text-xs" onClick={() => setShowToken(v => !v)}>
+                        {showToken ? '숨기기' : '보기'}
+                      </button>
+                    </div>
                   </div>
                 )}
 

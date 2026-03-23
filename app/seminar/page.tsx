@@ -155,7 +155,7 @@ function buildRuntimePayload(runtime: SeminarRuntimeDraft) {
     localApiKey: runtime.localApiKey.trim(),
     openclawAgent: runtime.openclawAgent.trim(),
     searchApiKey: runtime.searchApiKey.trim(),
-    searchProvider: 'serper' as const,
+    searchProvider: (((runtime as unknown) as Record<string, string>).searchProvider?.trim() || 'serper') as 'serper' | 'brave' | 'naver',
     searchIncludeDomains: runtime.searchIncludeDomains.trim(),
     searchExcludeDomains: runtime.searchExcludeDomains.trim(),
     seminarDebateCycles: Math.max(1, Math.min(3, Math.floor(Number(runtime.seminarDebateCycles) || 1)))

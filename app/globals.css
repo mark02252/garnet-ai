@@ -30,6 +30,18 @@
   --radius-lg: 12px;
   --radius-xl: 16px;
   --radius-2xl: 20px;
+
+  /* ── Status badge tokens ── */
+  --status-active: #22c55e;
+  --status-active-bg: #f0fdf4;
+  --status-paused: #f59e0b;
+  --status-paused-bg: #fffbeb;
+  --status-completed: #3b82f6;
+  --status-completed-bg: #eff6ff;
+  --status-draft: #6b7280;
+  --status-draft-bg: #f9fafb;
+  --status-failed: #ef4444;
+  --status-failed-bg: #fef2f2;
 }
 
 /* ── Base ── */

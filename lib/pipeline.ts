@@ -915,6 +915,22 @@ export async function runMarketingMeeting(
   let pmDecision = '';
   let quotaExceeded = false;
   const turnSummary: Array<{ role: MeetingRole; nickname: string; content: string }> = [];
+
+  function buildSharedContext(maxChars = 2000): string {
+    if (turnSummary.length === 0) return '';
+    const lines = turnSummary.map((t) => {
+      const truncated = t.content.length > 300
+        ? t.content.slice(0, 300) + '…'
+        : t.content;
+      return `[${t.nickname}] ${truncated}`;
+    });
+    let result = '\n\n--- 이전 역할 발언 요약 ---\n' + lines.join('\n');
+    if (result.length > maxChars) {
+      result = result.slice(0, maxChars) + '\n(이하 생략)';
+    }
+    return result;
+  }
+
   const executionMode = options?.mode === 'standard' ? 'standard' : 'deliberation';
   const requestedCycles = Number(options?.reviewCycles);
   const reviewCycles =
@@ -993,9 +1009,10 @@ export async function runMarketingMeeting(
       const roleRuntime = roleProvider && roleProvider !== runtime?.llmProvider
         ? { ...runtime, llmProvider: roleProvider } as RuntimeConfig
         : runtime;
+      const enrichedPrompt = params.prompt + buildSharedContext();
       const output = await runLLM(
         baseSystemPrompt,
-        params.prompt,
+        enrichedPrompt,
         params.temperature ?? 0.35,
         params.maxTokens ?? 2400,
         roleRuntime

@@ -1071,6 +1071,127 @@ server.registerTool(
   }
 );
 
+// ── Seminar Sessions ──────────────────────────────────────────────────────
+
+server.registerTool(
+  'get_seminar_session',
+  {
+    title: 'Get Seminar Session Detail',
+    description: 'Get details of a specific seminar session including rounds and final report.',
+    inputSchema: {
+      sessionId: z.string().min(1)
+    }
+  },
+  async ({ sessionId }) => {
+    const session = await prisma.seminarSession.findUnique({
+      where: { id: sessionId },
+      include: {
+        rounds: { orderBy: { roundNumber: 'asc' } },
+        finalReport: true
+      }
+    });
+    if (!session) {
+      return { content: [{ type: 'text', text: 'Session not found.' }], isError: true };
+    }
+    const structuredContent = {
+      id: session.id,
+      title: session.title,
+      topic: session.topic,
+      status: session.status,
+      totalRounds: session.totalRounds,
+      rounds: session.rounds.map((r) => ({
+        roundNumber: r.roundNumber,
+        status: r.status,
+        summary: (r.content || '').slice(0, 200)
+      })),
+      hasFinalReport: !!session.finalReport
+    };
+    return { content: textContent(structuredContent), structuredContent };
+  }
+);
+
+// ── Campaign Rooms ────────────────────────────────────────────────────────
+
+server.registerTool(
+  'list_campaign_rooms',
+  {
+    title: 'List Campaign Rooms',
+    description: 'List active campaign rooms with brand, region, and goal.',
+    inputSchema: {
+      status: z.enum(['ACTIVE', 'PAUSED', 'COMPLETED']).optional(),
+      limit: z.number().int().min(1).max(50).default(20)
+    }
+  },
+  async ({ status, limit = 20 }) => {
+    const rooms = await prisma.manualCampaignRoom.findMany({
+      where: status ? { status } : undefined,
+      orderBy: { updatedAt: 'desc' },
+      take: limit
+    });
+    const structuredContent = {
+      count: rooms.length,
+      rooms: rooms.map((r) => ({
+        id: r.id,
+        title: r.title,
+        brand: r.brand,
+        region: r.region,
+        goal: r.goal,
+        status: r.status,
+        updatedAt: r.updatedAt
+      }))
+    };
+    return { content: textContent(structuredContent), structuredContent };
+  }
+);
+
+// ── Recommendations ───────────────────────────────────────────────────────
+
+server.registerTool(
+  'get_action_recommendations',
+  {
+    title: 'Get Action Recommendations',
+    description: 'Compute and return prioritized action recommendations based on KPI, approvals, campaigns, and seminars.',
+    inputSchema: {}
+  },
+  async () => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    try {
+      const res = await fetch(`${baseUrl}/api/recommendations`);
+      if (!res.ok) {
+        return { content: [{ type: 'text', text: 'Recommendations API failed.' }], isError: true };
+      }
+      const data = await res.json();
+      return { content: textContent(data), structuredContent: data };
+    } catch (e) {
+      return { content: [{ type: 'text', text: `Error: ${e.message || e}` }], isError: true };
+    }
+  }
+);
+
+// ── Scheduled Jobs ────────────────────────────────────────────────────────
+
+server.registerTool(
+  'list_scheduled_jobs',
+  {
+    title: 'List Scheduled Jobs',
+    description: 'List all registered automated jobs with their status and schedule.',
+    inputSchema: {}
+  },
+  async () => {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    try {
+      const res = await fetch(`${baseUrl}/api/jobs`);
+      if (!res.ok) {
+        return { content: [{ type: 'text', text: 'Jobs API failed.' }], isError: true };
+      }
+      const data = await res.json();
+      return { content: textContent(data), structuredContent: data };
+    } catch (e) {
+      return { content: [{ type: 'text', text: `Error: ${e.message || e}` }], isError: true };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

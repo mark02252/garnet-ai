@@ -629,3 +629,38 @@ model WatchKeyword {
 
   @@index([isActive])
 }
+
+enum VideoFormat {
+  REELS_9_16
+  SHORTS_9_16
+  TIKTOK_9_16
+  SQUARE_1_1
+  LANDSCAPE_16_9
+}
+
+enum VideoStatus {
+  PENDING
+  GENERATING
+  EDITING
+  COMPLETED
+  FAILED
+}
+
+model VideoGeneration {
+  id          String      @id @default(cuid())
+  prompt      String
+  format      VideoFormat  @default(REELS_9_16)
+  platform    String      @default("instagram")
+  status      VideoStatus @default(PENDING)
+  script      String?
+  videoUrl    String?
+  thumbnailUrl String?
+  durationSec Int?
+  error       String?
+  metadata    String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+
+  @@index([status, createdAt])
+  @@index([platform])
+}

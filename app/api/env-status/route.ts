@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { getLLMProvider, getMissingEnvKeys } from '@/lib/env';
 import { getSupabasePublicEnv } from '@/lib/supabase/env';
+import { ensureScheduler } from '@/lib/scheduler/ensure-init';
 
 export async function GET() {
+  await ensureScheduler();
   const provider = getLLMProvider();
   const missing = getMissingEnvKeys();
   const supabase = getSupabasePublicEnv();

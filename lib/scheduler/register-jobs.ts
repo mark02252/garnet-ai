@@ -1,11 +1,5 @@
 import { registerJob } from './engine';
 import type { ScheduledJobConfig } from './types';
-import {
-  runDailyBriefingJob,
-  runWeeklyKpiReviewJob,
-  runGA4AnalysisJob,
-  runUrgentRecommendationsJob
-} from '@/lib/job-scheduler';
 import { runCollectionJob } from '@/lib/collectors/orchestrator';
 import { analyzeRecentIntel } from '@/lib/intel/analyzer';
 import { detectAndAlertUrgent } from '@/lib/intel/urgent-detector';
@@ -13,6 +7,16 @@ import { buildDailyDigest } from '@/lib/intel/digest-builder';
 import { runMaintenanceJob } from './maintenance';
 import { resetAllQuotas } from '@/lib/collectors/quota-tracker';
 import { initCollectors } from '@/lib/collectors/init';
+
+// job-scheduler.ts는 ga4-client.ts를 top-level import하는데,
+// GA4 환경변수 미설정 시 import 자체가 실패함.
+// 따라서 dynamic import로 lazy 로딩한다.
+async function lazyJobHandler(fnName: string, runtime?: unknown) {
+  const mod = await import('@/lib/job-scheduler');
+  const fn = (mod as Record<string, (r?: unknown) => Promise<{ ok: boolean; message: string }>>)[fnName];
+  if (!fn) return { ok: false, message: `Handler not found: ${fnName}` };
+  return fn(runtime);
+}
 
 const BUILTIN_JOBS: ScheduledJobConfig[] = [
   {
@@ -22,7 +26,7 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     cron: '15 7 * * *',
     category: 'report',
     enabled: true,
-    handler: runDailyBriefingJob
+    handler: (runtime) => lazyJobHandler('runDailyBriefingJob', runtime)
   },
   {
     id: 'weekly-kpi-review',
@@ -31,7 +35,7 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     cron: '0 9 * * 1',
     category: 'analysis',
     enabled: true,
-    handler: runWeeklyKpiReviewJob
+    handler: (runtime) => lazyJobHandler('runWeeklyKpiReviewJob', runtime)
   },
   {
     id: 'ga4-analysis',
@@ -40,7 +44,7 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     cron: '0 8 * * *',
     category: 'analysis',
     enabled: true,
-    handler: runGA4AnalysisJob
+    handler: (runtime) => lazyJobHandler('runGA4AnalysisJob', runtime)
   },
   {
     id: 'urgent-recommendations',
@@ -49,7 +53,7 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     cron: '0 * * * *',
     category: 'system',
     enabled: true,
-    handler: () => runUrgentRecommendationsJob()
+    handler: () => lazyJobHandler('runUrgentRecommendationsJob')
   }
 ];
 

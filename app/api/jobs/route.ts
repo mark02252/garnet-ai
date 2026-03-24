@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { executeJobNow, getJobStatuses } from '@/lib/scheduler/engine';
+import { initSchedulerSystem } from '@/lib/scheduler/init';
 
 export async function GET() {
+  await initSchedulerSystem(); // lazy init (idempotent)
   const statuses = await getJobStatuses();
   return NextResponse.json({ jobs: statuses });
 }

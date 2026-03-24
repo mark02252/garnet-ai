@@ -1065,7 +1065,8 @@ async function createWindow() {
   });
 
   const appUrl = getAppUrl();
-  const canLoad = isDev ? true : await waitForServerReady(appUrl, 45000);
+  // 개발 모드에서도 서버가 실제로 응답할 때까지 대기 (Turbopack 컴파일 시간)
+  const canLoad = await waitForServerReady(appUrl, isDev ? 30000 : 45000);
   if (!canLoad) {
     const message = `
       <html><body style="font-family:-apple-system,Apple SD Gothic Neo,sans-serif;padding:28px;background:#f6f1ea;color:#2a1a18;">
@@ -1080,7 +1081,8 @@ async function createWindow() {
   }
 
   if (isDev) {
-    mainWindow.webContents.openDevTools({ mode: 'right' });
+    // DevTools는 필요시 Cmd+Option+I로 수동 열기
+    // mainWindow.webContents.openDevTools({ mode: 'detach' });
   }
 
   // 렌더러 에러 로깅
@@ -1093,11 +1095,28 @@ async function createWindow() {
 
   mainWindow.webContents.on('did-fail-load', async () => {
     if (!mainWindow) return;
-    if (isDev) return;
+    // 개발/프로덕션 모두 자동 리로드
     const ready = await waitForServerReady(appUrl, 15000);
     if (ready) {
       await mainWindow.loadURL(appUrl);
     }
+  });
+
+  // 흰 화면 자동 복구: 로드 완료 후 body가 비어있으면 3초 후 리로드
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (!mainWindow) return;
+    setTimeout(async () => {
+      if (!mainWindow) return;
+      try {
+        const isEmpty = await mainWindow.webContents.executeJavaScript(
+          'document.body && document.body.innerHTML.trim().length < 50'
+        );
+        if (isEmpty) {
+          console.log('[Electron] Empty body detected, reloading...');
+          mainWindow.loadURL(appUrl);
+        }
+      } catch { /* ignore */ }
+    }, 3000);
   });
 
   mainWindow.on('closed', () => {

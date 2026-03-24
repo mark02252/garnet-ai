@@ -1,3 +1,13 @@
+// EPIPE/네트워크 에러가 Electron 다이얼로그를 띄워 UI를 완전히 블로킹하는 것을 방지
+// 반드시 모든 import보다 먼저 실행되어야 함
+process.stdout?.on?.('error', () => {});
+process.stderr?.on?.('error', () => {});
+process.on('uncaughtException', (err) => {
+  const msg = err?.message || '';
+  if (msg.includes('EPIPE') || msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) return;
+  try { console.error('[Uncaught]', err); } catch { /* ignore */ }
+});
+
 import { app, BrowserWindow, dialog, ipcMain, safeStorage, shell } from 'electron';
 import path from 'node:path';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
@@ -1065,7 +1075,7 @@ async function createWindow() {
   });
 
   const appUrl = getAppUrl();
-  // 개발 모드에서도 서버가 실제로 응답할 때까지 대기 (Turbopack 컴파일 시간)
+  // 개발/프로덕션 모두 서버가 실제로 HTTP 200을 반환할 때까지 대기
   const canLoad = await waitForServerReady(appUrl, isDev ? 30000 : 45000);
   if (!canLoad) {
     const message = `
@@ -1080,43 +1090,18 @@ async function createWindow() {
     await mainWindow.loadURL(appUrl);
   }
 
-  if (isDev) {
-    // DevTools는 필요시 Cmd+Option+I로 수동 열기
-    // mainWindow.webContents.openDevTools({ mode: 'detach' });
-  }
-
-  // 렌더러 에러 로깅
-  mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
-    console.error(`[Electron] did-fail-load: ${code} ${desc}`);
-  });
-  mainWindow.webContents.on('render-process-gone', (_e, details) => {
-    console.error('[Electron] render-process-gone:', details);
-  });
+  // DevTools 자동 열기 비활성화 — 필요시 Cmd+Option+I로 수동 열기
+  // if (isDev) {
+  //   mainWindow.webContents.openDevTools({ mode: 'detach' });
+  // }
 
   mainWindow.webContents.on('did-fail-load', async () => {
     if (!mainWindow) return;
-    // 개발/프로덕션 모두 자동 리로드
+    // 개발/프로덕션 모두 리로드 시도
     const ready = await waitForServerReady(appUrl, 15000);
-    if (ready) {
+    if (ready && mainWindow) {
       await mainWindow.loadURL(appUrl);
     }
-  });
-
-  // 흰 화면 자동 복구: 로드 완료 후 body가 비어있으면 3초 후 리로드
-  mainWindow.webContents.on('did-finish-load', () => {
-    if (!mainWindow) return;
-    setTimeout(async () => {
-      if (!mainWindow) return;
-      try {
-        const isEmpty = await mainWindow.webContents.executeJavaScript(
-          'document.body && document.body.innerHTML.trim().length < 50'
-        );
-        if (isEmpty) {
-          console.log('[Electron] Empty body detected, reloading...');
-          mainWindow.loadURL(appUrl);
-        }
-      } catch { /* ignore */ }
-    }, 3000);
   });
 
   mainWindow.on('closed', () => {
@@ -1125,12 +1110,6 @@ async function createWindow() {
 }
 
 function startSchedulerTimer() {
-  // 개발 모드에서는 포트 3123 대신 3000을 사용, 기존 스케줄러 타이머 스킵
-  if (isDev) {
-    console.log('[Scheduler] Dev mode — skipping legacy scheduler timer (using Cron engine instead)')
-    return
-  }
-
   const appPort = process.env.PORT || '3123'
   const baseUrl = `http://127.0.0.1:${appPort}`
 
@@ -1216,21 +1195,6 @@ async function processScheduledPosts(baseUrl: string) {
     console.error('[Scheduler] 타이머 오류:', e)
   }
 }
-
-// EPIPE 에러 방지 — stdout/stderr 파이프가 닫힌 상태에서 console.error 호출 시 crash 방지
-process.stdout?.on?.('error', () => {});
-process.stderr?.on?.('error', () => {});
-
-// Electron이 EPIPE/네트워크 에러를 다이얼로그로 표시하여 UI를 블로킹하는 것을 방지
-process.on('uncaughtException', (err) => {
-  const msg = err?.message || '';
-  // EPIPE, ECONNREFUSED 등 무해한 에러는 무시
-  if (msg.includes('EPIPE') || msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
-    return;
-  }
-  // 그 외 진짜 에러는 콘솔에만 출력 (다이얼로그 안 띄움)
-  try { console.error('[Uncaught]', err); } catch { /* ignore */ }
-});
 
 app.whenReady().then(async () => {
   ensureShellPath();

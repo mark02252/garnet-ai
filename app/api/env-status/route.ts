@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getLLMProvider, getMissingEnvKeys } from '@/lib/env';
 import { getSupabasePublicEnv } from '@/lib/supabase/env';
-import { ensureScheduler } from '@/lib/scheduler/ensure-init';
-
 export async function GET() {
-  try { await ensureScheduler(); } catch { /* scheduler init 실패해도 env-status는 정상 응답 */ }
   const provider = getLLMProvider();
   const missing = getMissingEnvKeys();
   const supabase = getSupabasePublicEnv();

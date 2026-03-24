@@ -529,3 +529,103 @@ model SnsContentTemplate {
 
   @@index([category])
 }
+
+enum JobRunStatus {
+  SUCCESS
+  FAILED
+  SKIPPED
+}
+
+model JobRun {
+  id          String       @id @default(cuid())
+  jobId       String
+  status      JobRunStatus
+  message     String?
+  durationMs  Int?
+  error       String?
+  createdAt   DateTime     @default(now())
+
+  @@index([jobId, createdAt])
+}
+
+enum IntelPlatform {
+  YOUTUBE
+  TWITTER
+  REDDIT
+  SERPER
+  NAVER
+}
+
+enum IntelUrgency {
+  CRITICAL
+  HIGH
+  NORMAL
+  LOW
+}
+
+enum DigestType {
+  DAILY
+  URGENT
+  WEEKLY
+}
+
+enum WatchCategory {
+  BRAND
+  COMPETITOR
+  TREND
+  GENERAL
+}
+
+model MarketingIntel {
+  id           String        @id @default(cuid())
+  platform     IntelPlatform
+  query        String
+  title        String
+  snippet      String
+  url          String
+  publishedAt  DateTime?
+  views        Int?
+  likes        Int?
+  comments     Int?
+  shares       Int?
+  relevance    Float         @default(0)
+  urgency      IntelUrgency  @default(NORMAL)
+  tags         String        @default("[]")
+  raw          String?
+  digestId     String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  digest       MarketingDigest? @relation(fields: [digestId], references: [id])
+
+  @@unique([platform, url])
+  @@index([platform, createdAt])
+  @@index([urgency, createdAt])
+  @@index([relevance])
+}
+
+model MarketingDigest {
+  id           String           @id @default(cuid())
+  type         DigestType
+  headline     String
+  summary      String
+  insights     String
+  actions      String
+  itemCount    Int              @default(0)
+  notifiedAt   DateTime?
+  createdAt    DateTime         @default(now())
+  items        MarketingIntel[]
+
+  @@index([type, createdAt])
+}
+
+model WatchKeyword {
+  id          String        @id @default(cuid())
+  keyword     String
+  category    WatchCategory @default(GENERAL)
+  platforms   String        @default("[]")
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([isActive])
+}

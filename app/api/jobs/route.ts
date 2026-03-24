@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { executeJob, listJobs } from '@/lib/job-scheduler';
+import { executeJobNow, getJobStatuses } from '@/lib/scheduler/engine';
 
 export async function GET() {
-  return NextResponse.json({ jobs: listJobs() });
+  const statuses = await getJobStatuses();
+  return NextResponse.json({ jobs: statuses });
 }
 
 const executeSchema = z.object({
@@ -14,7 +15,7 @@ const executeSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = executeSchema.parse(await req.json());
-    const result = await executeJob(body.jobId, body.runtime as Record<string, string> | undefined);
+    const result = await executeJobNow(body.jobId);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Job execution failed';

@@ -23,7 +23,7 @@ export type JobResult = {
 
 // ── Job: 일간 브리핑 자동 생성 ──
 
-async function runDailyBriefingJob(runtime?: RuntimeConfig): Promise<JobResult> {
+export async function runDailyBriefingJob(runtime?: RuntimeConfig): Promise<JobResult> {
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
@@ -66,7 +66,7 @@ ${recommendations.slice(0, 3).map((r) => `  - [${r.priority}] ${r.title}: ${r.re
 
 // ── Job: 주간 KPI 리뷰 ──
 
-async function runWeeklyKpiReviewJob(runtime?: RuntimeConfig): Promise<JobResult> {
+export async function runWeeklyKpiReviewJob(runtime?: RuntimeConfig): Promise<JobResult> {
   const goals = await prisma.kpiGoal.findMany({ take: 20 });
 
   if (goals.length === 0) {
@@ -95,7 +95,7 @@ async function runWeeklyKpiReviewJob(runtime?: RuntimeConfig): Promise<JobResult
 
 // ── Job: GA4 성과 자동 분석 ──
 
-async function runGA4AnalysisJob(runtime?: RuntimeConfig): Promise<JobResult> {
+export async function runGA4AnalysisJob(runtime?: RuntimeConfig): Promise<JobResult> {
   if (!isGA4Configured()) {
     return { ok: false, message: 'GA4가 설정되지 않았습니다.' };
   }
@@ -118,7 +118,7 @@ async function runGA4AnalysisJob(runtime?: RuntimeConfig): Promise<JobResult> {
 
 // ── Job: 추천 액션 긴급 알림 ──
 
-async function runUrgentRecommendationsJob(): Promise<JobResult> {
+export async function runUrgentRecommendationsJob(): Promise<JobResult> {
   const recommendations = await computeRecommendations();
   const urgent = recommendations.filter((r) => r.priority === 'urgent');
 

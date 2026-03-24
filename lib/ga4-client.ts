@@ -1,4 +1,19 @@
-import { BetaAnalyticsDataClient } from '@google-analytics/data';
+// Dynamic import로 변경 — Turbopack에서 google-gax top-level import 크래시 방지
+let _analyticsClient: InstanceType<typeof import('@google-analytics/data').BetaAnalyticsDataClient> | null = null;
+
+async function getAnalyticsClient(credentials: { clientEmail: string; privateKey: string }) {
+  if (!_analyticsClient) {
+    const { BetaAnalyticsDataClient } = await import('@google-analytics/data');
+    _analyticsClient = new BetaAnalyticsDataClient({
+      credentials: {
+        client_email: credentials.clientEmail,
+        private_key: credentials.privateKey,
+      },
+    });
+  }
+  return _analyticsClient;
+}
+
 import { runLLM } from '@/lib/llm';
 import type { RuntimeConfig } from '@/lib/types';
 
@@ -54,13 +69,8 @@ function resolveCredentials(): GA4Credentials | null {
   return { propertyId, clientEmail, privateKey };
 }
 
-function createClient(creds: GA4Credentials) {
-  return new BetaAnalyticsDataClient({
-    credentials: {
-      client_email: creds.clientEmail,
-      private_key: creds.privateKey
-    }
-  });
+async function createClient(creds: GA4Credentials) {
+  return getAnalyticsClient({ clientEmail: creds.clientEmail, privateKey: creds.privateKey });
 }
 
 export function isGA4Configured(): boolean {
@@ -71,7 +81,7 @@ export async function fetchDailyTraffic(startDate: string, endDate: string): Pro
   const creds = resolveCredentials();
   if (!creds) throw new Error('GA4 credentials not configured');
 
-  const client = createClient(creds);
+  const client = await createClient(creds);
   const [response] = await client.runReport({
     property: `properties/${creds.propertyId}`,
     dateRanges: [{ startDate, endDate }],
@@ -100,7 +110,7 @@ export async function fetchChannelBreakdown(startDate: string, endDate: string):
   const creds = resolveCredentials();
   if (!creds) throw new Error('GA4 credentials not configured');
 
-  const client = createClient(creds);
+  const client = await createClient(creds);
   const [response] = await client.runReport({
     property: `properties/${creds.propertyId}`,
     dateRanges: [{ startDate, endDate }],
@@ -127,7 +137,7 @@ export async function fetchPagePerformance(startDate: string, endDate: string): 
   const creds = resolveCredentials();
   if (!creds) throw new Error('GA4 credentials not configured');
 
-  const client = createClient(creds);
+  const client = await createClient(creds);
   const [response] = await client.runReport({
     property: `properties/${creds.propertyId}`,
     dateRanges: [{ startDate, endDate }],
@@ -153,7 +163,7 @@ export async function fetchRealtimeActiveUsers(): Promise<number> {
   const creds = resolveCredentials();
   if (!creds) throw new Error('GA4 credentials not configured');
 
-  const client = createClient(creds);
+  const client = await createClient(creds);
   const [response] = await client.runRealtimeReport({
     property: `properties/${creds.propertyId}`,
     metrics: [{ name: 'activeUsers' }]

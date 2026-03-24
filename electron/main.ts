@@ -1080,8 +1080,16 @@ async function createWindow() {
   }
 
   if (isDev) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
+    mainWindow.webContents.openDevTools({ mode: 'right' });
   }
+
+  // 렌더러 에러 로깅
+  mainWindow.webContents.on('did-fail-load', (_e, code, desc) => {
+    console.error(`[Electron] did-fail-load: ${code} ${desc}`);
+  });
+  mainWindow.webContents.on('render-process-gone', (_e, details) => {
+    console.error('[Electron] render-process-gone:', details);
+  });
 
   mainWindow.webContents.on('did-fail-load', async () => {
     if (!mainWindow) return;

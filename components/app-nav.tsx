@@ -236,6 +236,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
       { href: '/analytics', label: 'GA4 Analytics', icon: <AnalyticsIcon /> },
+      { href: '/intel', label: '마케팅 인텔', icon: <ContentIcon /> },
     ],
   },
   {

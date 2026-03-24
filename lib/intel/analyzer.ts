@@ -2,7 +2,8 @@ import { prisma } from '@/lib/prisma';
 import { runLLM } from '@/lib/llm';
 import type { RuntimeConfig } from '@/lib/types';
 
-const FREE_RUNTIME: RuntimeConfig = { llmProvider: 'groq' } as RuntimeConfig;
+// 기본 LLM provider 사용 (env의 LLM_PROVIDER, 현재 gemini)
+const ANALYSIS_RUNTIME: RuntimeConfig = {} as RuntimeConfig;
 
 interface AnalysisItem {
   i: number;
@@ -11,13 +12,36 @@ interface AnalysisItem {
   tags: string[];
 }
 
-export async function analyzeRecentIntel(batchSize: number = 20): Promise<number> {
+export async function debugAnalyze() {
   const items = await prisma.marketingIntel.findMany({
     where: { relevance: 0 },
+    orderBy: { createdAt: 'desc' },
+    take: 3,
+  });
+  if (items.length === 0) return { step: 'query', itemCount: 0, message: 'No unanalyzed items found' };
+
+  const kws = (await prisma.watchKeyword.findMany({ where: { isActive: true }, select: { keyword: true } }))
+    .map(k => k.keyword).join(', ');
+
+  const summary = items.map((item, i) => `[${i}] ${item.platform} | ${item.title}`).join('\n');
+  const prompt = `분석: ${kws || '(없음)'}\n${summary}\n\nJSON: [{"i":0,"relevance":0.5,"urgency":"NORMAL","tags":["test"]}]`;
+
+  try {
+    const raw = await runLLM('JSON만 출력.', prompt, 0.2, 1000);
+    return { step: 'llm', itemCount: items.length, rawResponse: raw.slice(0, 500) };
+  } catch (err) {
+    return { step: 'llm-error', itemCount: items.length, error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+export async function analyzeRecentIntel(batchSize: number = 20): Promise<number> {
+  const items = await prisma.marketingIntel.findMany({
+    where: { relevance: { lte: 0 } },
     orderBy: { createdAt: 'desc' },
     take: batchSize,
   });
 
+  console.log(`[Analyzer] Found ${items.length} unanalyzed items`);
   if (items.length === 0) return 0;
 
   const [campaigns, keywords] = await Promise.all([
@@ -49,15 +73,31 @@ JSON 배열만 출력하세요.`;
 
   let results: AnalysisItem[] = [];
   try {
-    const raw = await runLLM(
-      '마케팅 인텔리전스 분석가입니다. JSON만 출력하세요.',
-      prompt, 0.2, 2000, FREE_RUNTIME
+    const rawLLMResponse = await runLLM(
+      '마케팅 인텔리전스 분석가. 반드시 유효한 JSON 배열만 출력. 마크다운 코드블록 사용 금지.',
+      prompt, 0.2, 4000, undefined
     );
-    const match = raw.match(/\[[\s\S]*\]/);
-    if (match) results = JSON.parse(match[0]) as AnalysisItem[];
-  } catch {
+    // ```json ... ``` 블록 제거 후 JSON 배열 추출
+    const cleaned = rawLLMResponse.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+    const match = cleaned.match(/\[[\s\S]*?\]/);
+    if (match) {
+      try {
+        results = JSON.parse(match[0]) as AnalysisItem[];
+      } catch {
+        // JSON 깨진 경우: 개별 항목 단위로 파싱 시도
+        const itemMatches = cleaned.matchAll(/\{[^}]+\}/g);
+        for (const m of itemMatches) {
+          try { results.push(JSON.parse(m[0]) as AnalysisItem); } catch { /* skip */ }
+        }
+      }
+    }
+    console.log(`[Analyzer] parsed ${results.length} items from LLM response`);
+  } catch (err) {
+    console.error('[Analyzer] LLM error:', err instanceof Error ? err.message : err);
     return 0;
   }
+
+  console.log(`[Analyzer] parsed ${results.length} results for ${items.length} items`);
 
   let updated = 0;
   for (const r of results) {

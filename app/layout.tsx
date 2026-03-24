@@ -4,6 +4,7 @@ import { AppNav } from '@/components/app-nav';
 import { SupabaseAuthChip } from '@/components/supabase-auth-chip';
 import { Toaster } from 'sonner';
 import { CommandPalette } from '@/components/command-palette';
+import { CopilotSidebar } from '@/components/copilot-sidebar';
 import './globals.css';
 
 const notoSansKr = Noto_Sans_KR({
@@ -35,6 +36,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           </div>
         </div>
         <CommandPalette />
+        <CopilotSidebar />
         <Toaster position="bottom-right" richColors />
       </body>
     </html>

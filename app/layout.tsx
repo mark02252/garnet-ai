@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Noto_Sans_KR } from 'next/font/google';
 import { AppNav } from '@/components/app-nav';
 import { SupabaseAuthChip } from '@/components/supabase-auth-chip';
+import { Toaster } from 'sonner';
 import './globals.css';
 
 const notoSansKr = Noto_Sans_KR({
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
             </div>
           </div>
         </div>
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );

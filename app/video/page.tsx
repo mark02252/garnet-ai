@@ -161,9 +161,17 @@ export default function VideoStudioPage() {
               {isExpanded && v.script && (
                 <div style={{ marginTop: 12, padding: 16, background: 'var(--surface-alt, #f9fafb)', borderRadius: 8 }}>
                   <p style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text-muted)' }}>생성된 스크립트</p>
-                  <pre style={{ fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap', color: 'var(--text-strong)' }}>
-                    {v.script}
+                  <pre style={{ fontSize: 13, lineHeight: 1.8, whiteSpace: 'pre-wrap', wordBreak: 'break-word', color: 'var(--text-strong)', margin: 0, fontFamily: 'inherit' }}>
+{v.script}
                   </pre>
+                  {!v.videoUrl && (
+                    <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--surface, #fff)', borderRadius: 6, border: '1px dashed var(--border, #e5e7eb)' }}>
+                      <p style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                        영상 렌더링은 MCP 영상 서버(RunwayML/Luma) 연동 후 자동 생성됩니다.
+                        현재는 스크립트만 제공됩니다.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
               {isExpanded && v.error && (

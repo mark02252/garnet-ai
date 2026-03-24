@@ -6,7 +6,7 @@ type WatchKeyword = {
   id: string;
   keyword: string;
   category: string;
-  created_at: string;
+  createdAt: string;
 };
 
 const CATEGORIES = [
@@ -176,7 +176,7 @@ export default function WatchlistPage() {
                   </span>
                 </div>
                 <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
-                  {formatDate(kw.created_at)}
+                  {formatDate(kw.createdAt)}
                 </span>
               </div>
             );

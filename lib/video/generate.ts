@@ -30,26 +30,18 @@ export async function createVideoGeneration(
     // AI 스크립트 생성
     const formatLabel = FORMAT_LABELS[req.format] || req.format;
     const script = await runLLM(
-      '당신은 숏폼 마케팅 영상 전문 스크립트 작가입니다. 한국어로 작성하세요.',
-      `아래 요청을 기반으로 ${formatLabel} 영상 스크립트를 작성하세요.
+      '숏폼 영상 스크립트 작가. 한국어. 간결하게.',
+      `${formatLabel} 영상 스크립트. 요청: ${req.prompt}
+플랫폼: ${req.platform}, 길이: ${req.duration || 15}~30초
 
-요청: ${req.prompt}
-플랫폼: ${req.platform}
-길이: ${req.duration || 15}~30초
+형식:
+[HOOK] 3초 오프닝 - 나레이션 + 화면설명
+[BODY] 본문 2~3포인트 - 나레이션 + 화면설명
+[CTA] 마무리 - 행동유도 + 화면설명
 
-다음 형식으로 작성하세요:
-1. [HOOK] 첫 3초 - 시선을 사로잡는 오프닝 (질문/충격적 사실/공감)
-2. [BODY] 본문 - 핵심 메시지 전달 (2~3개 포인트)
-3. [CTA] 마무리 - 행동 유도 (팔로우/링크/댓글)
-
-각 장면에 대해:
-- 나레이션 텍스트
-- 화면 설명 (배경, 텍스트 오버레이, 전환 효과)
-- 예상 시간(초)
-
-스크립트만 출력하세요.`,
+각 장면: 나레이션, 화면설명, 시간(초). 바로 작성하세요.`,
       0.7,
-      2000,
+      4000,
       runtime
     );
 

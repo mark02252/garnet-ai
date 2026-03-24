@@ -152,15 +152,18 @@ export default function IntelPage() {
                 </p>
               )}
 
-              {item.tags && item.tags.length > 0 && (
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {item.tags.map((tag) => (
-                    <span key={tag} className="pill-option" style={{ fontSize: 11 }}>
-                      #{tag}
-                    </span>
-                  ))}
-                </div>
-              )}
+              {item.tags && (() => {
+                const parsed: string[] = Array.isArray(item.tags) ? item.tags : (() => { try { return JSON.parse(item.tags); } catch { return []; } })();
+                return parsed.length > 0 ? (
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    {parsed.slice(0, 5).map((tag) => (
+                      <span key={tag} className="pill-option" style={{ fontSize: 11 }}>
+                        #{tag}
+                      </span>
+                    ))}
+                  </div>
+                ) : null;
+              })()}
             </a>
           ))}
         </div>

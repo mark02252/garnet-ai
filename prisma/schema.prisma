@@ -592,7 +592,6 @@ model MarketingIntel {
   urgency      IntelUrgency  @default(NORMAL)
   tags         String        @default("[]")
   raw          String?
-  campaignId   String?
   digestId     String?
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @default(now()) @updatedAt
@@ -602,7 +601,6 @@ model MarketingIntel {
   @@index([platform, createdAt])
   @@index([urgency, createdAt])
   @@index([relevance])
-  @@index([campaignId])
 }
 
 model MarketingDigest {

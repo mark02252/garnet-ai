@@ -1075,25 +1075,49 @@ async function createWindow() {
   });
 
   const appUrl = getAppUrl();
-  // 개발/프로덕션 모두 서버가 실제로 HTTP 200을 반환할 때까지 대기
-  const canLoad = await waitForServerReady(appUrl, isDev ? 30000 : 45000);
-  if (!canLoad) {
-    const message = `
-      <html><body style="font-family:-apple-system,Apple SD Gothic Neo,sans-serif;padding:28px;background:#f6f1ea;color:#2a1a18;">
-      <h2>앱 로딩 지연</h2>
-      <p>내부 서버 시작이 지연되고 있습니다. 앱을 다시 실행해 주세요.</p>
-      <p style="font-size:12px;color:#6b5a50;">문제가 반복되면 최신 버전으로 업데이트하거나 재설치해 주세요.</p>
-      </body></html>
-    `;
-    await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(message)}`);
-  } else {
-    await mainWindow.loadURL(appUrl);
-  }
 
-  // DevTools 자동 열기 비활성화 — 필요시 Cmd+Option+I로 수동 열기
-  // if (isDev) {
-  //   mainWindow.webContents.openDevTools({ mode: 'detach' });
-  // }
+  if (isDev) {
+    // 개발 모드: 서버 응답 확인 후 로드 + 실패 시 자동 리트라이
+    const canLoad = await waitForServerReady(appUrl, 30000);
+    if (canLoad) {
+      // Turbopack 첫 컴파일이 완료될 때까지 추가 대기
+      await sleep(2000);
+    }
+    await mainWindow.loadURL(appUrl);
+
+    // 로드 실패 또는 빈 화면 시 자동 리트라이
+    let retryCount = 0;
+    const retryIfEmpty = async () => {
+      if (!mainWindow || retryCount >= 5) return;
+      try {
+        const bodyLen = await mainWindow.webContents.executeJavaScript(
+          'document.body ? document.body.innerHTML.length : 0'
+        );
+        if (bodyLen < 100) {
+          retryCount++;
+          console.log(`[Electron] Empty page detected, retry ${retryCount}/5...`);
+          await sleep(2000);
+          if (mainWindow) await mainWindow.loadURL(appUrl);
+          setTimeout(retryIfEmpty, 5000);
+        }
+      } catch { /* ignore */ }
+    };
+    setTimeout(retryIfEmpty, 5000);
+  } else {
+    // 프로덕션 모드
+    const canLoad = await waitForServerReady(appUrl, 45000);
+    if (!canLoad) {
+      const message = `
+        <html><body style="font-family:-apple-system,Apple SD Gothic Neo,sans-serif;padding:28px;background:#f6f1ea;color:#2a1a18;">
+        <h2>앱 로딩 지연</h2>
+        <p>내부 서버 시작이 지연되고 있습니다. 앱을 다시 실행해 주세요.</p>
+        </body></html>
+      `;
+      await mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(message)}`);
+    } else {
+      await mainWindow.loadURL(appUrl);
+    }
+  }
 
   mainWindow.webContents.on('did-fail-load', async () => {
     if (!mainWindow) return;

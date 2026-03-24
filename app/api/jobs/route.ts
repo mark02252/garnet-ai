@@ -4,7 +4,7 @@ import { executeJobNow, getJobStatuses } from '@/lib/scheduler/engine';
 import { initSchedulerSystem } from '@/lib/scheduler/init';
 
 export async function GET() {
-  await initSchedulerSystem(); // lazy init (idempotent)
+  try { await initSchedulerSystem(); } catch { /* init 실패해도 API는 응답 */ }
   const statuses = await getJobStatuses();
   return NextResponse.json({ jobs: statuses });
 }

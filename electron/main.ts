@@ -1184,6 +1184,10 @@ async function processScheduledPosts(baseUrl: string) {
   }
 }
 
+// EPIPE 에러 방지 — stdout/stderr 파이프가 닫힌 상태에서 console.error 호출 시 crash 방지
+process.stdout?.on?.('error', () => {});
+process.stderr?.on?.('error', () => {});
+
 app.whenReady().then(async () => {
   ensureShellPath();
   ensureRuntimeDatabaseUrl();

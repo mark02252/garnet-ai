@@ -1098,6 +1098,12 @@ async function createWindow() {
 }
 
 function startSchedulerTimer() {
+  // 개발 모드에서는 포트 3123 대신 3000을 사용, 기존 스케줄러 타이머 스킵
+  if (isDev) {
+    console.log('[Scheduler] Dev mode — skipping legacy scheduler timer (using Cron engine instead)')
+    return
+  }
+
   const appPort = process.env.PORT || '3123'
   const baseUrl = `http://127.0.0.1:${appPort}`
 

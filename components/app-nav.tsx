@@ -194,6 +194,15 @@ function SnsCommunityIcon() {
   )
 }
 
+function VideoStudioIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <rect x="2" y="5" width="15" height="14" rx="2" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M17 9l5-3v12l-5-3V9z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 type NavGroup = {
   label: string;
   items: NavItem[];
@@ -218,6 +227,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
       { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
+      { href: '/video', label: '영상 스튜디오', icon: <VideoStudioIcon /> },
     ],
   },
   {

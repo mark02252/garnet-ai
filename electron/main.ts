@@ -1134,18 +1134,17 @@ async function createWindow() {
 }
 
 function startSchedulerTimer() {
+  // 개발 모드에서는 포트 3123이 없어 모든 fetch가 실패하고
+  // console.error → EPIPE → uncaught exception → UI 블로킹 다이얼로그 발생
+  // 개발 모드에서는 새 Cron 엔진이 Next.js API 라우트에서 스케줄링을 처리함
+  if (isDev) return;
+
   const appPort = process.env.PORT || '3123'
   const baseUrl = `http://127.0.0.1:${appPort}`
 
-  // 앱 시작 시 MISSED 처리 (Next.js가 준비된 후 호출되므로 약간 지연)
   setTimeout(() => processMissedSchedules(baseUrl), 5_000)
-
-  // 1분마다 PENDING 예약 확인
   setInterval(() => processScheduledPosts(baseUrl), 60_000)
-
-  // 24시간마다 토큰 자동 갱신 시도
   setInterval(() => refreshTokenIfNeeded(baseUrl), 24 * 60 * 60_000)
-  // 앱 시작 후 10초 뒤 첫 갱신 체크
   setTimeout(() => refreshTokenIfNeeded(baseUrl), 10_000)
 }
 

@@ -50,21 +50,36 @@ export default function VideoStudioPage() {
 
   useEffect(() => { loadVideos(); }, []);
 
+  const [error, setError] = useState('');
+
   const handleGenerate = async () => {
     if (!prompt.trim() || generating) return;
     setGenerating(true);
+    setError('');
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 60000);
     try {
       const res = await fetch('/api/video', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: prompt.trim(), format, platform }),
+        signal: controller.signal,
       });
       const result = await res.json();
-      if (result.id) {
+      if (result.error) {
+        setError(result.error);
+      } else if (result.id) {
         setPrompt('');
         loadVideos();
       }
-    } catch {} finally {
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') {
+        setError('요청 시간이 초과되었습니다. LLM API 키가 설정되어 있는지 확인하세요.');
+      } else {
+        setError('영상 생성 중 오류가 발생했습니다.');
+      }
+    } finally {
+      clearTimeout(timeout);
       setGenerating(false);
     }
   };
@@ -114,6 +129,11 @@ export default function VideoStudioPage() {
           style={{ marginTop: 20, width: '100%', padding: '12px 0', fontSize: 15 }}>
           {generating ? '생성 중...' : '영상 스크립트 생성'}
         </button>
+        {error && (
+          <p style={{ marginTop: 12, fontSize: 13, color: 'var(--status-error, #ef4444)', padding: '8px 12px', background: '#fef2f2', borderRadius: 8 }}>
+            {error}
+          </p>
+        )}
       </div>
 
       {/* 이전 생성 목록 */}

@@ -1188,6 +1188,17 @@ async function processScheduledPosts(baseUrl: string) {
 process.stdout?.on?.('error', () => {});
 process.stderr?.on?.('error', () => {});
 
+// Electron이 EPIPE/네트워크 에러를 다이얼로그로 표시하여 UI를 블로킹하는 것을 방지
+process.on('uncaughtException', (err) => {
+  const msg = err?.message || '';
+  // EPIPE, ECONNREFUSED 등 무해한 에러는 무시
+  if (msg.includes('EPIPE') || msg.includes('ECONNREFUSED') || msg.includes('fetch failed')) {
+    return;
+  }
+  // 그 외 진짜 에러는 콘솔에만 출력 (다이얼로그 안 띄움)
+  try { console.error('[Uncaught]', err); } catch { /* ignore */ }
+});
+
 app.whenReady().then(async () => {
   ensureShellPath();
   ensureRuntimeDatabaseUrl();

@@ -32,6 +32,7 @@ export default function WatchlistPage() {
   const [keywords, setKeywords] = useState<WatchKeyword[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [keyword, setKeyword] = useState('');
   const [category, setCategory] = useState('GENERAL');
   const [error, setError] = useState('');
@@ -73,73 +74,100 @@ export default function WatchlistPage() {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await fetch(`/api/watch-keywords/${id}`, { method: 'DELETE' });
+      setKeywords((prev) => prev.filter((kw) => kw.id !== id));
+    } catch {
+      // silent
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 24, padding: '24px 32px', maxWidth: 860 }}>
       {/* Header */}
       <div>
-        <p className="dashboard-eyebrow">마케팅 인텔리전스</p>
-        <h1 className="dashboard-title">워치리스트</h1>
-        <p className="dashboard-copy">모니터링할 키워드를 등록하고 관리하세요.</p>
+        <p className="dashboard-eyebrow">Marketing Intelligence</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <h1 className="dashboard-title" style={{ margin: 0 }}>워치리스트</h1>
+          {keywords.length > 0 && (
+            <span className="accent-pill" style={{ fontSize: 12, fontWeight: 700 }}>
+              {keywords.length}개 키워드
+            </span>
+          )}
+        </div>
+        <p className="dashboard-copy" style={{ marginTop: 8 }}>모니터링할 키워드를 등록하고 관리하세요.</p>
       </div>
 
       {/* Add form */}
-      <div className="soft-card" style={{ padding: '20px 24px' }}>
-        <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 12 }}>
+      <div className="panel" style={{ padding: '20px 24px' }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 14, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
           키워드 추가
         </p>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: '1 1 200px' }}>
-            <label style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>키워드</label>
-            <input
-              ref={inputRef}
-              type="text"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-              placeholder="키워드 입력..."
-              required
-              style={{
-                padding: '8px 12px', fontSize: 14, border: '1px solid var(--surface-border)',
-                borderRadius: 'var(--radius-sm)', background: 'var(--surface)',
-                color: 'var(--text-strong)', outline: 'none',
-              }}
-            />
-          </div>
+        <form
+          onSubmit={handleSubmit}
+          style={{ display: 'flex', gap: 10, alignItems: 'stretch', flexWrap: 'wrap' }}
+        >
+          <input
+            ref={inputRef}
+            type="text"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
+            placeholder="키워드 입력... (예: 경쟁사A, 트렌드키워드)"
+            required
+            style={{
+              flex: '1 1 220px',
+              padding: '10px 14px', fontSize: 14,
+              border: '1px solid var(--surface-border)',
+              borderRadius: 'var(--radius-sm, 8px)',
+              background: 'var(--surface)',
+              color: 'var(--text-strong)',
+              outline: 'none',
+              minWidth: 0,
+            }}
+          />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            <label style={{ fontSize: 12, color: 'var(--text-muted)', fontWeight: 500 }}>카테고리</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              style={{
-                padding: '8px 12px', fontSize: 14, border: '1px solid var(--surface-border)',
-                borderRadius: 'var(--radius-sm)', background: 'var(--surface)',
-                color: 'var(--text-strong)', cursor: 'pointer', outline: 'none',
-              }}
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>{c.label}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            style={{
+              padding: '10px 14px', fontSize: 14,
+              border: '1px solid var(--surface-border)',
+              borderRadius: 'var(--radius-sm, 8px)',
+              background: 'var(--surface)',
+              color: 'var(--text-strong)',
+              cursor: 'pointer', outline: 'none',
+              flexShrink: 0,
+            }}
+          >
+            {CATEGORIES.map((c) => (
+              <option key={c.value} value={c.value}>{c.label}</option>
+            ))}
+          </select>
 
           <button
             type="submit"
             disabled={submitting || !keyword.trim()}
-            className="accent-pill"
+            className="button-primary"
             style={{
-              cursor: submitting ? 'not-allowed' : 'pointer',
-              opacity: submitting ? 0.7 : 1,
-              border: 'none',
-              padding: '8px 20px',
+              padding: '10px 22px',
               fontSize: 14,
               fontWeight: 600,
+              flexShrink: 0,
+              opacity: submitting || !keyword.trim() ? 0.6 : 1,
+              cursor: submitting || !keyword.trim() ? 'not-allowed' : 'pointer',
             }}
           >
-            {submitting ? '등록 중...' : '추가'}
+            {submitting ? '등록 중...' : '+ 추가'}
           </button>
         </form>
         {error && (
-          <p style={{ fontSize: 13, color: '#ef4444', marginTop: 8 }}>{error}</p>
+          <p style={{ fontSize: 13, color: '#ef4444', marginTop: 10, padding: '8px 12px', background: '#fef2f2', borderRadius: 8 }}>
+            {error}
+          </p>
         )}
       </div>
 
@@ -147,37 +175,87 @@ export default function WatchlistPage() {
       {loading ? (
         <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>불러오는 중...</p>
       ) : keywords.length === 0 ? (
-        <div className="soft-card" style={{ padding: '40px 24px', textAlign: 'center' }}>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15 }}>등록된 키워드가 없습니다.</p>
-          <p style={{ color: 'var(--text-disabled)', fontSize: 13, marginTop: 6 }}>
+        <div className="soft-card" style={{ padding: '48px 24px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>🔍</div>
+          <p style={{ color: 'var(--text-strong)', fontSize: 15, fontWeight: 600, marginBottom: 6 }}>
+            등록된 키워드가 없습니다
+          </p>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13, marginBottom: 16 }}>
             위 폼에서 첫 번째 키워드를 추가해 보세요.
           </p>
+          <button
+            className="button-primary"
+            onClick={() => inputRef.current?.focus()}
+            style={{ padding: '10px 24px', fontSize: 14 }}
+          >
+            키워드 추가하기
+          </button>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {keywords.map((kw) => {
             const colors = CATEGORY_COLORS[kw.category] ?? CATEGORY_COLORS.GENERAL;
             const catLabel = CATEGORIES.find((c) => c.value === kw.category)?.label ?? kw.category;
+            const isDeleting = deletingId === kw.id;
             return (
               <div
                 key={kw.id}
                 className="list-card"
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+                style={{
+                  display: 'flex', alignItems: 'center',
+                  justifyContent: 'space-between', gap: 12,
+                  opacity: isDeleting ? 0.5 : 1,
+                  transition: 'opacity 0.15s',
+                }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, flex: 1, minWidth: 0 }}>
                   <span
                     className="status-badge"
-                    style={{ background: colors.bg, color: colors.color, fontSize: 11 }}
+                    style={{
+                      background: colors.bg, color: colors.color,
+                      fontSize: 11, fontWeight: 700,
+                      flexShrink: 0,
+                    }}
                   >
                     {catLabel}
                   </span>
-                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-strong)' }}>
+                  <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-strong)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {kw.keyword}
                   </span>
                 </div>
-                <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}>
-                  {formatDate(kw.createdAt)}
-                </span>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                    {formatDate(kw.createdAt)}
+                  </span>
+                  <button
+                    onClick={() => handleDelete(kw.id)}
+                    disabled={isDeleting}
+                    title="삭제"
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      width: 28, height: 28, borderRadius: 6,
+                      border: '1px solid var(--surface-border)',
+                      background: 'transparent', cursor: isDeleting ? 'not-allowed' : 'pointer',
+                      color: 'var(--text-muted)',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                    onMouseEnter={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = '#fef2f2';
+                      (e.currentTarget as HTMLButtonElement).style.color = '#ef4444';
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = '#fecaca';
+                    }}
+                    onMouseLeave={(e) => {
+                      (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
+                      (e.currentTarget as HTMLButtonElement).style.color = 'var(--text-muted)';
+                      (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--surface-border)';
+                    }}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                      <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
               </div>
             );
           })}

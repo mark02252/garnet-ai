@@ -10,6 +10,7 @@ import {
   getMcpConnectionById,
   type McpConnectionDraft
 } from '@/lib/mcp-connections';
+import { isDesktop } from '@/lib/platform';
 
 function stringifyEnv(env: NodeJS.ProcessEnv) {
   return Object.fromEntries(
@@ -36,7 +37,7 @@ function buildBuiltinLaunchParams() {
   const scriptPath = resolveMcpServerScriptPath();
   const env = stringifyEnv(process.env);
 
-  if (process.versions.electron) {
+  if (isDesktop() && process.versions.electron) {
     env.ELECTRON_RUN_AS_NODE = '1';
   }
 

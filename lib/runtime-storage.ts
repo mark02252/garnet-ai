@@ -1,3 +1,5 @@
+import { isElectron, getRuntimeConfig, setRuntimeConfig } from '@/lib/platform';
+
 const LEGACY_RUNTIME_STORAGE_KEY = 'runtime_key_draft_v1';
 
 type RuntimeStoreLoadResult<T> = {
@@ -31,12 +33,11 @@ export async function loadStoredRuntimeDraft<T>(options: {
     return { value: defaults, source: 'default' };
   }
 
-  if (window.electronAPI?.getRuntimeConfig) {
+  if (isElectron() || typeof localStorage !== 'undefined') {
     try {
-      const result = await window.electronAPI.getRuntimeConfig();
-      const secureRaw = typeof result.runtimeJson === 'string' ? result.runtimeJson : '';
+      const secureRaw = await getRuntimeConfig();
 
-      if (result.ok && secureRaw.trim()) {
+      if (secureRaw && secureRaw.trim()) {
         clearLegacyRuntimeJson();
         return {
           value: merge(defaults, JSON.parse(secureRaw)),
@@ -47,15 +48,13 @@ export async function loadStoredRuntimeDraft<T>(options: {
       const legacyRaw = readLegacyRuntimeJson();
       if (legacyRaw.trim()) {
         const migrated = merge(defaults, JSON.parse(legacyRaw));
-        if (window.electronAPI?.saveRuntimeConfig) {
-          const saveResult = await window.electronAPI.saveRuntimeConfig(JSON.stringify(migrated));
-          if (saveResult.ok) {
-            clearLegacyRuntimeJson();
-            return {
-              value: migrated,
-              source: 'migrated_local'
-            };
-          }
+        const saved = await setRuntimeConfig(JSON.stringify(migrated));
+        if (saved) {
+          clearLegacyRuntimeJson();
+          return {
+            value: migrated,
+            source: 'migrated_local'
+          };
         }
         return {
           value: migrated,
@@ -75,18 +74,6 @@ export async function loadStoredRuntimeDraft<T>(options: {
         }
       }
     }
-  } else {
-    const legacyRaw = readLegacyRuntimeJson();
-    if (legacyRaw.trim()) {
-      try {
-        return {
-          value: merge(defaults, JSON.parse(legacyRaw)),
-          source: 'local'
-        };
-      } catch {
-        clearLegacyRuntimeJson();
-      }
-    }
   }
 
   return { value: defaults, source: 'default' };
@@ -103,20 +90,13 @@ export async function saveStoredRuntimeDraft<T>(value: T): Promise<RuntimeStoreS
     };
   }
 
-  if (window.electronAPI?.saveRuntimeConfig) {
-    const result = await window.electronAPI.saveRuntimeConfig(raw);
-    if (!result.ok) {
-      return {
-        ok: false,
-        source: 'secure',
-        message: result.message
-      };
-    }
+  const saved = await setRuntimeConfig(raw);
+  if (saved) {
     clearLegacyRuntimeJson();
     return {
       ok: true,
-      source: 'secure',
-      message: result.message
+      source: isElectron() ? 'secure' : 'local',
+      message: isElectron() ? undefined : '브라우저 모드에서 로컬 저장소에 저장했습니다.'
     };
   }
 

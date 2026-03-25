@@ -377,24 +377,24 @@ export default function DatasetsPage() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid var(--accent)' }}>
           <p className="metric-label">총 데이터셋</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.total}</p>
+          <p className="metric-value">{stats.total}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">현재 워크스페이스에 저장된 데이터</p>
         </div>
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid #10b981' }}>
           <p className="metric-label">분석 완료</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.analyzedCount}</p>
+          <p className="metric-value">{stats.analyzedCount}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">AI 분석 결과가 있는 데이터셋</p>
         </div>
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid #6366f1' }}>
           <p className="metric-label">표 형식 데이터</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.csvCount}</p>
+          <p className="metric-value">{stats.csvCount}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">CSV/XLSX 기반 분석 가능 데이터</p>
         </div>
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid #f59e0b' }}>
           <p className="metric-label">최근 업데이트</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.latestUpdatedAt}</p>
+          <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{stats.latestUpdatedAt}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">가장 최근 수정된 데이터셋 기준</p>
         </div>
       </section>
@@ -439,8 +439,10 @@ export default function DatasetsPage() {
                 }}
                 onDragLeave={() => setDragging(false)}
                 onDrop={onDropFile}
-                className={`flex min-h-[136px] cursor-pointer flex-col items-center justify-center rounded-[14px] border-2 border-dashed px-5 py-5 text-center transition ${
-                  dragging ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--surface-border)] bg-[var(--surface-sub)]'
+                className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed px-5 py-8 text-center transition-all ${
+                  dragging
+                    ? 'border-[var(--accent)] bg-[var(--accent-soft)] scale-[1.01]'
+                    : 'border-[var(--surface-border)] bg-[var(--surface-sub)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)]'
                 }`}
               >
                 <input
@@ -449,8 +451,14 @@ export default function DatasetsPage() {
                   className="hidden"
                   onChange={onUploadFile}
                 />
-                <p className="text-sm font-semibold text-[var(--text-strong)]">여기에 파일을 끌어다 놓으세요</p>
-                <p className="mt-2 text-xs text-[var(--text-muted)]">또는 클릭해서 CSV / XLSX / JSON / TXT 파일 선택</p>
+                <div className="text-3xl mb-3">{dragging ? '📂' : '📁'}</div>
+                <p className="text-sm font-semibold text-[var(--text-strong)]">
+                  {dragging ? '여기에 놓으세요' : '파일을 끌어다 놓거나 클릭하세요'}
+                </p>
+                <p className="mt-1.5 text-xs text-[var(--text-muted)]">CSV · XLSX · JSON · TXT 지원</p>
+                {uploadedFileName && (
+                  <p className="mt-2 text-xs font-medium text-[var(--accent)]">{uploadedFileName}</p>
+                )}
               </label>
 
               <div>
@@ -479,21 +487,37 @@ export default function DatasetsPage() {
                 {!initialLoading && filtered.length === 0 && <div className="soft-panel text-sm text-[var(--text-base)]">저장된 데이터셋이 없습니다.</div>}
                 {filtered.map((dataset) => {
                   const active = dataset.id === selectedId;
+                  const TYPE_COLORS: Record<string, string> = {
+                    CSV: '#10b981', XLSX: '#10b981', JSON: '#6366f1', TEXT: '#94a3b8'
+                  };
+                  const typeColor = TYPE_COLORS[dataset.type] || '#94a3b8';
                   return (
                     <button
                       key={dataset.id}
                       type="button"
                       onClick={() => setSelectedId(dataset.id)}
-                      className={`w-full rounded-[14px] border p-3.5 text-left transition ${
-                        active ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--surface-border)] bg-[var(--surface)] hover:bg-[var(--surface-sub)]'
+                      className={`w-full rounded-xl border p-3.5 text-left transition-all ${
+                        active ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]'
                       }`}
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-[var(--text-strong)]">{dataset.name}</p>
-                        <span className="pill-option">{dataset.type}</span>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-sm font-semibold text-[var(--text-strong)] truncate">{dataset.name}</p>
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded font-bold flex-shrink-0"
+                          style={{ backgroundColor: `${typeColor}20`, color: typeColor }}
+                        >
+                          {dataset.type}
+                        </span>
                       </div>
-                      <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(dataset.updatedAt)}</p>
-                      {dataset.notes && <p className="mt-2 line-clamp-2 text-xs leading-5 text-[var(--text-base)]">{dataset.notes}</p>}
+                      <p className="text-xs text-[var(--text-muted)]">{formatDate(dataset.updatedAt)}</p>
+                      {dataset.notes && (
+                        <p className="mt-1.5 line-clamp-2 text-xs leading-5 text-[var(--text-base)]">{dataset.notes}</p>
+                      )}
+                      {dataset.analysis && (
+                        <span className="mt-2 inline-block text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 font-medium">
+                          AI 분석 완료
+                        </span>
+                      )}
                     </button>
                   );
                 })}

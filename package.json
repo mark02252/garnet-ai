@@ -7,7 +7,7 @@
     "stop:dev": "pkill -f \"next dev -p 3000\" || true",
     "clean:cache": "chmod -R u+w .next .next-build 2>/dev/null || true; rm -rf .next .next-build node_modules/.cache || true",
     "dev": "npm run stop:dev && npm run clean:cache && npm run dev:next",
-    "dev:next": "next dev -p 3000 --turbo",
+    "dev:next": "next dev -p 3000",
     "dev:tauri": "npm run stop:dev && npm run clean:cache && tauri dev",
     "build:next": "cross-env NEXT_DIST_DIR=.next-build next build && mkdir -p .next-build/standalone/.next-build && cp -R .next-build/static .next-build/standalone/.next-build/static",
     "build": "npm run build:next && tauri build",

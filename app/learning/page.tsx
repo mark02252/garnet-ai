@@ -222,8 +222,8 @@ export default function LearningPage() {
   return (
     <div className="space-y-5">
       <section className="dashboard-hero">
-        <p className="dashboard-eyebrow">Learning Studio</p>
-        <h1 className="dashboard-title">플레이북 스튜디오</h1>
+        <p className="dashboard-eyebrow">Archive</p>
+        <h1 className="dashboard-title">플레이북</h1>
         <p className="dashboard-copy">
           과거 실행에서 재사용 가능한 응답 패턴을 카드로 관리하고, 검토 상태와 신호를 운영 관점에서 정리합니다.
         </p>
@@ -258,24 +258,24 @@ export default function LearningPage() {
       </section>
 
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid var(--accent)' }}>
           <p className="metric-label">누적 카드</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.total}</p>
+          <p className="metric-value">{stats.total}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">현재 워크스페이스의 전체 카드</p>
         </div>
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid #10b981' }}>
           <p className="metric-label">확정</p>
-          <p className="mt-2 text-base font-semibold text-emerald-700">{stats.confirmed}</p>
+          <p className="metric-value" style={{ color: '#10b981' }}>{stats.confirmed}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 카드</p>
         </div>
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid #94a3b8' }}>
           <p className="metric-label">보관</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.archived}</p>
+          <p className="metric-value">{stats.archived}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">현재 운영에서 제외된 카드</p>
         </div>
-        <div className="status-tile">
+        <div className="metric-card" style={{ borderTop: '4px solid #6366f1' }}>
           <p className="metric-label">연결 실행</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{stats.linked}</p>
+          <p className="metric-value">{stats.linked}</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">원본 실행과 연결된 카드</p>
         </div>
       </section>
@@ -295,13 +295,24 @@ export default function LearningPage() {
               <input className="input" placeholder="상황 / 응답 / 근거 검색" value={q} onChange={(e) => setQ(e.target.value)} />
             </div>
             <div className="soft-panel">
-              <label className="mb-1 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">상태</label>
-              <select className="input" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">전체 상태</option>
-                <option value="DRAFT">검토 필요</option>
-                <option value="CONFIRMED">확정됨</option>
-                <option value="ARCHIVED">보관됨</option>
-              </select>
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">상태 필터</label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { value: '', label: '전체' },
+                  { value: 'DRAFT', label: '검토 필요' },
+                  { value: 'CONFIRMED', label: '확정됨' },
+                  { value: 'ARCHIVED', label: '보관됨' },
+                ].map(opt => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={status === opt.value ? 'accent-pill text-xs' : 'pill-option text-xs'}
+                    onClick={() => setStatus(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
             {message && (
               <p className={`text-xs font-medium ${message.includes('실패') ? 'text-rose-600' : 'text-emerald-700'}`}>

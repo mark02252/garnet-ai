@@ -194,17 +194,25 @@ function StudioContent() {
     }
   }
 
+  const STATUS_BADGE_STYLE: Record<string, string> = {
+    PUBLISHED: 'bg-emerald-100 text-emerald-700',
+    SCHEDULED: 'bg-blue-100 text-blue-700',
+    DRAFT: 'bg-amber-100 text-amber-700',
+  }
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+      {/* Hero */}
+      <section className="dashboard-hero">
         <div>
-          <p className="dashboard-eyebrow">SNS 스튜디오</p>
+          <p className="dashboard-eyebrow">SNS Studio</p>
           <h1 className="dashboard-title">콘텐츠 제작소</h1>
+          <p className="dashboard-copy">AI가 페르소나 스타일에 맞는 SNS 콘텐츠를 즉시 생성합니다.</p>
         </div>
-      </div>
+      </section>
 
       {/* 생성 패널 */}
-      <div className="card mb-6 space-y-4">
+      <div className="soft-card space-y-4">
         <div className="flex gap-3 flex-wrap">
           <select className="input" value={personaId} onChange={e => setPersonaId(e.target.value)}>
             <option value="">페르소나 없음</option>
@@ -247,12 +255,12 @@ function StudioContent() {
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
               {filteredTemplates.map(tpl => (
                 <button key={tpl.id} onClick={() => selectTemplate(tpl)}
-                  className="text-left p-3 rounded-lg border border-[var(--border)] bg-[var(--bg-secondary)] hover:border-[var(--accent)] hover:bg-[var(--bg-tertiary)] transition-colors">
-                  <p className="text-sm font-medium mb-1">{tpl.name}</p>
-                  <p className="text-xs text-[var(--text-muted)] line-clamp-2">{tpl.promptTemplate}</p>
-                  <div className="flex items-center gap-2 mt-2">
+                  className="text-left p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] hover:shadow-sm transition-all">
+                  <p className="text-sm font-semibold text-[var(--text-strong)] mb-1">{tpl.name}</p>
+                  <p className="text-xs text-[var(--text-muted)] line-clamp-2 mb-2">{tpl.promptTemplate}</p>
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="accent-pill text-xs">{tpl.type === 'TEXT' ? '텍스트' : '카드뉴스'}</span>
-                    <span className="text-xs text-[var(--text-muted)]">{CATEGORY_LABELS[tpl.category] || tpl.category}</span>
+                    <span className="pill-option text-xs">{CATEGORY_LABELS[tpl.category] || tpl.category}</span>
                   </div>
                 </button>
               ))}
@@ -296,10 +304,11 @@ function StudioContent() {
       </div>
 
       {/* 상태 필터 */}
-      <div className="flex gap-1 mb-4">
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <span className="text-xs font-semibold text-[var(--text-muted)] flex items-center">상태:</span>
         {STATUS_FILTERS.map(f => (
           <button key={f.key} onClick={() => setStatusFilter(f.key)}
-            className={`pill-option ${statusFilter === f.key ? 'bg-[var(--accent)] text-white' : ''}`}>
+            className={statusFilter === f.key ? 'accent-pill text-xs' : 'pill-option text-xs'}>
             {f.label}
           </button>
         ))}
@@ -307,7 +316,11 @@ function StudioContent() {
 
       {/* 초안 목록 */}
       {filteredDrafts.length === 0 ? (
-        <EmptyState icon="✏️" title="콘텐츠가 없습니다" actionLabel="첫 콘텐츠 만들기" />
+        <div className="soft-card text-center py-16">
+          <div className="text-5xl mb-4">✏️</div>
+          <p className="text-lg font-semibold text-[var(--text-strong)] mb-2">콘텐츠가 없습니다</p>
+          <p className="text-sm text-[var(--text-muted)]">위 폼에서 첫 콘텐츠를 만들어보세요.</p>
+        </div>
       ) : (
       <div className="space-y-3">
         {filteredDrafts.map(d => {
@@ -317,18 +330,26 @@ function StudioContent() {
             : d.content
               ? d.content.length > 60 ? d.content.slice(0, 60) + '…' : d.content
               : null
+          const statusStyle = STATUS_BADGE_STYLE[d.status] || 'bg-[var(--surface-sub)] text-[var(--text-muted)]'
+          const statusLabel: Record<string, string> = { PUBLISHED: '발행됨', SCHEDULED: '예약됨', DRAFT: '초안' }
           return (
-            <div key={d.id} className="card flex items-start gap-4">
+            <div key={d.id} className="soft-card flex items-start gap-4">
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
+                <div className="flex items-center gap-2 mb-2 flex-wrap">
                   <span className="accent-pill text-xs">{d.type === 'TEXT' ? '텍스트' : '카드뉴스'}</span>
-                  {d.persona && <span className="text-xs text-[var(--text-muted)]">{d.persona.name}</span>}
-                  <span className={`text-xs ${d.status === 'PUBLISHED' ? 'text-emerald-600' : 'text-[var(--text-muted)]'}`}>{d.status}</span>
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${statusStyle}`}>
+                    {statusLabel[d.status] || d.status}
+                  </span>
+                  {d.persona && (
+                    <span className="text-xs text-[var(--text-muted)] bg-[var(--surface-sub)] px-2 py-0.5 rounded-full">
+                      {d.persona.name}
+                    </span>
+                  )}
                 </div>
-                <p className="text-sm font-medium truncate">{d.title || '제목 없음'}</p>
+                <p className="text-sm font-semibold text-[var(--text-strong)] truncate">{d.title || '제목 없음'}</p>
                 {preview && <p className="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{preview}</p>}
               </div>
-              <div className="flex gap-2 shrink-0">
+              <div className="flex gap-2 shrink-0 flex-wrap justify-end">
                 <button className="button-secondary text-xs" onClick={() => router.push(`/sns/studio/${d.id}`)}>편집</button>
                 {(d.status === 'DRAFT' || d.status === 'SCHEDULED') && (
                   <button className="button-primary text-xs" disabled={publishingId === d.id}

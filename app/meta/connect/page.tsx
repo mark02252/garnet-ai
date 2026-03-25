@@ -44,6 +44,14 @@ function MetaConnectContent() {
   const [accounts, setAccounts] = useState<ExchangeResponse['accounts']>([]);
   const [loginMode, setLoginMode] = useState<'instagram_login' | 'meta_business'>('instagram_login');
 
+  // 개발 모드: https://localhost → http://localhost 자동 리다이렉트
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && window.location.hostname === 'localhost') {
+      window.location.href = window.location.href.replace('https://', 'http://');
+      return;
+    }
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 

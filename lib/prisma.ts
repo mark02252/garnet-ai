@@ -6,27 +6,28 @@ declare global {
   var prismaGlobal: PrismaClient | undefined;
 }
 
+// Vercel 서버리스 환경에서 DATABASE_URL이 없으면 DB 기능 비활성화
+const hasDatabase = Boolean(process.env.DATABASE_URL);
+
 type PrismaWithBootstrap = PrismaClient & { __bootstrapMiddlewareAttached?: boolean };
 
 let bootstrapPromise: Promise<void> | null = null;
 let bootstrapDone = false;
 
-const prismaClient =
-  (global.prismaGlobal ||
-    new PrismaClient({
-      datasourceUrl: (() => {
-        const url = process.env.DATABASE_URL;
-        if (!url) return undefined;
-        if (url.startsWith('file:./')) {
-          const relative = url.replace('file:./', '');
-          // Prisma CLI resolves file:. relative to schema dir (prisma/)
-          // so we match that convention here
-          return `file:${path.join(process.cwd(), 'prisma', relative)}`;
-        }
-        return url;
-      })(),
-      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
-    })) as PrismaWithBootstrap;
+const prismaClient = hasDatabase
+  ? ((global.prismaGlobal ||
+      new PrismaClient({
+        datasourceUrl: (() => {
+          const url = process.env.DATABASE_URL!;
+          if (url.startsWith('file:./')) {
+            const relative = url.replace('file:./', '');
+            return `file:${path.join(process.cwd(), 'prisma', relative)}`;
+          }
+          return url;
+        })(),
+        log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error']
+      })) as PrismaWithBootstrap)
+  : (null as unknown as PrismaWithBootstrap);
 
 async function ensureBaseTables(client: PrismaClient) {
   if (bootstrapDone) return;
@@ -275,7 +276,7 @@ async function ensureBaseTables(client: PrismaClient) {
   }
 }
 
-if (!prismaClient.__bootstrapMiddlewareAttached) {
+if (prismaClient && !prismaClient.__bootstrapMiddlewareAttached) {
   prismaClient.$use(async (params, next) => {
     if (params.model && !bootstrapDone) {
       await ensureBaseTables(prismaClient);
@@ -286,7 +287,8 @@ if (!prismaClient.__bootstrapMiddlewareAttached) {
 }
 
 export const prisma = prismaClient;
+export { hasDatabase };
 
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && prismaClient) {
   global.prismaGlobal = prismaClient;
 }

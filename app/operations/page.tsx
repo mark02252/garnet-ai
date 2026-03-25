@@ -459,24 +459,24 @@ export default async function OperationsPage() {
       <section id="overview" className="scroll-mt-24">
         <CollapsibleSection title="상태 요약" defaultOpen={true}>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid #f43f5e' }}>
               <p className="metric-label">즉시 대응</p>
-              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{priorities.length || 1}건</p>
+              <p className="metric-value">{priorities.length || 1}건</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">오늘 바로 열어봐야 할 우선순위</p>
             </div>
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid #f59e0b' }}>
               <p className="metric-label">승인 대기</p>
-              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{approvalQueue.length}건</p>
+              <p className="metric-value">{approvalQueue.length}건</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">보고서, 플레이북, 분석 전환 대기</p>
             </div>
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid var(--accent)' }}>
               <p className="metric-label">진행 중 흐름</p>
-              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
+              <p className="metric-value">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">실행 후 아직 마무리되지 않은 트랙</p>
             </div>
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid #10b981' }}>
               <p className="metric-label">누적 플레이북</p>
-              <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{confirmedLearning}개</p>
+              <p className="metric-value">{confirmedLearning}개</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 확정 자산</p>
             </div>
           </div>
@@ -507,23 +507,31 @@ export default async function OperationsPage() {
           <section id="campaigns" className="scroll-mt-24">
             <CollapsibleSection title="오늘 먼저 볼 일" defaultOpen={true} badge={<span className="accent-pill">{priorities.length || 1} items</span>}>
               {priorities.length === 0 ? (
-                <div className="surface-note">
-                  <strong>긴급 병목은 크지 않습니다.</strong> 오늘은 최신 실행을 보고서와 플레이북으로 정리하는 자산화 작업에 집중해도 좋습니다.
+                <div className="soft-card" style={{ borderLeft: '4px solid #10b981' }}>
+                  <strong className="text-emerald-700">긴급 병목은 크지 않습니다.</strong>
+                  <p className="mt-1 text-sm text-[var(--text-base)]">오늘은 최신 실행을 보고서와 플레이북으로 정리하는 자산화 작업에 집중해도 좋습니다.</p>
                 </div>
               ) : (
                 <div className="grid gap-3 md:grid-cols-2">
-                  {priorities.map((item) => (
-                    <Link key={item.title} href={item.href} className="list-card block">
-                      <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-3 py-1 text-[11px] font-semibold text-[var(--text-base)]">
-                        {item.tag}
-                      </span>
-                      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
-                      <span className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.18)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
-                        {item.cta}
-                      </span>
-                    </Link>
-                  ))}
+                  {priorities.map((item, i) => {
+                    const priorityColors = ['#f43f5e', '#f59e0b', 'var(--accent)', '#6366f1'];
+                    const borderColor = priorityColors[i % priorityColors.length];
+                    return (
+                      <Link key={item.title} href={item.href} className="list-card block" style={{ borderLeft: `4px solid ${borderColor}` }}>
+                        <span
+                          className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold"
+                          style={{ backgroundColor: `${borderColor}20`, color: borderColor }}
+                        >
+                          {item.tag}
+                        </span>
+                        <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
+                        <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
+                        <span className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.18)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
+                          {item.cta}
+                        </span>
+                      </Link>
+                    );
+                  })}
                 </div>
               )}
             </CollapsibleSection>

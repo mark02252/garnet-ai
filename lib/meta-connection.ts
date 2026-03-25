@@ -1,8 +1,6 @@
 export const INSTAGRAM_LOGIN_SCOPES = [
-  'instagram_basic',
-  'instagram_manage_insights',
-  'pages_show_list',
-  'pages_read_engagement',
+  'instagram_business_basic',
+  'instagram_business_manage_insights',
   'instagram_manage_comments',
   'instagram_content_publish'
 ] as const;
@@ -148,22 +146,20 @@ export function buildInstagramConnectionOAuthUrl(
   draft: Pick<MetaConnectionDraft, 'appId' | 'redirectUri' | 'graphApiVersion' | 'scopes' | 'loginMode'>,
   state: string
 ) {
-  const appId = draft.appId.trim();
+  const appId = draft.appId.trim() || (typeof process !== 'undefined' ? process.env.META_APP_ID ?? '' : '');
   const redirectUri = draft.redirectUri.trim();
   if (!appId || !redirectUri) return '';
 
   if (draft.loginMode === 'instagram_login') {
     const params = new URLSearchParams({
       client_id: appId,
-      display: 'page',
-      extras: JSON.stringify({ setup: { channel: 'IG_API_ONBOARDING' } }),
       redirect_uri: redirectUri,
-      response_type: 'token',
+      response_type: 'code',
       scope: draft.scopes.join(','),
       state
     });
 
-    return `https://www.facebook.com/dialog/oauth?${params.toString()}`;
+    return `https://api.instagram.com/oauth/authorize?${params.toString()}`;
   }
 
   const params = new URLSearchParams({

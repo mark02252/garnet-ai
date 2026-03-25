@@ -32,16 +32,14 @@ function pct(current: number, target: number) {
 }
 
 function progressTone(p: number) {
-  if (p >= 100) return 'bg-emerald-500';
-  if (p >= 70) return 'bg-[var(--accent)]';
-  if (p >= 40) return 'bg-amber-400';
+  if (p >= 80) return 'bg-emerald-500';
+  if (p >= 30) return 'bg-amber-400';
   return 'bg-rose-400';
 }
 
 function progressTextTone(p: number) {
-  if (p >= 100) return 'text-emerald-700';
-  if (p >= 70) return 'text-[var(--accent)]';
-  if (p >= 40) return 'text-amber-600';
+  if (p >= 80) return 'text-emerald-700';
+  if (p >= 30) return 'text-amber-600';
   return 'text-rose-600';
 }
 

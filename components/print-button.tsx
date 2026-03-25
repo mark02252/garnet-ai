@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { isElectron } from '@/lib/platform';
 
 type PrintButtonProps = {
   suggestedName?: string;
@@ -20,8 +21,8 @@ export function PrintButton({ suggestedName }: PrintButtonProps) {
           : parts[0] === 'runs' && parts[1]
             ? `run-${parts[1]}-report.pdf`
             : 'report.pdf');
-      if (window.electronAPI?.savePdfReport) {
-        const result = await window.electronAPI.savePdfReport(derivedName);
+      if (isElectron() && (window as any).electronAPI?.savePdfReport) {
+        const result = await (window as any).electronAPI.savePdfReport(derivedName);
         if (result.ok) {
           setMessage(`저장됨: ${result.path || derivedName}`);
           return;
@@ -30,8 +31,9 @@ export function PrintButton({ suggestedName }: PrintButtonProps) {
           setMessage('저장이 취소되었습니다.');
           return;
         }
+      } else {
+        window.print();
       }
-      window.print();
     } catch {
       setMessage('PDF 저장에 실패했습니다. 다시 시도해 주세요.');
     }

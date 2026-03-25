@@ -1,6 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Cell,
+  LabelList
+} from 'recharts';
 
 type DailyTraffic = {
   date: string;
@@ -35,6 +48,36 @@ type AiInsight = {
 };
 
 type DateRange = '7daysAgo' | '14daysAgo' | '30daysAgo';
+
+type EngagementMetrics = {
+  date: string;
+  engagementRate: number;
+  bounceRate: number;
+  averageSessionDuration: number;
+  screenPageViewsPerSession: number;
+  sessionsPerUser: number;
+};
+
+type DeviceBreakdown = {
+  deviceCategory: string;
+  sessions: number;
+  activeUsers: number;
+  engagementRate: number;
+  bounceRate: number;
+};
+
+type GeoBreakdown = {
+  country: string;
+  activeUsers: number;
+  sessions: number;
+};
+
+type LandingPage = {
+  landingPage: string;
+  sessions: number;
+  bounceRate: number;
+  engagementRate: number;
+};
 
 // ── Demo data ──
 
@@ -107,9 +150,20 @@ export default function AnalyticsPage() {
   const [isDemo, setIsDemo] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('30daysAgo');
 
+  // Advanced metric states
+  const [engagement, setEngagement] = useState<EngagementMetrics[]>([]);
+  const [engagementLoading, setEngagementLoading] = useState(false);
+  const [devices, setDevices] = useState<DeviceBreakdown[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [geo, setGeo] = useState<GeoBreakdown[]>([]);
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
+  const [landingPagesLoading, setLandingPagesLoading] = useState(false);
+
   useEffect(() => {
     fetchData();
     fetchRealtime();
+    fetchAdvancedMetrics();
     const interval = setInterval(fetchRealtime, 60_000);
     return () => clearInterval(interval);
   }, [dateRange]);
@@ -150,6 +204,38 @@ export default function AnalyticsPage() {
       const data = await res.json();
       if (!data.error) setRealtimeUsers(data.activeUsers);
     } catch { /* silent */ }
+  }
+
+  async function fetchAdvancedMetrics() {
+    const params = `startDate=${dateRange}&endDate=today`;
+
+    setEngagementLoading(true);
+    fetch(`/api/ga4/engagement?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.configured && d.data) setEngagement(d.data); })
+      .catch(() => {})
+      .finally(() => setEngagementLoading(false));
+
+    setDevicesLoading(true);
+    fetch(`/api/ga4/devices?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.configured && d.data) setDevices(d.data); })
+      .catch(() => {})
+      .finally(() => setDevicesLoading(false));
+
+    setGeoLoading(true);
+    fetch(`/api/ga4/geo?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.configured && d.data) setGeo(d.data); })
+      .catch(() => {})
+      .finally(() => setGeoLoading(false));
+
+    setLandingPagesLoading(true);
+    fetch(`/api/ga4/landing-pages?${params}`)
+      .then(r => r.json())
+      .then(d => { if (d.configured && d.data) setLandingPages(d.data); })
+      .catch(() => {})
+      .finally(() => setLandingPagesLoading(false));
   }
 
   async function runAiAnalysis() {
@@ -370,6 +456,193 @@ export default function AnalyticsPage() {
               </p>
             )}
           </div>
+
+          {/* ── Section A: 참여도 트렌드 ── */}
+          {!isDemo && (engagementLoading || engagement.length > 0) && (
+            <div className="bg-[var(--surface)] rounded-xl p-5 border border-[var(--surface-border)]">
+              <h2 className="text-sm font-semibold text-[var(--text-strong)] mb-4">참여도 트렌드</h2>
+              {engagementLoading ? (
+                <div className="text-center py-10 text-[var(--text-muted)] text-sm">데이터를 불러오는 중...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={240}>
+                  <LineChart data={engagement.map(d => ({
+                    ...d,
+                    date: `${d.date.slice(4, 6)}/${d.date.slice(6, 8)}`,
+                    engagementRatePct: Math.round(d.engagementRate * 100),
+                    bounceRatePct: Math.round(d.bounceRate * 100)
+                  }))}>
+                    <XAxis
+                      dataKey="date"
+                      tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                      interval={Math.floor(engagement.length / 6)}
+                    />
+                    <YAxis
+                      yAxisId="left"
+                      domain={[0, 100]}
+                      tick={{ fontSize: 10, fill: 'var(--text-muted)' }}
+                      tickFormatter={(v) => `${v}%`}
+                    />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, background: 'var(--surface)', border: '1px solid var(--surface-border)' }}
+                      formatter={(value: number, name: string) => [`${value}%`, name]}
+                    />
+                    <Legend wrapperStyle={{ fontSize: 12 }} />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="engagementRatePct"
+                      name="참여율"
+                      stroke="var(--accent)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                    <Line
+                      yAxisId="left"
+                      type="monotone"
+                      dataKey="bounceRatePct"
+                      name="이탈율"
+                      stroke="var(--status-failed)"
+                      strokeWidth={2}
+                      dot={false}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+
+          {/* ── Section B: 디바이스 분포 ── */}
+          {!isDemo && (devicesLoading || devices.length > 0) && (
+            <div className="bg-[var(--surface)] rounded-xl p-5 border border-[var(--surface-border)]">
+              <h2 className="text-sm font-semibold text-[var(--text-strong)] mb-4">디바이스 분포</h2>
+              {devicesLoading ? (
+                <div className="text-center py-10 text-[var(--text-muted)] text-sm">데이터를 불러오는 중...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(120, devices.length * 52)}>
+                  <BarChart
+                    layout="vertical"
+                    data={devices.map(d => ({
+                      ...d,
+                      name: d.deviceCategory === 'desktop' ? '데스크탑' : d.deviceCategory === 'mobile' ? '모바일' : d.deviceCategory === 'tablet' ? '태블릿' : d.deviceCategory,
+                      engPct: Math.round(d.engagementRate * 100)
+                    }))}
+                    margin={{ left: 60, right: 60 }}
+                  >
+                    <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                    <YAxis type="category" dataKey="name" tick={{ fontSize: 12, fill: 'var(--text-base)' }} width={56} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, background: 'var(--surface)', border: '1px solid var(--surface-border)' }}
+                      formatter={(value: number, name: string) => [value.toLocaleString(), name]}
+                    />
+                    <Bar dataKey="sessions" name="세션" fill="var(--accent)" radius={[0, 4, 4, 0]} opacity={0.85}>
+                      <LabelList
+                        dataKey="engPct"
+                        position="right"
+                        formatter={(v: number) => `참여율 ${v}%`}
+                        style={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                      />
+                      {devices.map((_, index) => (
+                        <Cell key={index} fill={index % 2 === 0 ? 'var(--accent)' : 'var(--status-active)'} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+
+          {/* ── Section C: 상위 국가 ── */}
+          {!isDemo && (geoLoading || geo.length > 0) && (
+            <div className="bg-[var(--surface)] rounded-xl p-5 border border-[var(--surface-border)]">
+              <h2 className="text-sm font-semibold text-[var(--text-strong)] mb-4">상위 국가</h2>
+              {geoLoading ? (
+                <div className="text-center py-10 text-[var(--text-muted)] text-sm">데이터를 불러오는 중...</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={Math.max(160, geo.length * 36)}>
+                  <BarChart
+                    layout="vertical"
+                    data={geo}
+                    margin={{ left: 100, right: 60 }}
+                  >
+                    <XAxis type="number" tick={{ fontSize: 10, fill: 'var(--text-muted)' }} />
+                    <YAxis type="category" dataKey="country" tick={{ fontSize: 11, fill: 'var(--text-base)' }} width={96} />
+                    <Tooltip
+                      contentStyle={{ fontSize: 12, background: 'var(--surface)', border: '1px solid var(--surface-border)' }}
+                      formatter={(value: number) => [value.toLocaleString(), '활성 사용자']}
+                    />
+                    <Bar dataKey="activeUsers" name="활성 사용자" fill="var(--status-paused)" radius={[0, 4, 4, 0]} opacity={0.85}>
+                      <LabelList
+                        dataKey="activeUsers"
+                        position="right"
+                        formatter={(v: number) => v.toLocaleString()}
+                        style={{ fontSize: 11, fill: 'var(--text-muted)' }}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
+            </div>
+          )}
+
+          {/* ── Section D: 랜딩 페이지 성과 ── */}
+          {!isDemo && (landingPagesLoading || landingPages.length > 0) && (
+            <div className="bg-[var(--surface)] rounded-xl p-5 border border-[var(--surface-border)]">
+              <h2 className="text-sm font-semibold text-[var(--text-strong)] mb-4">랜딩 페이지 성과</h2>
+              {landingPagesLoading ? (
+                <div className="text-center py-10 text-[var(--text-muted)] text-sm">데이터를 불러오는 중...</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--surface-border)]">
+                        <th className="text-left py-2 px-2 text-xs font-semibold text-[var(--text-muted)]">페이지</th>
+                        <th className="text-right py-2 px-2 text-xs font-semibold text-[var(--text-muted)]">세션</th>
+                        <th className="text-right py-2 px-2 text-xs font-semibold text-[var(--text-muted)]">이탈율</th>
+                        <th className="text-right py-2 px-2 text-xs font-semibold text-[var(--text-muted)]">참여율</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {landingPages.map((lp, i) => (
+                        <tr
+                          key={i}
+                          className="border-b border-[var(--surface-border)] last:border-0 hover:bg-[var(--surface-sub)] transition-colors"
+                        >
+                          <td className="py-2 px-2 text-[var(--text-base)] max-w-[300px] truncate font-mono text-xs">
+                            {lp.landingPage}
+                          </td>
+                          <td className="py-2 px-2 text-right text-[var(--text-base)] font-medium">
+                            {lp.sessions.toLocaleString()}
+                          </td>
+                          <td className="py-2 px-2 text-right">
+                            <span
+                              className="text-xs font-medium px-1.5 py-0.5 rounded"
+                              style={{
+                                background: lp.bounceRate > 0.6 ? 'var(--status-failed-bg, #fee2e2)' : lp.bounceRate > 0.4 ? 'var(--accent-soft)' : 'var(--status-active-bg)',
+                                color: lp.bounceRate > 0.6 ? 'var(--status-failed)' : lp.bounceRate > 0.4 ? 'var(--accent)' : 'var(--status-active)'
+                              }}
+                            >
+                              {Math.round(lp.bounceRate * 100)}%
+                            </span>
+                          </td>
+                          <td className="py-2 px-2 text-right">
+                            <span
+                              className="text-xs font-medium px-1.5 py-0.5 rounded"
+                              style={{
+                                background: lp.engagementRate > 0.6 ? 'var(--status-active-bg)' : lp.engagementRate > 0.4 ? 'var(--accent-soft)' : 'var(--status-failed-bg, #fee2e2)',
+                                color: lp.engagementRate > 0.6 ? 'var(--status-active)' : lp.engagementRate > 0.4 ? 'var(--accent)' : 'var(--status-failed)'
+                              }}
+                            >
+                              {Math.round(lp.engagementRate * 100)}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
     </div>

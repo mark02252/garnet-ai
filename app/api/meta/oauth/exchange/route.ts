@@ -139,9 +139,12 @@ async function exchangeInstagramLogin(input: {
   graphApiVersion: string;
   code: string;
 }) {
+  const effectiveAppId = input.appId || process.env.META_APP_ID || '';
+  const effectiveAppSecret = input.appSecret || process.env.META_APP_SECRET || '';
+
   const body = new URLSearchParams({
-    client_id: input.appId,
-    client_secret: input.appSecret,
+    client_id: effectiveAppId,
+    client_secret: effectiveAppSecret,
     grant_type: 'authorization_code',
     redirect_uri: input.redirectUri,
     code: input.code

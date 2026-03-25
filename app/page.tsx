@@ -808,29 +808,43 @@ export default function HomePage() {
               {!canSearchTest && (
                 <p className="text-xs text-amber-700">웹서치 점검은 주제와 Search API 키가 준비되면 사용할 수 있습니다.</p>
               )}
-              {!hasLlmKey && (
+                      {!hasLlmKey && (
                 <p className="text-xs text-amber-700">LLM 키 또는 모델이 없어 실행할 수 없습니다. 설정 화면에서 연결을 먼저 확인해 주세요.</p>
               )}
-              {notice && <p className="rounded-[20px] bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
-              {error && <p className="rounded-[20px] bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</p>}
+              {/* Readiness check */}
+              <div className="flex flex-wrap gap-2">
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${hasLlmKey ? 'bg-emerald-100 text-emerald-700' : 'bg-rose-100 text-rose-700'}`}>
+                  LLM {hasLlmKey ? '연결됨' : '미연결'}
+                </span>
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${hasSearchKey ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                  Search {hasSearchKey ? '연결됨' : '미연결'}
+                </span>
+                <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${canRun ? 'bg-blue-100 text-blue-700' : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'}`}>
+                  브리프 {canRun ? '준비됨' : '필요'}
+                </span>
+              </div>
+              {notice && <p className="rounded-2xl bg-emerald-50 border border-emerald-200 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
+              {error && <p className="rounded-2xl bg-rose-50 border border-rose-200 px-4 py-3 text-sm text-rose-700">{error}</p>}
             </div>
 
             {(loading || runProgress?.status === 'FAILED') && (
-              <div className="panel space-y-4">
+              <div className="soft-card space-y-4" style={{ borderLeft: '4px solid var(--accent)' }}>
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="section-title">실시간 실행 현황</p>
                   <div className="flex items-center gap-2">
-                    <span className="accent-pill">{loading ? 'RUNNING' : runProgress?.status || 'IDLE'}</span>
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-semibold ${loading ? 'bg-blue-100 text-blue-700' : 'bg-rose-100 text-rose-700'}`}>
+                      {loading ? 'RUNNING' : runProgress?.status || 'IDLE'}
+                    </span>
                     {activeRunId && (
                       <span className="pill-option">Run {activeRunId.slice(0, 8)}</span>
                     )}
                   </div>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-border)]">
+                <div className="h-2.5 overflow-hidden rounded-full bg-[var(--surface-border)]">
                   <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500" style={{ width: `${Math.max(0, Math.min(100, runProgressPct))}%` }} />
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-[var(--text-muted)]">
-                  <p>{runProgressPct}% · {runStepLabel}</p>
+                  <p className="font-medium">{runProgressPct}% · {runStepLabel}</p>
                   <p>경과시간 {formatElapsed(elapsedSec)}</p>
                 </div>
               </div>

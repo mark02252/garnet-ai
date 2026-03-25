@@ -60,6 +60,7 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@tauri-apps/cli": "^2.10.1",
     "@types/fluent-ffmpeg": "^2.1.28",
     "@types/node": "^22.13.4",
     "@types/react": "^19.0.8",

@@ -18,7 +18,7 @@ type BestTime = { day: string; hour: string; count: number }
 type Draft = { id: string; title: string | null; personaId: string | null }
 
 const STATUS_COLOR: Record<string, string> = {
-  PENDING: 'bg-[var(--accent)]',
+  PENDING: 'bg-blue-500',
   PUBLISHED: 'bg-emerald-500',
   FAILED: 'bg-rose-500',
   MISSED: 'bg-amber-400',
@@ -416,55 +416,78 @@ function CalendarContent() {
     )
   }
 
+  // Status legend colors with labels
+  const STATUS_LEGEND = [
+    { key: 'PENDING', label: '예약됨', color: 'var(--accent)' },
+    { key: 'PUBLISHED', label: '발행완료', color: '#10b981' },
+    { key: 'FAILED', label: '실패', color: '#f43f5e' },
+    { key: 'MISSED', label: '미발행', color: '#f59e0b' },
+  ]
+
   return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <p className="dashboard-eyebrow">SNS 스튜디오</p>
-          <h1 className="dashboard-title">콘텐츠 캘린더</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          {/* Smart schedule toggle */}
-          <button
-            className={`px-3 py-1 text-xs rounded border ${smartScheduleMode ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--surface-sub)] text-[var(--text-muted)] border-[var(--surface-border)]'}`}
-            onClick={() => {
-              setSmartScheduleMode(m => !m)
-              setSmartSelectedDraftIds(new Set())
-              setSmartPreview([])
-            }}
-          >
-            스마트 예약
-          </button>
-          {/* View mode toggle */}
-          <div className="flex rounded overflow-hidden border border-[var(--surface-border)]">
-            <button
-              className={`px-3 py-1 text-xs ${viewMode === 'month' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'}`}
-              onClick={() => setViewMode('month')}
-            >
-              월간
-            </button>
-            <button
-              className={`px-3 py-1 text-xs ${viewMode === 'week' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'}`}
-              onClick={() => setViewMode('week')}
-            >
-              주간
-            </button>
+    <div className="p-6 max-w-5xl mx-auto space-y-5">
+      {/* Hero */}
+      <section className="dashboard-hero">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="dashboard-eyebrow">SNS Studio</p>
+            <h1 className="dashboard-title">콘텐츠 캘린더</h1>
+            <p className="dashboard-copy">예약된 게시물을 월간/주간으로 한눈에 관리합니다.</p>
           </div>
-          {/* Month navigation (visible in month mode) */}
-          {viewMode === 'month' && (
-            <div className="flex items-center gap-2">
-              <button className="button-secondary" onClick={() => { if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1) }}>‹</button>
-              <span className="font-medium">{year}년 {month}월</span>
-              <button className="button-secondary" onClick={() => { if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1) }}>›</button>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            {/* Smart schedule toggle */}
+            <button
+              className={smartScheduleMode ? 'accent-pill text-xs' : 'pill-option text-xs'}
+              onClick={() => {
+                setSmartScheduleMode(m => !m)
+                setSmartSelectedDraftIds(new Set())
+                setSmartPreview([])
+              }}
+            >
+              스마트 예약
+            </button>
+            {/* View mode toggle */}
+            <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
+              <button
+                className={`px-4 py-1.5 text-xs font-semibold ${viewMode === 'month' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'}`}
+                onClick={() => setViewMode('month')}
+              >
+                월간
+              </button>
+              <button
+                className={`px-4 py-1.5 text-xs font-semibold ${viewMode === 'week' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'}`}
+                onClick={() => setViewMode('week')}
+              >
+                주간
+              </button>
             </div>
-          )}
+            {/* Month navigation (visible in month mode) */}
+            {viewMode === 'month' && (
+              <div className="flex items-center gap-2">
+                <button className="button-secondary text-xs" onClick={() => { if (month === 1) { setMonth(12); setYear(y => y - 1) } else setMonth(m => m - 1) }}>‹</button>
+                <span className="text-sm font-semibold text-[var(--text-strong)]">{year}년 {month}월</span>
+                <button className="button-secondary text-xs" onClick={() => { if (month === 12) { setMonth(1); setYear(y => y + 1) } else setMonth(m => m + 1) }}>›</button>
+              </div>
+            )}
+          </div>
         </div>
+      </section>
+
+      {/* Status legend */}
+      <div className="soft-card flex flex-wrap items-center gap-4 py-3">
+        <span className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">상태</span>
+        {STATUS_LEGEND.map(s => (
+          <div key={s.key} className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-sm flex-shrink-0" style={{ backgroundColor: s.color }} />
+            <span className="text-xs text-[var(--text-base)]">{s.label}</span>
+          </div>
+        ))}
       </div>
 
       {/* Smart Bulk Schedule Panel */}
       {smartScheduleMode && (
-        <div className="card mb-4">
-          <h3 className="text-sm font-semibold mb-3">스마트 예약 — 미예약 초안 선택</h3>
+        <div className="soft-card">
+          <h3 className="section-title mb-4">스마트 예약 — 미예약 초안 선택</h3>
           {unscheduledDrafts.length === 0 ? (
             <p className="text-sm text-[var(--text-muted)]">미예약 초안이 없습니다.</p>
           ) : (
@@ -528,7 +551,8 @@ function CalendarContent() {
 
       {/* 예약 폼 */}
       {(schedulingDraftId || searchParams.get('draftId')) && (
-        <div className="card mb-4">
+        <div className="soft-card">
+          <p className="section-title mb-4">예약 설정</p>
           <div className="flex items-end gap-3 flex-wrap">
             <div>
               <label className="text-xs text-[var(--text-muted)] block mb-1">초안 선택</label>

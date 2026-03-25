@@ -188,53 +188,61 @@ export default function DashboardPage() {
   return (
     <ErrorBoundary>
     <div className="p-6 space-y-6 max-w-[1200px] mx-auto">
-      <div className="flex items-baseline justify-between">
-        <div>
-          <p className="dashboard-eyebrow">Garnet</p>
-          <h1 className="dashboard-title">마케팅 대시보드</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
-            {([7, 30, 90] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                  days === d
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'bg-[var(--surface-sub)] text-[var(--text-muted)] hover:text-[var(--text-strong)]'
-                }`}
-                onClick={() => setDays(d)}
-              >
-                {d}일
-              </button>
-            ))}
+      {/* Hero Header */}
+      <section className="dashboard-hero">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="dashboard-eyebrow">Dashboard</p>
+            <h1 className="dashboard-title">마케팅 대시보드</h1>
+            <p className="dashboard-copy">채널 성과와 예약 현황을 한눈에 파악합니다.</p>
           </div>
-          {syncMessage && <p className="text-xs text-[var(--accent)]">{syncMessage}</p>}
-          <p className="text-xs text-[var(--text-muted)]">
-            마지막 동기화: {formatSyncTime(data.lastSyncAt)}
-          </p>
-          <button
-            type="button"
-            className="button-secondary text-xs"
-            onClick={() => void handleSync()}
-            disabled={syncing}
-          >
-            {syncing ? '동기화 중...' : '동기화'}
-          </button>
+          <div className="flex flex-wrap items-center gap-3 mt-2">
+            <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
+              {([7, 30, 90] as const).map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  className={`px-4 py-1.5 text-xs font-semibold transition-colors ${
+                    days === d
+                      ? 'bg-[var(--accent)] text-white'
+                      : 'bg-[var(--surface-sub)] text-[var(--text-muted)] hover:text-[var(--text-strong)]'
+                  }`}
+                  onClick={() => setDays(d)}
+                >
+                  {d}일
+                </button>
+              ))}
+            </div>
+            {syncMessage && (
+              <span className="text-xs font-medium text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-1 rounded-full">
+                {syncMessage}
+              </span>
+            )}
+            <p className="text-xs text-[var(--text-muted)]">
+              마지막 동기화: {formatSyncTime(data.lastSyncAt)}
+            </p>
+            <button
+              type="button"
+              className="button-secondary text-xs"
+              onClick={() => void handleSync()}
+              disabled={syncing}
+            >
+              {syncing ? '동기화 중...' : '동기화'}
+            </button>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* Performance anomaly alerts */}
       {data.alerts && data.alerts.length > 0 && (
         <div className="space-y-2">
           {data.alerts.map((alert, i) => (
-            <div key={i} className={`panel flex items-start gap-3 ${
+            <div key={i} className={`soft-card flex items-start gap-3 ${
               alert.type === 'warning' ? 'border-l-4 border-rose-500' :
               alert.type === 'success' ? 'border-l-4 border-emerald-500' :
               'border-l-4 border-[var(--accent)]'
             }`}>
-              <span>{alert.type === 'warning' ? '\u26a0\ufe0f' : alert.type === 'success' ? '\ud83c\udf89' : '\u2139\ufe0f'}</span>
+              <span className="text-base">{alert.type === 'warning' ? '⚠️' : alert.type === 'success' ? '🎉' : 'ℹ️'}</span>
               <p className="text-sm text-[var(--text-base)]">{alert.message}</p>
             </div>
           ))}
@@ -279,21 +287,31 @@ export default function DashboardPage() {
         }
 
         return (
-          <div className="panel" style={{ background: 'var(--surface-accent, var(--surface-sub))', borderLeft: '4px solid var(--accent)' }}>
-            <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">📋 오늘의 할 일</p>
-            <p className="text-sm text-[var(--text-strong)]">
-              오늘 예약 <span className="font-bold">{data.todayScheduled}건</span> · 이번 주 <span className="font-bold">{data.weekScheduled}건</span>
-            </p>
+          <div className="soft-card" style={{ borderLeft: '4px solid var(--accent)' }}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-base">📋</span>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">오늘의 할 일</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              <div className="soft-panel text-center">
+                <p className="text-2xl font-bold text-[var(--accent)]">{data.todayScheduled}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">오늘 예약</p>
+              </div>
+              <div className="soft-panel text-center">
+                <p className="text-2xl font-bold text-[var(--text-strong)]">{data.weekScheduled}</p>
+                <p className="text-xs text-[var(--text-muted)] mt-1">이번 주</p>
+              </div>
+            </div>
             {trendText && (
-              <p className="text-sm text-[var(--text-muted)] mt-1">
-                도달 추세: {trendText}
+              <p className="text-xs text-[var(--text-muted)] mb-2">
+                도달 추세: <span className={`font-medium ${trendDirection === 'up' ? 'text-emerald-600' : trendDirection === 'down' ? 'text-rose-600' : 'text-[var(--text-strong)]'}`}>{trendText}</span>
               </p>
             )}
-            <p className="text-sm mt-2">
+            <p className="text-sm text-[var(--text-base)] mb-4">
               💡 {recommendation}
             </p>
-            <div className="flex gap-2 mt-3">
-              <a href="/sns/studio" className="button-primary text-xs">콘텐츠 만들기</a>
+            <div className="flex gap-2">
+              <a href="/sns/studio" className="button-primary text-xs flex-1 text-center">콘텐츠 만들기</a>
               <a href="/sns/calendar" className="button-secondary text-xs">캘린더 보기</a>
             </div>
           </div>
@@ -336,21 +354,23 @@ export default function DashboardPage() {
 
       {data.kpiGoals.length > 0 ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {data.kpiGoals.map((kpi) => {
+          {data.kpiGoals.map((kpi, i) => {
             const pct = kpi.targetValue > 0 ? Math.round((kpi.currentValue / kpi.targetValue) * 100) : 0
+            const borderColors = ['#3b82f6', '#6366f1', '#f59e0b', '#10b981']
+            const borderColor = borderColors[i % borderColors.length]
             return (
-              <div key={kpi.id} className="status-tile">
+              <div key={kpi.id} className="metric-card" style={{ borderTop: `4px solid ${borderColor}` }}>
                 <p className="metric-label">{kpi.title}</p>
-                <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">
+                <p className="metric-value">
                   {kpi.currentValue.toLocaleString()}{kpi.unit ? ` ${kpi.unit}` : ''}
                 </p>
                 <p className="mt-1 text-xs text-[var(--text-muted)]">
                   목표 {kpi.targetValue.toLocaleString()}{kpi.unit ? ` ${kpi.unit}` : ''} · {pct}%
                 </p>
-                <div className="mt-2 h-1.5 rounded-full bg-[var(--surface-sub)]">
+                <div className="mt-3 h-1.5 rounded-full bg-[var(--surface-sub)]">
                   <div
-                    className="h-full rounded-full bg-[var(--accent)]"
-                    style={{ width: `${Math.min(pct, 100)}%` }}
+                    className="h-full rounded-full transition-all"
+                    style={{ width: `${Math.min(pct, 100)}%`, backgroundColor: borderColor }}
                   />
                 </div>
               </div>
@@ -358,7 +378,7 @@ export default function DashboardPage() {
           })}
         </div>
       ) : (
-        <div className="soft-panel">
+        <div className="soft-card">
           <p className="text-sm text-[var(--text-muted)]">
             KPI 목표를 설정하세요.{' '}
             <a href="/goals" className="text-[var(--accent)] underline">KPI 관리 →</a>
@@ -373,19 +393,19 @@ export default function DashboardPage() {
         const postCount = data.topPosts.length
         return (
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid #ec4899' }}>
               <p className="metric-label">총 좋아요</p>
-              <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">{totalLikes.toLocaleString()}</p>
+              <p className="metric-value">{totalLikes.toLocaleString()}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
             </div>
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid #8b5cf6' }}>
               <p className="metric-label">총 댓글</p>
-              <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">{totalComments.toLocaleString()}</p>
+              <p className="metric-value">{totalComments.toLocaleString()}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
             </div>
-            <div className="status-tile">
+            <div className="metric-card" style={{ borderTop: '4px solid #06b6d4' }}>
               <p className="metric-label">게시 빈도</p>
-              <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">이번 달 {postCount}개</p>
+              <p className="metric-value">이번 달 {postCount}개</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">분석된 게시물 수</p>
             </div>
           </div>
@@ -404,26 +424,30 @@ export default function DashboardPage() {
           IMAGE: '이미지', VIDEO: '비디오', CAROUSEL_ALBUM: '캐러셀', UNKNOWN: '기타',
         }
         const typeColors: Record<string, string> = {
-          IMAGE: 'var(--accent)', VIDEO: '#6366f1', CAROUSEL_ALBUM: '#f59e0b', UNKNOWN: '#94a3b8',
+          IMAGE: '#3b82f6', VIDEO: '#6366f1', CAROUSEL_ALBUM: '#f59e0b', UNKNOWN: '#94a3b8',
         }
         return (
-          <div className="panel">
-            <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">콘텐츠 유형별 분포</p>
-            <div className="space-y-2">
+          <div className="soft-card">
+            <p className="section-title mb-4">콘텐츠 유형별 분포</p>
+            <div className="space-y-3">
               {Object.entries(typeCounts)
                 .sort(([, a], [, b]) => b - a)
                 .map(([type, count]) => {
                   const pct = Math.round((count / total) * 100)
+                  const color = typeColors[type] || '#94a3b8'
                   return (
                     <div key={type}>
-                      <div className="flex items-center justify-between text-xs mb-1">
-                        <span className="text-[var(--text-strong)] font-medium">{typeLabels[type] || type}</span>
+                      <div className="flex items-center justify-between text-xs mb-1.5">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: color }} />
+                          <span className="text-[var(--text-strong)] font-semibold">{typeLabels[type] || type}</span>
+                        </div>
                         <span className="text-[var(--text-muted)]">{count}개 · {pct}%</span>
                       </div>
                       <div className="h-2 rounded-full bg-[var(--surface-sub)]">
                         <div
                           className="h-full rounded-full transition-all"
-                          style={{ width: `${pct}%`, backgroundColor: typeColors[type] || '#94a3b8' }}
+                          style={{ width: `${pct}%`, backgroundColor: color }}
                         />
                       </div>
                     </div>
@@ -444,16 +468,16 @@ export default function DashboardPage() {
         <FollowerChart data={data.followerTrend} currentFollowers={data.currentFollowers} />
       </div>
 
-      <div className="panel">
-        <div className="flex items-center justify-between mb-3">
-          <p className="text-sm font-semibold text-[var(--text-strong)]">AI 성과 추천</p>
-          <a href="/sns/analytics" className="text-xs text-[var(--accent)] underline">전체 리포트 보기 →</a>
+      <div className="soft-card">
+        <div className="flex items-center justify-between mb-4">
+          <p className="section-title">AI 성과 추천</p>
+          <a href="/sns/analytics" className="text-xs text-[var(--accent)] font-medium hover:underline">전체 리포트 보기 →</a>
         </div>
         {report?.recommendations?.length > 0 ? (
-          <div className="space-y-2">
+          <div className="space-y-3">
             {report.recommendations.slice(0, 3).map((rec: any, i: number) => (
-              <div key={i} className="soft-panel">
-                <p className="text-sm font-medium text-[var(--text-strong)]">{rec.topic}</p>
+              <div key={i} className="soft-panel" style={{ borderLeft: '3px solid var(--accent)' }}>
+                <p className="text-sm font-semibold text-[var(--text-strong)]">{rec.topic}</p>
                 <p className="text-xs text-[var(--text-muted)] mt-1">{rec.reason}</p>
               </div>
             ))}

@@ -1,3 +1,5 @@
+import { isElectron, getSecureConfig, setSecureConfig } from '@/lib/platform';
+
 type SecureJsonLoadResult<T> = {
   value: T;
   source: 'secure' | 'migrated_local' | 'local' | 'default';
@@ -34,12 +36,11 @@ export async function loadStoredSecureJson<T>(options: {
     return { value: defaults, source: 'default' };
   }
 
-  if (window.electronAPI?.getAppConfig) {
+  if (isElectron() || typeof localStorage !== 'undefined') {
     try {
-      const result = await window.electronAPI.getAppConfig(storageKey);
-      const secureRaw = typeof result.configJson === 'string' ? result.configJson : '';
+      const secureRaw = await getSecureConfig(storageKey);
 
-      if (result.ok && secureRaw.trim()) {
+      if (secureRaw && secureRaw.trim()) {
         clearLegacyJson(storageKey);
         return {
           value: merge(defaults, JSON.parse(secureRaw)),
@@ -50,15 +51,13 @@ export async function loadStoredSecureJson<T>(options: {
       const legacyRaw = readLegacyJson(storageKey);
       if (legacyRaw.trim()) {
         const migrated = merge(defaults, JSON.parse(legacyRaw));
-        if (window.electronAPI?.saveAppConfig) {
-          const saveResult = await window.electronAPI.saveAppConfig(storageKey, JSON.stringify(migrated));
-          if (saveResult.ok) {
-            clearLegacyJson(storageKey);
-            return {
-              value: migrated,
-              source: 'migrated_local'
-            };
-          }
+        const saved = await setSecureConfig(storageKey, JSON.stringify(migrated));
+        if (saved) {
+          clearLegacyJson(storageKey);
+          return {
+            value: migrated,
+            source: 'migrated_local'
+          };
         }
         return {
           value: migrated,
@@ -76,18 +75,6 @@ export async function loadStoredSecureJson<T>(options: {
         } catch {
           clearLegacyJson(storageKey);
         }
-      }
-    }
-  } else {
-    const legacyRaw = readLegacyJson(storageKey);
-    if (legacyRaw.trim()) {
-      try {
-        return {
-          value: merge(defaults, JSON.parse(legacyRaw)),
-          source: 'local'
-        };
-      } catch {
-        clearLegacyJson(storageKey);
       }
     }
   }
@@ -109,20 +96,13 @@ export async function saveStoredSecureJson<T>(storageKey: string, value: T): Pro
     };
   }
 
-  if (window.electronAPI?.saveAppConfig) {
-    const result = await window.electronAPI.saveAppConfig(storageKey, raw);
-    if (!result.ok) {
-      return {
-        ok: false,
-        source: 'secure',
-        message: result.message
-      };
-    }
+  const saved = await setSecureConfig(storageKey, raw);
+  if (saved) {
     clearLegacyJson(storageKey);
     return {
       ok: true,
-      source: 'secure',
-      message: result.message
+      source: isElectron() ? 'secure' : 'local',
+      message: isElectron() ? undefined : '브라우저 모드에서 로컬 저장소에 저장했습니다.'
     };
   }
 

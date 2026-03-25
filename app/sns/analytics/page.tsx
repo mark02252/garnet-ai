@@ -6,6 +6,7 @@ import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import { formatChartTick, formatCompactNumber } from '@/lib/format-number'
+import { InstagramLoginButton } from '@/components/instagram-login-button'
 
 type Snapshot = {
   id: string; date: string; reach: number; impressions: number
@@ -45,6 +46,22 @@ type Report = {
   adSuggestions: ReportAdSuggestion[]
 }
 
+type OverviewSnapshot = {
+  id: string; date: string; reach: number; impressions: number
+  engagement: number; followers: number; postCount: number
+  persona: { name: string; platform: string; instagramHandle: string | null }
+}
+type OverviewDraft = {
+  id: string; title: string; type: string; platform: string
+  publishedAt: string | null; status: string
+}
+type OverviewData = {
+  snapshots: OverviewSnapshot[]
+  recentContent: OverviewDraft[]
+  scheduledCount: number
+  personaCount: number
+}
+
 export default function AnalyticsPage() {
   const [personas, setPersonas] = useState<Persona[]>([])
   const [personaId, setPersonaId] = useState('')
@@ -65,6 +82,22 @@ export default function AnalyticsPage() {
   const [isConnected, setIsConnected] = useState(false)
   const [createdDraft, setCreatedDraft] = useState<{id: string; title: string} | null>(null)
   const [showContentKit, setShowContentKit] = useState(false)
+  const [overview, setOverview] = useState<OverviewData | null>(null)
+  const [metaConfigured, setMetaConfigured] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    // Load SNS overview aggregated metrics
+    fetch('/api/sns/overview')
+      .then(r => r.ok ? r.json() : null)
+      .then((data: OverviewData | null) => setOverview(data))
+      .catch(() => {})
+
+    // Check Meta/Instagram connection status
+    fetch('/api/meta/status')
+      .then(r => r.json())
+      .then(data => setMetaConfigured(data.hasAppId && data.hasAppSecret))
+      .catch(() => setMetaConfigured(false))
+  }, [])
 
   useEffect(() => {
     fetch('/api/sns/personas').then(r => r.json()).then((data: Persona[]) => {
@@ -353,8 +386,126 @@ export default function AnalyticsPage() {
     setShowContentKit(true)
   }
 
+  // Compute overview KPIs from aggregated snapshots
+  const overviewFollowers = overview
+    ? overview.snapshots.reduce((max, s) => Math.max(max, s.followers), 0)
+    : 0
+  const overviewReach = overview
+    ? overview.snapshots.reduce((sum, s) => sum + s.reach, 0)
+    : 0
+  const overviewEngagement = overview && overview.snapshots.length > 0
+    ? (overview.snapshots.reduce((sum, s) => sum + s.engagement, 0) / overview.snapshots.length).toFixed(1)
+    : '0'
+  const overviewScheduled = overview?.scheduledCount ?? 0
+
+  // Follower trend from overview snapshots (sorted by date asc)
+  const followerTrend = overview
+    ? [...overview.snapshots]
+        .filter(s => s.followers > 0)
+        .sort((a, b) => a.date.localeCompare(b.date))
+        .map(s => ({ date: s.date.slice(0, 10), followers: s.followers }))
+    : []
+
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
+
+      {/* Instagram 연결 배너 */}
+      {metaConfigured === false && (
+        <div className="soft-card flex items-center justify-between gap-4 p-4">
+          <p className="text-sm text-[var(--text-base)]">
+            Instagram을 연결하면 실시간 인사이트를 확인할 수 있습니다.
+          </p>
+          <InstagramLoginButton />
+        </div>
+      )}
+
+      {/* KPI 카드 (Overview API 기반) */}
+      {overview && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: '총 팔로워', value: formatCompactNumber(overviewFollowers) },
+            { label: '총 도달', value: formatCompactNumber(overviewReach) },
+            { label: '참여율', value: `${overviewEngagement}%` },
+            { label: '예약 발행 대기', value: String(overviewScheduled) },
+          ].map(({ label, value }) => (
+            <div key={label} className="metric-card">
+              <p className="metric-label">{label}</p>
+              <p className="metric-value">{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 팔로워 추이 차트 */}
+      {followerTrend.length > 1 && (
+        <div className="soft-card p-4">
+          <p className="section-title mb-3">팔로워 추이</p>
+          <ResponsiveContainer width="100%" height={220}>
+            <LineChart data={followerTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-border)" />
+              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={55} tickFormatter={formatChartTick} />
+              <Tooltip
+                contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
+                formatter={(value) => [formatCompactNumber(Number(value)), '팔로워']}
+              />
+              <Line type="monotone" dataKey="followers" stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* 최근 게시물 성과 */}
+      {overview && overview.recentContent.length > 0 && (
+        <div className="soft-card p-4">
+          <p className="section-title mb-3">최근 게시물 성과</p>
+          <div className="space-y-2">
+            {overview.recentContent.map((draft) => {
+              const typeLabel = draft.type === 'VIDEO' ? '영상' : draft.type === 'CAROUSEL' ? '캐러셀' : '이미지'
+              const dateStr = draft.publishedAt
+                ? (() => { try { return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit' }).format(new Date(draft.publishedAt)) } catch { return draft.publishedAt.slice(5, 10) } })()
+                : '-'
+              return (
+                <div key={draft.id} className="list-card flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-[var(--text-strong)] truncate">{draft.title || '(제목 없음)'}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--surface-sub)] text-[var(--text-muted)]">{typeLabel}</span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{dateStr} 발행</span>
+                    </div>
+                  </div>
+                  <a href={`/sns/studio/${draft.id}`} className="button-secondary text-xs whitespace-nowrap">
+                    보기
+                  </a>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 빠른 링크 */}
+      <div className="soft-card p-4">
+        <p className="section-title mb-3">빠른 링크</p>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { label: 'Meta 비즈니스 스위트', href: 'https://business.facebook.com' },
+            { label: 'Meta 광고 관리자', href: 'https://adsmanager.facebook.com' },
+            { label: 'Instagram 인사이트', href: 'https://www.instagram.com/accounts/insights/' },
+          ].map(({ label, href }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="button-secondary text-sm"
+            >
+              {label} →
+            </a>
+          ))}
+        </div>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <p className="dashboard-eyebrow">SNS 스튜디오</p>

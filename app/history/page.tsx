@@ -30,6 +30,39 @@ function formatDate(value: string) {
   }
 }
 
+function relativeTime(value: string) {
+  const diffMs = Date.now() - new Date(value).getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '1일 전';
+  if (diffDays < 30) return `${diffDays}일 전`;
+  const diffMonths = Math.floor(diffDays / 30);
+  return `${diffMonths}개월 전`;
+}
+
+function getItemType(item: HistoryItem): 'campaign' | 'seminar' | 'other' {
+  const combined = [item.topic, ...(item.tags || [])].join(' ').toLowerCase();
+  if (combined.includes('세미나') || combined.includes('seminar')) return 'seminar';
+  if (
+    combined.includes('캠페인') || combined.includes('campaign') ||
+    combined.includes('마케팅') || combined.includes('광고') ||
+    combined.includes('회의') || combined.includes('meeting')
+  ) return 'campaign';
+  return 'other';
+}
+
+const TYPE_BORDER: Record<string, string> = {
+  campaign: '#3b82f6',
+  seminar: '#8b5cf6',
+  other: '#9ca3af',
+};
+
+const FILTER_OPTIONS = [
+  { key: 'all', label: '전체' },
+  { key: 'campaign', label: '캠페인 회의' },
+  { key: 'seminar', label: '세미나' },
+];
+
 export default function HistoryPage() {
   const [items, setItems] = useState<HistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +70,7 @@ export default function HistoryPage() {
   const [tag, setTag] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [sort, setSort] = useState<'desc' | 'asc'>('desc');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'campaign' | 'seminar'>('all');
 
   useEffect(() => {
     const params = new URLSearchParams();
@@ -52,12 +86,15 @@ export default function HistoryPage() {
   }, [q, tag, dateFrom]);
 
   const sorted = useMemo(() => {
-    return [...items].sort((a, b) => {
+    const filtered = typeFilter === 'all'
+      ? items
+      : items.filter((item) => getItemType(item) === typeFilter);
+    return [...filtered].sort((a, b) => {
       const left = new Date(a.createdAt).getTime();
       const right = new Date(b.createdAt).getTime();
       return sort === 'desc' ? right - left : left - right;
     });
-  }, [items, sort]);
+  }, [items, sort, typeFilter]);
 
   const stats = useMemo(() => {
     const now = Date.now();
@@ -177,37 +214,64 @@ export default function HistoryPage() {
               </div>
               <span className="pill-option">{loading ? 'loading' : `${sorted.length}건`}</span>
             </div>
+
+            {/* Type filter pills */}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {FILTER_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => setTypeFilter(opt.key as 'all' | 'campaign' | 'seminar')}
+                  className={`pill-option${typeFilter === opt.key ? ' pill-option-active' : ''}`}
+                  style={{ fontSize: 13 }}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+
             {loading && <div className="soft-panel text-sm text-[var(--text-base)]">실행 기록을 불러오는 중입니다.</div>}
             {!loading && sorted.length === 0 && <div className="soft-panel text-sm text-[var(--text-base)]">검색된 실행 기록이 없습니다.</div>}
             <div className="grid gap-3">
-              {sorted.map((item) => (
-                <article key={item.id} className="list-card">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.topic}</p>
-                      <p className="mt-2 text-xs text-[var(--text-muted)]">
-                        {formatDate(item.createdAt)} · {item.brand || '브랜드 미입력'} · {item.region || '지역 미입력'}
-                      </p>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">{item.goal || '목표 미입력'}</p>
+              {sorted.map((item) => {
+                const itemType = getItemType(item);
+                const borderColor = TYPE_BORDER[itemType];
+                return (
+                  <article
+                    key={item.id}
+                    className="list-card"
+                    style={{ borderLeft: `3px solid ${borderColor}`, paddingLeft: 16 }}
+                  >
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.topic}</p>
+                        <p className="mt-2 text-xs text-[var(--text-muted)]">
+                          {formatDate(item.createdAt)}
+                          <span style={{ marginLeft: 6, fontWeight: 600, color: 'var(--text-base)' }}>
+                            · {relativeTime(item.createdAt)}
+                          </span>
+                          {' '}· {item.brand || '브랜드 미입력'} · {item.region || '지역 미입력'}
+                        </p>
+                        <p className="mt-1 text-xs text-[var(--text-muted)]">{item.goal || '목표 미입력'}</p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={`/runs/${item.id}`} className="button-secondary px-3 py-2 text-xs">
+                          상세 보기
+                        </Link>
+                        <Link href={`/runs/${item.id}/report`} className="button-secondary px-3 py-2 text-xs">
+                          보고서
+                        </Link>
+                      </div>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Link href={`/runs/${item.id}`} className="button-secondary px-3 py-2 text-xs">
-                        상세 보기
-                      </Link>
-                      <Link href={`/runs/${item.id}/report`} className="button-secondary px-3 py-2 text-xs">
-                        보고서
-                      </Link>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {(item.tags.length ? item.tags : ['태그 없음']).slice(0, 8).map((tagItem) => (
+                        <span key={`${item.id}-${tagItem}`} className="pill-option">
+                          {tagItem}
+                        </span>
+                      ))}
                     </div>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {(item.tags.length ? item.tags : ['태그 없음']).slice(0, 8).map((tagItem) => (
-                      <span key={`${item.id}-${tagItem}`} className="pill-option">
-                        {tagItem}
-                      </span>
-                    ))}
-                  </div>
-                </article>
-              ))}
+                  </article>
+                );
+              })}
             </div>
           </section>
         </div>

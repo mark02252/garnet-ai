@@ -172,6 +172,130 @@ export async function fetchRealtimeActiveUsers(): Promise<number> {
   return Number(response.rows?.[0]?.metricValues?.[0]?.value || 0);
 }
 
+export type GA4EngagementMetrics = {
+  date: string;
+  engagementRate: number;
+  bounceRate: number;
+  averageSessionDuration: number;
+  screenPageViewsPerSession: number;
+  sessionsPerUser: number;
+};
+
+export type GA4DeviceBreakdown = {
+  deviceCategory: string;
+  sessions: number;
+  activeUsers: number;
+  engagementRate: number;
+  bounceRate: number;
+};
+
+export type GA4GeoBreakdown = {
+  country: string;
+  activeUsers: number;
+  sessions: number;
+};
+
+export type GA4LandingPage = {
+  landingPage: string;
+  sessions: number;
+  bounceRate: number;
+  engagementRate: number;
+};
+
+export async function fetchEngagementMetrics(startDate: string, endDate: string): Promise<GA4EngagementMetrics[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'date' }],
+    metrics: [
+      { name: 'engagementRate' },
+      { name: 'bounceRate' },
+      { name: 'averageSessionDuration' },
+      { name: 'screenPageViewsPerSession' },
+      { name: 'sessionsPerUser' }
+    ],
+    orderBys: [{ dimension: { dimensionName: 'date' } }]
+  });
+  return (response.rows || []).map(row => ({
+    date: row.dimensionValues?.[0]?.value || '',
+    engagementRate: Number(row.metricValues?.[0]?.value || 0),
+    bounceRate: Number(row.metricValues?.[1]?.value || 0),
+    averageSessionDuration: Number(row.metricValues?.[2]?.value || 0),
+    screenPageViewsPerSession: Number(row.metricValues?.[3]?.value || 0),
+    sessionsPerUser: Number(row.metricValues?.[4]?.value || 0)
+  }));
+}
+
+export async function fetchDeviceBreakdown(startDate: string, endDate: string): Promise<GA4DeviceBreakdown[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'deviceCategory' }],
+    metrics: [
+      { name: 'sessions' },
+      { name: 'activeUsers' },
+      { name: 'engagementRate' },
+      { name: 'bounceRate' }
+    ]
+  });
+  return (response.rows || []).map(row => ({
+    deviceCategory: row.dimensionValues?.[0]?.value || '',
+    sessions: Number(row.metricValues?.[0]?.value || 0),
+    activeUsers: Number(row.metricValues?.[1]?.value || 0),
+    engagementRate: Number(row.metricValues?.[2]?.value || 0),
+    bounceRate: Number(row.metricValues?.[3]?.value || 0)
+  }));
+}
+
+export async function fetchGeoBreakdown(startDate: string, endDate: string): Promise<GA4GeoBreakdown[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'country' }],
+    metrics: [{ name: 'activeUsers' }, { name: 'sessions' }],
+    limit: 10,
+    orderBys: [{ metric: { metricName: 'activeUsers' }, desc: true }]
+  });
+  return (response.rows || []).map(row => ({
+    country: row.dimensionValues?.[0]?.value || '',
+    activeUsers: Number(row.metricValues?.[0]?.value || 0),
+    sessions: Number(row.metricValues?.[1]?.value || 0)
+  }));
+}
+
+export async function fetchLandingPages(startDate: string, endDate: string): Promise<GA4LandingPage[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'landingPage' }],
+    metrics: [
+      { name: 'sessions' },
+      { name: 'bounceRate' },
+      { name: 'engagementRate' }
+    ],
+    limit: 15,
+    orderBys: [{ metric: { metricName: 'sessions' }, desc: true }]
+  });
+  return (response.rows || []).map(row => ({
+    landingPage: row.dimensionValues?.[0]?.value || '',
+    sessions: Number(row.metricValues?.[0]?.value || 0),
+    bounceRate: Number(row.metricValues?.[1]?.value || 0),
+    engagementRate: Number(row.metricValues?.[2]?.value || 0)
+  }));
+}
+
 export async function analyzeGA4WithAI(
   traffic: GA4DailyTraffic[],
   channels: GA4ChannelBreakdown[],

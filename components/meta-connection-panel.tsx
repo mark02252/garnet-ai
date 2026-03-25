@@ -80,52 +80,21 @@ function trendLabel(direction: 'UP' | 'DOWN' | 'FLAT' | undefined) {
   return { label: '보합 추세', tone: 'text-[var(--text-base)]' };
 }
 
-function WizardStep({
-  stepNum,
-  current,
-  title,
-  description,
-  actionLabel,
-  actionHref,
-  onNext,
-  onBack,
-  children,
-}: {
-  stepNum: number;
-  current: number;
-  title: string;
-  description: string;
-  actionLabel?: string;
-  actionHref?: string;
-  onNext: () => void;
-  onBack?: () => void;
-  children?: React.ReactNode;
-}) {
-  if (stepNum !== current) return null;
+// Instagram gradient SVG icon
+function InstagramIcon({ size = 28 }: { size?: number }) {
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <span className="accent-pill">Step {stepNum} / 5</span>
-        <h4 className="text-sm font-semibold text-[var(--text-strong)]">{title}</h4>
-      </div>
-      <p className="text-sm leading-6 text-[var(--text-base)]">{description}</p>
-      {children}
-      <div className="flex gap-2">
-        {onBack && (
-          <button type="button" className="button-secondary" onClick={onBack}>
-            이전
-          </button>
-        )}
-        {actionLabel && actionHref && (
-          <a href={actionHref} target="_blank" rel="noopener noreferrer" className="button-secondary">
-            {actionLabel} →
-          </a>
-        )}
-        <button type="button" className="button-primary" onClick={onNext}>
-          다음
-        </button>
-      </div>
-    </div>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="ig-grad" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="#F77737" />
+          <stop offset="50%" stopColor="#FD1D1D" />
+          <stop offset="100%" stopColor="#833AB4" />
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="20" height="20" rx="6" stroke="url(#ig-grad)" strokeWidth="1.8" fill="none" />
+      <circle cx="12" cy="12" r="4" stroke="url(#ig-grad)" strokeWidth="1.8" fill="none" />
+      <circle cx="17.5" cy="6.5" r="1" fill="url(#ig-grad)" />
+    </svg>
   );
 }
 
@@ -135,16 +104,15 @@ type MetaConnectionPanelProps = {
 
 export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProps) {
   const isSocialMode = mode === 'social';
-  const envAppId = process.env.NEXT_PUBLIC_META_APP_ID || ''
-  const envAppSecret = process.env.NEXT_PUBLIC_META_APP_SECRET || ''
+  const envAppId = process.env.NEXT_PUBLIC_META_APP_ID || '';
+  const envAppSecret = process.env.NEXT_PUBLIC_META_APP_SECRET || '';
   const [draft, setDraft] = useState<MetaConnectionDraft>(() => createDefaultMetaConnectionDraft());
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [runningAnalysis, setRunningAnalysis] = useState(false);
   const [refreshingAnalysis, setRefreshingAnalysis] = useState(false);
-  const [showAdminFields, setShowAdminFields] = useState(mode === 'settings');
-  // 마법사: settings 모드에서만 사용
+  const [showAdvanced, setShowAdvanced] = useState(mode === 'settings');
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [wizardAppId, setWizardAppId] = useState('');
   const [wizardAppSecret, setWizardAppSecret] = useState('');
@@ -170,8 +138,8 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
               redirectUri: `${window.location.origin}/meta/connect`
             };
 
-      if (envAppId && !next.appId) next = { ...next, appId: envAppId }
-      if (envAppSecret && !next.appSecret) next = { ...next, appSecret: envAppSecret }
+      if (envAppId && !next.appId) next = { ...next, appId: envAppId };
+      if (envAppSecret && !next.appSecret) next = { ...next, appSecret: envAppSecret };
 
       setDraft(next);
       setWizardAppId(next.appId);
@@ -279,7 +247,6 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
 
   async function tryExchangeForLongLivedToken(draft: MetaConnectionDraft): Promise<MetaConnectionDraft> {
     if (!draft.accessToken || !draft.appSecret) return draft;
-    // 이미 장기 토큰이면 스킵
     if (draft.tokenSource === 'oauth_long_lived') return draft;
 
     try {
@@ -307,7 +274,6 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     setError('');
     setMessage('');
 
-    // 단기 토큰이면 장기 토큰으로 자동 교환 시도
     const exchanged = await tryExchangeForLongLivedToken(nextDraft);
     const tokenExchanged = exchanged.tokenSource === 'oauth_long_lived' && nextDraft.tokenSource !== 'oauth_long_lived';
 
@@ -318,7 +284,6 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
         ? `${successMessage} (장기 토큰으로 자동 교환됨 — 약 60일 유효)`
         : successMessage);
 
-      // 파일 백업: dev 서버 재시작 시에도 토큰 유지
       void fetch('/api/meta/connection/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -364,6 +329,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
   }
 
   const loginReady = draft.loginMode === 'instagram_login' ? Boolean(draft.appId) : Boolean(draft.appId && draft.appSecret);
+  const hasEnvAppId = Boolean(envAppId);
 
   async function handleStartLogin() {
     if (!loginReady) {
@@ -415,6 +381,18 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     setMessage(`${getConnectionModeLabel(nextDraft.loginMode)} 창을 열었습니다. 연결이 끝나면 이 화면에 자동으로 반영됩니다.`);
   }
 
+  async function handleSimpleLogin() {
+    setLaunching(true);
+    setError('');
+    setMessage('');
+    try {
+      window.location.href = '/api/meta/oauth/instagram-login';
+    } catch {
+      setLaunching(false);
+      setError('로그인 페이지로 이동하지 못했습니다.');
+    }
+  }
+
   async function handleSelectAccount(accountId: string) {
     const nextDraft = {
       ...draft,
@@ -422,6 +400,21 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
     };
     await persist(nextDraft, '기본 인스타그램 분석 계정을 저장했습니다.');
     await fetchLatestAnalysis(accountId);
+  }
+
+  async function handleDisconnect() {
+    const next = {
+      ...draft,
+      connectedAccounts: [],
+      accessToken: '',
+      tokenSource: 'none' as const,
+      tokenExpiresIn: null,
+      lastConnectedAt: '',
+      lastOauthState: '',
+      instagramBusinessAccountId: ''
+    };
+    await persist(next, '인스타그램 연결을 해제했습니다.');
+    setLatestAnalysis(null);
   }
 
   async function handleRunAnalysis() {
@@ -547,6 +540,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
       setWizardError(saveResult.message || '연결 정보를 저장하지 못했습니다.');
       return;
     }
+
     setDraft(nextDraft);
 
     const url = buildInstagramConnectionOAuthUrl(nextDraft, state);
@@ -567,7 +561,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
   if (loading) {
     return (
       <section className="panel">
-        <p className="text-sm text-[var(--text-muted)]">{isSocialMode ? '인스타그램 연결 정보를 불러오는 중...' : '인스타그램 연결 설정을 불러오는 중...'}</p>
+        <p className="text-sm text-[var(--text-muted)]">인스타그램 연결 정보를 불러오는 중...</p>
       </section>
     );
   }
@@ -575,246 +569,320 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
   const isConfigured = Boolean(draft.appId && draft.appSecret);
   const hasSavedToken = Boolean(draft.accessToken);
   const hasDefaultAccount = Boolean(draft.instagramBusinessAccountId);
+  const isConnected = hasSavedToken;
+
+  // Primary connected account info
+  const primaryAccount = draft.connectedAccounts.find(
+    (a) => a.instagramBusinessAccountId === draft.instagramBusinessAccountId
+  ) || draft.connectedAccounts[0] || null;
 
   return (
-    <section className="panel space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="section-title">{isSocialMode ? '인스타그램 인사이트' : '인스타그램 채널 연결'}</h3>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            {isSocialMode
-              ? '연결, 분석 실행, 최근 추세 확인까지 한 화면에서 관리합니다.'
-              : '관리자용 연결 정보와 기본 분석 계정을 관리하는 영역입니다.'}
-          </p>
-        </div>
-        <span className="accent-pill">
-          {hasDefaultAccount ? '분석 준비 완료' : hasSavedToken ? '계정 선택 필요' : '연결 전'}
-        </span>
+    <section className="panel space-y-6">
+
+      {/* ── Hero title ── */}
+      <div>
+        <h3 className="section-title">Instagram 계정 연결</h3>
+        <p className="mt-1 text-sm text-[var(--text-muted)]">
+          프로페셔널 계정을 연결해 팔로워, 도달, 참여율 인사이트를 자동으로 분석합니다.
+        </p>
       </div>
 
-      {isSocialMode ? (
-        <>
-          <section className="dashboard-hero">
-            <p className="dashboard-eyebrow">Social Lab</p>
-            <h2 className="dashboard-title">{getConnectionModeLabel(draft.loginMode)} 기반의 소셜 연동 실험 공간입니다.</h2>
-            <p className="dashboard-copy">
-              {draft.loginMode === 'instagram_login'
-                ? '단일 관리 계정을 붙이는 가장 단순한 흐름이지만, 현재는 권한 확보 전이라 연구용 메뉴로만 남겨둡니다.'
-                : '여러 페이지나 비즈니스 자산을 함께 다루는 고급 흐름이며, 현재는 준비 단계로만 보관합니다.'}
-            </p>
-            <div className="dashboard-chip-grid">
-              <div className="dashboard-chip">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">연결 방식</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{getConnectionModeLabel(draft.loginMode)}</p>
-                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{getConnectionModeSummary(draft.loginMode)}</p>
+      {/* ── Main connection card ── */}
+      {isConnected ? (
+        /* Connected state */
+        <div
+          className="soft-card"
+          style={{
+            borderRadius: '16px',
+            padding: '24px',
+            border: '1px solid var(--border-subtle)',
+            background: 'var(--surface-card)',
+          }}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-center gap-3">
+              {/* Connected indicator */}
+              <div
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                  <rect x="2" y="2" width="20" height="20" rx="6" stroke="white" strokeWidth="1.8" fill="none" />
+                  <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+                  <circle cx="17.5" cy="6.5" r="1" fill="white" />
+                </svg>
               </div>
-              <div className="dashboard-chip">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">로그인 상태</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{hasSavedToken ? '연결됨' : '로그인 필요'}</p>
-                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">마지막 연결 {formatConnectedAt(draft.lastConnectedAt)}</p>
-              </div>
-              <div className="dashboard-chip">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">분석 대상 계정</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{hasDefaultAccount ? '기본 계정 선택됨' : '계정 선택 필요'}</p>
-                <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">연결된 계정 {draft.connectedAccounts.length}개</p>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-semibold text-[var(--text-strong)]">Instagram 연결됨</span>
+                  <span
+                    className="status-badge"
+                    style={{ background: 'rgba(16,185,129,0.1)', color: '#059669', border: 'none', fontSize: 11 }}
+                  >
+                    연결됨
+                  </span>
+                </div>
+                {primaryAccount ? (
+                  <p className="mt-0.5 text-sm text-[var(--text-muted)]">@{primaryAccount.username}</p>
+                ) : null}
               </div>
             </div>
-          </section>
+          </div>
 
-          <div className="surface-note">
-            {draft.loginMode === 'instagram_login'
-              ? '공식 문서 기준으로 Business Login for Instagram 토큰은 보통 짧게 유지됩니다. 로그인 흐름이 아직 준비되지 않았다면 App Dashboard의 Instagram API setup with Instagram business login 화면에서 Generate token으로 토큰을 만들어 붙여넣을 수도 있습니다.'
-              : 'Meta 비즈니스 연결은 페이지와 자산 선택이 필요한 고급 흐름입니다. 외부 브랜드나 여러 계정을 함께 다룰 때 더 적합합니다.'}
-          </div>
-        </>
-      ) : (
-        <>
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="status-tile">
-            <p className="metric-label">연결 방식</p>
-            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{getConnectionModeLabel(draft.loginMode)}</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{getConnectionModeSummary(draft.loginMode)}</p>
-          </div>
-          <div className="status-tile">
-            <p className="metric-label">계정 로그인 상태</p>
-            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{hasSavedToken ? '연결됨' : '연결 전'}</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">마지막 연결: {formatConnectedAt(draft.lastConnectedAt)}</p>
-          </div>
-          <div className="status-tile">
-            <p className="metric-label">기본 분석 계정</p>
-            <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{hasDefaultAccount ? '선택 완료' : '미선택'}</p>
-            <p className="mt-1 text-xs text-[var(--text-muted)]">{draft.instagramBusinessAccountId || '선택된 계정이 없습니다.'}</p>
-          </div>
-        </div>
-        {!isSocialMode && !isConfigured && (
-          <div className="soft-panel space-y-2">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Instagram 연동 설정 마법사</p>
-            <WizardStep
-              stepNum={1}
-              current={wizardStep}
-              title="Meta 개발자 계정 만들기"
-              description="Meta for Developers에서 개발자 계정을 만듭니다. Facebook 계정으로 로그인하면 됩니다. 이미 있다면 바로 다음으로 넘어가세요."
-              actionLabel="developers.facebook.com 열기"
-              actionHref="https://developers.facebook.com"
-              onNext={() => setWizardStep(2)}
-            />
-            <WizardStep
-              stepNum={2}
-              current={wizardStep}
-              title="Business 앱 만들기"
-              description="개발자 대시보드 → 'My Apps' → '앱 만들기' → 앱 유형 'Business' 선택 → 앱 이름·연락처 이메일 입력 후 생성합니다."
-              actionLabel="Meta App Dashboard 열기"
-              actionHref="https://developers.facebook.com/apps"
-              onBack={() => setWizardStep(1)}
-              onNext={() => setWizardStep(3)}
-            />
-            <WizardStep
-              stepNum={3}
-              current={wizardStep}
-              title="Instagram 제품 추가"
-              description="앱 대시보드 → 왼쪽 사이드바 '제품 추가' → 'Instagram' (Instagram Login for Business) → '설정'을 클릭합니다."
-              actionLabel="Meta App Dashboard 열기"
-              actionHref="https://developers.facebook.com/apps"
-              onBack={() => setWizardStep(2)}
-              onNext={() => setWizardStep(4)}
-            />
-            {wizardStep === 4 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="accent-pill">Step 4 / 5</span>
-                  <h4 className="text-sm font-semibold text-[var(--text-strong)]">App ID / App Secret 입력</h4>
-                </div>
-                <p className="text-sm leading-6 text-[var(--text-base)]">
-                  앱 대시보드 → 앱 설정 → 기본 설정에서 App ID와 App Secret을 복사해 붙여넣으세요.
-                </p>
-                <div className="space-y-3">
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">Meta App ID</label>
-                    <input
-                      className="input"
-                      value={wizardAppId}
-                      onChange={(e) => setWizardAppId(e.target.value)}
-                      placeholder="숫자형 App ID (예: 1234567890)"
-                      autoFocus
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium">App Secret</label>
-                    <input
-                      className="input"
-                      type="password"
-                      value={wizardAppSecret}
-                      onChange={(e) => setWizardAppSecret(e.target.value)}
-                      placeholder="App Secret"
-                    />
-                  </div>
-                  <div>
-                    <label className="mb-1 block text-sm font-medium text-[var(--text-muted)]">Redirect URI (Meta 콘솔에 등록)</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="input flex-1 bg-[var(--surface-subtle)] cursor-default"
-                        readOnly
-                        value={typeof window !== 'undefined' ? `${window.location.origin}/meta/connect` : '/meta/connect'}
-                      />
-                      <button
-                        type="button"
-                        className="button-secondary shrink-0"
-                        onClick={() => {
-                          void navigator.clipboard.writeText(`${window.location.origin}/meta/connect`);
-                        }}
-                      >
-                        복사
-                      </button>
-                    </div>
-                    <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
-                      Meta 콘솔 → Instagram → OAuth 리디렉션 URI 설정에 이 값을 추가해 주세요.
-                    </p>
-                  </div>
-                </div>
-                {wizardError && <p className="text-xs text-rose-700">{wizardError}</p>}
-                <div className="flex gap-2">
-                  <button type="button" className="button-secondary" onClick={() => { setWizardError(''); setWizardStep(3); }}>
-                    이전
-                  </button>
-                  <button
-                    type="button"
-                    className="button-primary"
-                    onClick={() => {
-                      const id = wizardAppId.trim();
-                      const secret = wizardAppSecret.trim();
-                      if (!id || !secret) {
-                        setWizardError('App ID와 App Secret을 모두 입력해 주세요.');
-                        return;
-                      }
-                      if (!isLikelyMetaAppId(id)) {
-                        setWizardError('App ID 형식이 올바르지 않습니다. Meta 개발자 대시보드의 숫자형 App ID를 입력해 주세요.');
-                        return;
-                      }
-                      setWizardError('');
-                      setWizardStep(5);
-                    }}
-                  >
-                    다음
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {wizardStep === 5 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <span className="accent-pill">Step 5 / 5</span>
-                  <h4 className="text-sm font-semibold text-[var(--text-strong)]">연결 테스트</h4>
-                </div>
-                <p className="text-sm leading-6 text-[var(--text-base)]">
-                  아래 버튼을 눌러 Instagram OAuth 팝업을 열고 내 계정으로 로그인하세요. 연결이 완료되면 이 화면이 자동으로 바뀝니다.
-                </p>
-                {wizardError && <p className="text-xs text-rose-700">{wizardError}</p>}
-                <div className="flex gap-2">
-                  <button type="button" className="button-secondary" onClick={() => { setWizardError(''); setWizardStep(4); }}>
-                    이전
-                  </button>
-                  <button
-                    type="button"
-                    className="button-primary"
-                    onClick={() => void handleWizardConnect()}
-                    disabled={wizardConnecting}
-                  >
-                    {wizardConnecting ? 'OAuth 창 열리는 중...' : 'Instagram 연결 테스트'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-        {!isSocialMode && isConfigured && (
-          <div className="soft-panel flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <span className="accent-pill">Meta 앱 설정됨</span>
-              <p className="text-sm text-[var(--text-base)]">Instagram 연동 준비 완료. 이제 페르소나에서 계정을 연결하세요.</p>
+          {primaryAccount && (
+            <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1">
+              <span className="text-xs text-[var(--text-muted)]">
+                {primaryAccount.pageName || '비즈니스 계정'}
+              </span>
+              {draft.lastConnectedAt && (
+                <span className="text-xs text-[var(--text-muted)]">
+                  {formatConnectedAt(draft.lastConnectedAt)} 연결
+                </span>
+              )}
             </div>
+          )}
+
+          <div className="mt-5 flex flex-wrap gap-2">
             <button
               type="button"
-              className="button-secondary text-xs"
-              onClick={() => void handleWizardReset()}
+              className="button-secondary"
+              style={{ fontSize: 13 }}
+              onClick={() => void handleDisconnect()}
               disabled={saving}
             >
-              {saving ? '초기화 중...' : '다시 설정'}
+              {saving ? '처리 중...' : '연결 해제'}
             </button>
+            <button
+              type="button"
+              className="button-secondary"
+              style={{ fontSize: 13 }}
+              onClick={() => setShowAdvanced((prev) => !prev)}
+            >
+              설정 변경
+            </button>
+            {isSocialMode && (
+              <Link href="/operations" className="button-secondary" style={{ fontSize: 13 }}>
+                오늘의 브리핑 보기
+              </Link>
+            )}
           </div>
-        )}
-        </>
+        </div>
+      ) : (
+        /* Not connected state */
+        <div
+          style={{
+            borderRadius: '20px',
+            overflow: 'hidden',
+            border: '1px solid rgba(131,58,180,0.15)',
+          }}
+        >
+          {/* Gradient accent bar */}
+          <div
+            style={{
+              height: 4,
+              background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)',
+            }}
+          />
+
+          <div
+            style={{
+              padding: '32px 28px',
+              background: 'var(--surface-card)',
+            }}
+          >
+            {/* Icon */}
+            <div
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 16,
+                background: 'linear-gradient(135deg, #833AB4 0%, #FD1D1D 50%, #F77737 100%)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 20,
+              }}
+            >
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+                <rect x="2" y="2" width="20" height="20" rx="6" stroke="white" strokeWidth="1.8" fill="none" />
+                <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+                <circle cx="17.5" cy="6.5" r="1" fill="white" />
+              </svg>
+            </div>
+
+            <h4 className="text-base font-semibold text-[var(--text-strong)]" style={{ lineHeight: 1.4 }}>
+              Instagram 계정을 연결하세요
+            </h4>
+            <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+              프로페셔널 계정을 연결하면 팔로워, 도달,<br />
+              참여율 등 인사이트를 자동으로 분석합니다.
+            </p>
+
+            <div className="mt-6">
+              {hasEnvAppId ? (
+                /* Simple one-click login — server has App ID configured */
+                <button
+                  type="button"
+                  onClick={() => void handleSimpleLogin()}
+                  disabled={launching}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '14px 24px',
+                    borderRadius: 12,
+                    background: launching ? '#999' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    border: 'none',
+                    cursor: launching ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.15s',
+                    opacity: launching ? 0.7 : 1,
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="2" width="20" height="20" rx="6" stroke="white" strokeWidth="1.8" fill="none" />
+                    <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+                    <circle cx="17.5" cy="6.5" r="1" fill="white" />
+                  </svg>
+                  {launching ? '로그인 페이지로 이동 중...' : 'Instagram으로 로그인'}
+                </button>
+              ) : loginReady ? (
+                /* Has App ID in draft — can do OAuth */
+                <button
+                  type="button"
+                  onClick={() => void handleStartLogin()}
+                  disabled={launching}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '14px 24px',
+                    borderRadius: 12,
+                    background: launching ? '#999' : 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    border: 'none',
+                    cursor: launching ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.15s',
+                    opacity: launching ? 0.7 : 1,
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="2" width="20" height="20" rx="6" stroke="white" strokeWidth="1.8" fill="none" />
+                    <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+                    <circle cx="17.5" cy="6.5" r="1" fill="white" />
+                  </svg>
+                  {launching ? '연결 창 여는 중...' : 'Instagram으로 로그인'}
+                </button>
+              ) : (
+                /* No App ID at all — prompt to expand advanced */
+                <button
+                  type="button"
+                  onClick={() => setShowAdvanced(true)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 10,
+                    padding: '14px 24px',
+                    borderRadius: 12,
+                    background: 'linear-gradient(135deg, #833AB4, #FD1D1D, #F77737)',
+                    color: '#fff',
+                    fontWeight: 600,
+                    fontSize: 15,
+                    border: 'none',
+                    cursor: 'pointer',
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <rect x="2" y="2" width="20" height="20" rx="6" stroke="white" strokeWidth="1.8" fill="none" />
+                    <circle cx="12" cy="12" r="4" stroke="white" strokeWidth="1.8" fill="none" />
+                    <circle cx="17.5" cy="6.5" r="1" fill="white" />
+                  </svg>
+                  Instagram으로 로그인
+                </button>
+              )}
+            </div>
+
+            <p className="mt-4 text-xs text-[var(--text-muted)]">
+              ℹ️ 비즈니스 또는 크리에이터 계정이 필요합니다
+            </p>
+          </div>
+        </div>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {isSocialMode ? (
-          <>
-            <button type="button" className="button-primary" onClick={handleStartLogin} disabled={launching || !loginReady}>
-              {launching
-                ? '공식 연결 창 여는 중...'
-                : loginReady
-                  ? `${getConnectionModeLabel(draft.loginMode)} 시작`
-                  : '관리자 준비 필요'}
+      {/* ── Connected accounts list (when multiple accounts) ── */}
+      {isConnected && draft.connectedAccounts.length > 1 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="text-sm font-semibold text-[var(--text-strong)]">연결된 인스타그램 계정</h4>
+            <span className="text-xs text-[var(--text-muted)]">기본 계정을 선택해 분석에 사용하세요.</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            {draft.connectedAccounts.map((account) => {
+              const active = draft.instagramBusinessAccountId === account.instagramBusinessAccountId;
+              return (
+                <button
+                  key={account.instagramBusinessAccountId}
+                  type="button"
+                  className={active ? 'list-card list-card-active text-left' : 'list-card text-left'}
+                  onClick={() => void handleSelectAccount(account.instagramBusinessAccountId)}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[var(--text-strong)]">@{account.username}</p>
+                      <p className="mt-1 text-xs text-[var(--text-muted)]">
+                        {account.pageName || '연결된 Instagram Professional 계정'}
+                      </p>
+                      <p className="mt-2 text-[11px] text-[var(--text-muted)]">ID: {account.instagramBusinessAccountId}</p>
+                    </div>
+                    <span className={active ? 'accent-pill' : 'pill-option'}>{active ? '기본 계정' : '선택'}</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Analysis panel (social mode, connected) ── */}
+      {isSocialMode && isConnected && (
+        <div className="space-y-4 soft-panel">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-[var(--text-strong)]">도달 분석 실행</p>
+              <p className="mt-1 text-xs text-[var(--text-muted)]">선택한 인스타그램 계정 기준으로 최근 구간을 불러와 저장합니다.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs font-medium text-[var(--text-muted)]">조회 기간</label>
+              <input
+                className="input w-24"
+                type="number"
+                min={2}
+                max={120}
+                value={lookbackDays}
+                onChange={(e) => setLookbackDays(Math.max(2, Math.min(120, Number(e.target.value || 30))))}
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="button-primary"
+              onClick={handleRunAnalysis}
+              disabled={runningAnalysis || !hasSavedToken || !hasDefaultAccount}
+            >
+              {runningAnalysis ? '분석 실행 중...' : '최근 도달 분석 실행'}
             </button>
             <button
               type="button"
@@ -824,32 +892,90 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             >
               {refreshingAnalysis ? '불러오는 중...' : '최근 결과 새로고침'}
             </button>
-            <button type="button" className="button-secondary" onClick={() => setShowAdminFields((prev) => !prev)}>
-              {showAdminFields ? '관리자 설정 접기' : '관리자용 연결 설정'}
-            </button>
-            <Link href="/operations" className="button-secondary">
-              오늘의 브리핑 보기
-            </Link>
-          </>
-        ) : (
-          <>
-            <button type="button" className="button-primary" onClick={handleSave} disabled={saving}>
-              {saving ? '저장 중...' : '연결 정보 저장'}
-            </button>
-            <button type="button" className="button-secondary" onClick={handleStartLogin} disabled={launching || !loginReady}>
-              {launching ? '공식 연결 창 여는 중...' : `${getConnectionModeLabel(draft.loginMode)} 열기`}
-            </button>
-            <Link href="/social" className="button-secondary">
-              개발 예정 화면 보기
-            </Link>
-          </>
-        )}
-      </div>
+          </div>
 
+          {latestAnalysis && (
+            <div className="grid gap-3 md:grid-cols-3">
+              <div className="status-tile">
+                <p className="metric-label">추세</p>
+                <p className={`mt-2 text-base font-semibold ${trendLabel(latestAnalysis.trendDirection).tone}`}>
+                  {trendLabel(latestAnalysis.trendDirection).label}
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">{formatConnectedAt(latestAnalysis.createdAt)}</p>
+              </div>
+              <div className="status-tile">
+                <p className="metric-label">최신 도달</p>
+                <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
+                  {Math.round(latestAnalysis.latestReach).toLocaleString()}
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  전일 대비{' '}
+                  {latestAnalysis.dayOverDayChangePct == null
+                    ? '비교 불가'
+                    : `${latestAnalysis.dayOverDayChangePct > 0 ? '+' : ''}${latestAnalysis.dayOverDayChangePct.toFixed(2)}%`}
+                </p>
+              </div>
+              <div className="status-tile">
+                <p className="metric-label">7일 평균 / 이상치</p>
+                <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
+                  {latestAnalysis.sevenDayAverage == null
+                    ? '데이터 부족'
+                    : Math.round(latestAnalysis.sevenDayAverage).toLocaleString()}
+                </p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">이상치 {latestAnalysis.anomalyCount}건</p>
+              </div>
+              <div className="md:col-span-3">
+                <div className="soft-panel">
+                  <p className="text-sm font-semibold text-[var(--text-strong)]">최근 분석 요약</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{latestAnalysis.summary}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Feedback messages ── */}
       {message && <p className="text-xs text-emerald-700">{message}</p>}
       {error && <p className="text-xs text-rose-700">{error}</p>}
 
-      {showAdminFields && (
+      {/* ── Advanced settings toggle ── */}
+      <div>
+        <button
+          type="button"
+          onClick={() => setShowAdvanced((prev) => !prev)}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            fontSize: 13,
+            color: 'var(--text-muted)',
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            padding: '4px 0',
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            style={{
+              transform: showAdvanced ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.2s',
+            }}
+          >
+            <polyline points="6 9 12 15 18 9" />
+          </svg>
+          고급 설정
+        </button>
+      </div>
+
+      {/* ── Advanced settings panel (collapsed by default) ── */}
+      {showAdvanced && (
         <div className="space-y-4 soft-panel">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -861,6 +987,191 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             <span className="pill-option">고급 설정</span>
           </div>
 
+          {/* Settings wizard for settings mode when not configured */}
+          {!isSocialMode && !isConfigured && (
+            <div className="space-y-2">
+              {/* Wizard steps 1–3 */}
+              {wizardStep === 1 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="accent-pill">Step 1 / 5</span>
+                    <h4 className="text-sm font-semibold text-[var(--text-strong)]">Meta 개발자 계정 만들기</h4>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-base)]">
+                    Meta for Developers에서 개발자 계정을 만듭니다. Facebook 계정으로 로그인하면 됩니다. 이미 있다면 바로 다음으로 넘어가세요.
+                  </p>
+                  <div className="flex gap-2">
+                    <a href="https://developers.facebook.com" target="_blank" rel="noopener noreferrer" className="button-secondary">
+                      developers.facebook.com 열기 →
+                    </a>
+                    <button type="button" className="button-primary" onClick={() => setWizardStep(2)}>다음</button>
+                  </div>
+                </div>
+              )}
+              {wizardStep === 2 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="accent-pill">Step 2 / 5</span>
+                    <h4 className="text-sm font-semibold text-[var(--text-strong)]">Business 앱 만들기</h4>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-base)]">
+                    개발자 대시보드 → 'My Apps' → '앱 만들기' → 앱 유형 'Business' 선택 → 앱 이름·연락처 이메일 입력 후 생성합니다.
+                  </p>
+                  <div className="flex gap-2">
+                    <button type="button" className="button-secondary" onClick={() => setWizardStep(1)}>이전</button>
+                    <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="button-secondary">
+                      Meta App Dashboard 열기 →
+                    </a>
+                    <button type="button" className="button-primary" onClick={() => setWizardStep(3)}>다음</button>
+                  </div>
+                </div>
+              )}
+              {wizardStep === 3 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="accent-pill">Step 3 / 5</span>
+                    <h4 className="text-sm font-semibold text-[var(--text-strong)]">Instagram 제품 추가</h4>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-base)]">
+                    앱 대시보드 → 왼쪽 사이드바 '제품 추가' → 'Instagram' (Instagram Login for Business) → '설정'을 클릭합니다.
+                  </p>
+                  <div className="flex gap-2">
+                    <button type="button" className="button-secondary" onClick={() => setWizardStep(2)}>이전</button>
+                    <a href="https://developers.facebook.com/apps" target="_blank" rel="noopener noreferrer" className="button-secondary">
+                      Meta App Dashboard 열기 →
+                    </a>
+                    <button type="button" className="button-primary" onClick={() => setWizardStep(4)}>다음</button>
+                  </div>
+                </div>
+              )}
+              {wizardStep === 4 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="accent-pill">Step 4 / 5</span>
+                    <h4 className="text-sm font-semibold text-[var(--text-strong)]">App ID / App Secret 입력</h4>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-base)]">
+                    앱 대시보드 → 앱 설정 → 기본 설정에서 App ID와 App Secret을 복사해 붙여넣으세요.
+                  </p>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">Meta App ID</label>
+                      <input
+                        className="input"
+                        value={wizardAppId}
+                        onChange={(e) => setWizardAppId(e.target.value)}
+                        placeholder="숫자형 App ID (예: 1234567890)"
+                        autoFocus
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium">App Secret</label>
+                      <input
+                        className="input"
+                        type="password"
+                        value={wizardAppSecret}
+                        onChange={(e) => setWizardAppSecret(e.target.value)}
+                        placeholder="App Secret"
+                      />
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-sm font-medium text-[var(--text-muted)]">Redirect URI (Meta 콘솔에 등록)</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          className="input flex-1 bg-[var(--surface-subtle)] cursor-default"
+                          readOnly
+                          value={typeof window !== 'undefined' ? `${window.location.origin}/meta/connect` : '/meta/connect'}
+                        />
+                        <button
+                          type="button"
+                          className="button-secondary shrink-0"
+                          onClick={() => {
+                            void navigator.clipboard.writeText(`${window.location.origin}/meta/connect`);
+                          }}
+                        >
+                          복사
+                        </button>
+                      </div>
+                      <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
+                        Meta 콘솔 → Instagram → OAuth 리디렉션 URI 설정에 이 값을 추가해 주세요.
+                      </p>
+                    </div>
+                  </div>
+                  {wizardError && <p className="text-xs text-rose-700">{wizardError}</p>}
+                  <div className="flex gap-2">
+                    <button type="button" className="button-secondary" onClick={() => { setWizardError(''); setWizardStep(3); }}>
+                      이전
+                    </button>
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={() => {
+                        const id = wizardAppId.trim();
+                        const secret = wizardAppSecret.trim();
+                        if (!id || !secret) {
+                          setWizardError('App ID와 App Secret을 모두 입력해 주세요.');
+                          return;
+                        }
+                        if (!isLikelyMetaAppId(id)) {
+                          setWizardError('App ID 형식이 올바르지 않습니다. Meta 개발자 대시보드의 숫자형 App ID를 입력해 주세요.');
+                          return;
+                        }
+                        setWizardError('');
+                        setWizardStep(5);
+                      }}
+                    >
+                      다음
+                    </button>
+                  </div>
+                </div>
+              )}
+              {wizardStep === 5 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="accent-pill">Step 5 / 5</span>
+                    <h4 className="text-sm font-semibold text-[var(--text-strong)]">연결 테스트</h4>
+                  </div>
+                  <p className="text-sm leading-6 text-[var(--text-base)]">
+                    아래 버튼을 눌러 Instagram OAuth 팝업을 열고 내 계정으로 로그인하세요. 연결이 완료되면 이 화면이 자동으로 바뀝니다.
+                  </p>
+                  {wizardError && <p className="text-xs text-rose-700">{wizardError}</p>}
+                  <div className="flex gap-2">
+                    <button type="button" className="button-secondary" onClick={() => { setWizardError(''); setWizardStep(4); }}>
+                      이전
+                    </button>
+                    <button
+                      type="button"
+                      className="button-primary"
+                      onClick={() => void handleWizardConnect()}
+                      disabled={wizardConnecting}
+                    >
+                      {wizardConnecting ? 'OAuth 창 열리는 중...' : 'Instagram 연결 테스트'}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Already configured in settings mode */}
+          {!isSocialMode && isConfigured && (
+            <div className="soft-panel flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <span className="accent-pill">Meta 앱 설정됨</span>
+                <p className="text-sm text-[var(--text-base)]">Instagram 연동 준비 완료. 이제 페르소나에서 계정을 연결하세요.</p>
+              </div>
+              <button
+                type="button"
+                className="button-secondary text-xs"
+                onClick={() => void handleWizardReset()}
+                disabled={saving}
+              >
+                {saving ? '초기화 중...' : '다시 설정'}
+              </button>
+            </div>
+          )}
+
+          {/* Connection mode selector */}
           <div className="grid gap-3 md:grid-cols-2">
             <button
               type="button"
@@ -869,7 +1180,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             >
               <p className="text-sm font-semibold text-[var(--text-strong)]">인스타그램 로그인</p>
               <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
-                단일 계정 분석에 가장 단순합니다. 공식 문서 기준으로 Instagram Professional 계정 인사이트에 맞는 기본 흐름입니다.
+                단일 계정 분석에 가장 단순합니다. Instagram Professional 계정 인사이트에 맞는 기본 흐름입니다.
               </p>
             </button>
             <button
@@ -884,6 +1195,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             </button>
           </div>
 
+          {/* Form fields */}
           <div className="grid gap-3 md:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm font-medium">Meta App ID</label>
@@ -898,7 +1210,7 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
                     placeholder="Meta 개발자 앱 대시보드의 숫자형 App ID"
                   />
                   <p className="mt-1 text-[11px] leading-5 text-[var(--text-muted)]">
-                    인스타그램 계정 ID나 비즈니스 계정 ID가 아니라, Meta for Developers 앱의 숫자형 `App ID`를 넣어야 합니다.
+                    인스타그램 계정 ID가 아니라, Meta for Developers 앱의 숫자형 App ID를 넣어야 합니다.
                   </p>
                 </>
               )}
@@ -982,119 +1294,15 @@ export function MetaConnectionPanel({ mode = 'social' }: MetaConnectionPanelProp
             <button type="button" className="button-primary" onClick={handleSave} disabled={saving}>
               {saving ? '저장 중...' : '연결 정보 저장'}
             </button>
+            <button type="button" className="button-secondary" onClick={() => void handleStartLogin()} disabled={launching || !loginReady}>
+              {launching ? '공식 연결 창 여는 중...' : `${getConnectionModeLabel(draft.loginMode)} 열기`}
+            </button>
             {!isSocialMode && (
-              <button type="button" className="button-secondary" onClick={handleStartLogin} disabled={launching || !loginReady}>
-                {launching ? '공식 연결 창 여는 중...' : `${getConnectionModeLabel(draft.loginMode)} 열기`}
-              </button>
+              <Link href="/social" className="button-secondary">
+                개발 예정 화면 보기
+              </Link>
             )}
           </div>
-        </div>
-      )}
-
-      {draft.connectedAccounts.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <h4 className="text-sm font-semibold text-[var(--text-strong)]">연결된 인스타그램 계정</h4>
-            <span className="text-xs text-[var(--text-muted)]">기본 계정을 하나 선택해 두면 이후 분석에 사용하기 쉽습니다.</span>
-          </div>
-          <div className="grid gap-3 md:grid-cols-2">
-            {draft.connectedAccounts.map((account) => {
-              const active = draft.instagramBusinessAccountId === account.instagramBusinessAccountId;
-              return (
-                <button
-                  key={account.instagramBusinessAccountId}
-                  type="button"
-                  className={active ? 'list-card list-card-active text-left' : 'list-card text-left'}
-                  onClick={() => void handleSelectAccount(account.instagramBusinessAccountId)}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--text-strong)]">@{account.username}</p>
-                      <p className="mt-1 text-xs text-[var(--text-muted)]">
-                        {account.pageName || (draft.loginMode === 'instagram_login' ? '연결된 Instagram Professional 계정' : '연결된 Meta 페이지')}
-                      </p>
-                      <p className="mt-2 text-[11px] text-[var(--text-muted)]">IG Account ID: {account.instagramBusinessAccountId}</p>
-                    </div>
-                    <span className={active ? 'accent-pill' : 'pill-option'}>{active ? '기본 계정' : '선택'}</span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {isSocialMode && (
-        <div className="space-y-4 soft-panel">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-[var(--text-strong)]">도달 분석 실행</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">선택한 인스타그램 계정 기준으로 최근 구간을 불러와 저장합니다.</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-xs font-medium text-[var(--text-muted)]">조회 기간</label>
-              <input
-                className="input w-24"
-                type="number"
-                min={2}
-                max={120}
-                value={lookbackDays}
-                onChange={(e) => setLookbackDays(Math.max(2, Math.min(120, Number(e.target.value || 30))))}
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="button-primary"
-              onClick={handleRunAnalysis}
-              disabled={runningAnalysis || !hasSavedToken || !hasDefaultAccount}
-            >
-              {runningAnalysis ? '분석 실행 중...' : '최근 도달 분석 실행'}
-            </button>
-            <Link href="/operations" className="button-secondary">
-              오늘의 브리핑 보기
-            </Link>
-          </div>
-
-          {latestAnalysis && (
-            <div className="grid gap-3 md:grid-cols-3">
-              <div className="status-tile">
-                <p className="metric-label">추세</p>
-                <p className={`mt-2 text-base font-semibold ${trendLabel(latestAnalysis.trendDirection).tone}`}>
-                  {trendLabel(latestAnalysis.trendDirection).label}
-                </p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">{formatConnectedAt(latestAnalysis.createdAt)}</p>
-              </div>
-              <div className="status-tile">
-                <p className="metric-label">최신 도달</p>
-                <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
-                  {Math.round(latestAnalysis.latestReach).toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">
-                  전일 대비{' '}
-                  {latestAnalysis.dayOverDayChangePct == null
-                    ? '비교 불가'
-                    : `${latestAnalysis.dayOverDayChangePct > 0 ? '+' : ''}${latestAnalysis.dayOverDayChangePct.toFixed(2)}%`}
-                </p>
-              </div>
-              <div className="status-tile">
-                <p className="metric-label">7일 평균 / 이상치</p>
-                <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">
-                  {latestAnalysis.sevenDayAverage == null
-                    ? '데이터 부족'
-                    : Math.round(latestAnalysis.sevenDayAverage).toLocaleString()}
-                </p>
-                <p className="mt-1 text-xs text-[var(--text-muted)]">이상치 {latestAnalysis.anomalyCount}건</p>
-              </div>
-              <div className="md:col-span-3">
-                <div className="soft-panel">
-                  <p className="text-sm font-semibold text-[var(--text-strong)]">최근 분석 요약</p>
-                  <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{latestAnalysis.summary}</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </section>

@@ -421,17 +421,17 @@ export default function SeminarPage() {
   return (
     <div className="space-y-5">
       <section className="dashboard-hero">
-        <p className="dashboard-eyebrow">Seminar Studio</p>
-        <h2 className="dashboard-title">올나잇 세미나 스튜디오</h2>
+        <p className="dashboard-eyebrow">Seminar</p>
+        <h2 className="dashboard-title">세미나 스튜디오</h2>
         <p className="dashboard-copy">
           주제를 던지면 에이전트들이 라운드별 토론을 반복하고, 아침 브리핑까지 자동으로 정리합니다.
         </p>
-        <p className="mt-2 text-xs quiet-text">
-          앱이 켜져 있고 Mac이 절전 상태가 아닐 때 자동 회의가 계속 진행됩니다.
-        </p>
-        {strategyConfigSummary && (
-          <p className="mt-2 text-xs quiet-text">공통 전략 설정: {strategyConfigSummary}</p>
-        )}
+        <div className="mt-3 flex flex-wrap gap-2">
+          {strategyConfigSummary && (
+            <span className="accent-pill text-xs">{strategyConfigSummary}</span>
+          )}
+          <span className="pill-option text-xs">Mac 절전 해제 시 자동 진행</span>
+        </div>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
@@ -622,31 +622,41 @@ export default function SeminarPage() {
           <div className="max-h-[420px] space-y-2 overflow-auto pr-1">
             {sessions.map((session) => {
               const active = selectedId === session.id;
+              const progressPct = session.maxRounds > 0
+                ? Math.round((session.completedRounds / session.maxRounds) * 100)
+                : 0;
               return (
                 <button
                   key={session.id}
                   type="button"
                   onClick={() => setSelectedId(session.id)}
-                  className={`w-full rounded-xl border px-3 py-3 text-left ${
-                    active ? 'border-[#7c5d4b] bg-[#f8efe6]' : 'border-[#dfd2c6] bg-white'
+                  className={`w-full rounded-xl border px-3 py-3 text-left transition-all ${
+                    active
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)]'
                   }`}
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="line-clamp-1 text-sm font-semibold text-[#2a1a18]">{session.title || session.topic}</p>
-                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusClass[session.status]}`}>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="line-clamp-1 text-sm font-semibold text-[var(--text-strong)]">{session.title || session.topic}</p>
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold flex-shrink-0 ${statusClass[session.status]}`}>
                       {statusLabel[session.status]}
                     </span>
                   </div>
-                  <p className="mt-1 text-xs text-[#6e5a50]">
-                    진행: {session.completedRounds}/{session.maxRounds}
-                  </p>
-                  <p className="mt-1 text-xs text-[#7c695f]">
-                    다음 라운드: {session.nextRunAt ? new Date(session.nextRunAt).toLocaleString('ko-KR') : '-'}
+                  <div className="mt-2 h-1.5 rounded-full bg-[var(--surface-sub)]">
+                    <div
+                      className="h-full rounded-full bg-[var(--accent)] transition-all"
+                      style={{ width: `${progressPct}%` }}
+                    />
+                  </div>
+                  <p className="mt-1.5 text-xs text-[var(--text-muted)]">
+                    {session.completedRounds}/{session.maxRounds} 라운드 · {progressPct}%
                   </p>
                 </button>
               );
             })}
-            {sessions.length === 0 && <p className="text-sm text-[#76665d]">생성된 세션이 없습니다.</p>}
+            {sessions.length === 0 && (
+              <p className="text-sm text-[var(--text-muted)]">생성된 세션이 없습니다.</p>
+            )}
           </div>
         </div>
       </section>
@@ -686,37 +696,46 @@ export default function SeminarPage() {
           )}
 
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="metric-card">
-              <p className="text-xs text-[#74655c]">완료 라운드</p>
-              <p className="mt-1 text-2xl font-semibold text-[#2a1a18]">
-                {selected.completedRounds}/{selected.maxRounds}
+            <div className="metric-card" style={{ borderTop: '4px solid var(--accent)' }}>
+              <p className="metric-label">완료 라운드</p>
+              <p className="metric-value">
+                {selected.completedRounds}<span className="text-base font-normal text-[var(--text-muted)]">/{selected.maxRounds}</span>
               </p>
             </div>
-            <div className="metric-card">
-              <p className="text-xs text-[#74655c]">간격</p>
-              <p className="mt-1 text-2xl font-semibold text-[#2a1a18]">{selected.intervalMinutes}분</p>
+            <div className="metric-card" style={{ borderTop: '4px solid #6366f1' }}>
+              <p className="metric-label">간격</p>
+              <p className="metric-value">{selected.intervalMinutes}<span className="text-base font-normal text-[var(--text-muted)]">분</span></p>
             </div>
-            <div className="metric-card">
-              <p className="text-xs text-[#74655c]">마지막 실행</p>
-              <p className="mt-1 text-sm font-semibold text-[#2a1a18]">
+            <div className="metric-card" style={{ borderTop: '4px solid #10b981' }}>
+              <p className="metric-label">마지막 실행</p>
+              <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
                 {selected.lastRunAt ? new Date(selected.lastRunAt).toLocaleString('ko-KR') : '-'}
               </p>
             </div>
-            <div className="metric-card">
-              <p className="text-xs text-[#74655c]">다음 실행</p>
-              <p className="mt-1 text-sm font-semibold text-[#2a1a18]">
+            <div className="metric-card" style={{ borderTop: '4px solid #f59e0b' }}>
+              <p className="metric-label">다음 실행</p>
+              <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
                 {selected.nextRunAt ? new Date(selected.nextRunAt).toLocaleString('ko-KR') : '-'}
               </p>
             </div>
           </div>
 
           <div>
-            <p className="text-sm font-semibold text-[#2a1a18]">라운드 로그</p>
-            <div className="mt-2 max-h-[360px] space-y-2 overflow-auto pr-1">
+            <p className="section-title mb-3">라운드 로그</p>
+            <div className="max-h-[360px] space-y-2 overflow-auto pr-1">
               {rounds.map((round) => (
-                <div key={round.id} className="rounded-xl border border-[#dfd2c6] bg-white px-3 py-3">
+                <div
+                  key={round.id}
+                  className="soft-panel"
+                  style={{
+                    borderLeft: `3px solid ${
+                      round.status === 'DONE' ? '#10b981' :
+                      round.status === 'RUNNING' ? 'var(--accent)' : '#f43f5e'
+                    }`
+                  }}
+                >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-sm font-semibold text-[#2a1a18]">Round {round.roundNumber}</span>
+                    <span className="text-sm font-semibold text-[var(--text-strong)]">Round {round.roundNumber}</span>
                     <span className={
                       round.status === 'DONE'
                         ? 'status-badge status-badge-success'
@@ -727,32 +746,34 @@ export default function SeminarPage() {
                       {round.status}
                     </span>
                     {round.runId && (
-                      <div className="flex flex-wrap gap-2">
-                        <Link className="text-xs text-[#7a5646] underline" href={`/runs/${round.runId}`}>
+                      <div className="flex flex-wrap gap-2 ml-auto">
+                        <Link className="text-xs text-[var(--accent)] underline" href={`/runs/${round.runId}`}>
                           실행 결과
                         </Link>
-                        <Link className="text-xs text-[#7a5646] underline" href={`/runs/${round.runId}/report`}>
+                        <Link className="text-xs text-[var(--accent)] underline" href={`/runs/${round.runId}/report`}>
                           산출물 보고서
                         </Link>
                       </div>
                     )}
                   </div>
                   {round.summary && (
-                    <details className="mt-2 rounded-lg border border-[#e8ddd2] bg-[#fcf8f3] px-2 py-1">
-                      <summary className="cursor-pointer text-xs font-medium text-[#6a574d]">라운드 요약 보기</summary>
-                      <pre className="mt-2 whitespace-pre-wrap text-xs text-[#5b4a42]">{round.summary}</pre>
+                    <details className="mt-2">
+                      <summary className="cursor-pointer text-xs font-medium text-[var(--text-muted)]">라운드 요약 보기</summary>
+                      <pre className="mt-2 whitespace-pre-wrap text-xs text-[var(--text-base)]">{round.summary}</pre>
                     </details>
                   )}
-                  {round.error && <p className="mt-2 text-xs text-rose-700">{round.error}</p>}
+                  {round.error && <p className="mt-2 text-xs text-rose-600">{round.error}</p>}
                 </div>
               ))}
-              {rounds.length === 0 && <p className="text-sm text-[#76665d]">아직 실행된 라운드가 없습니다.</p>}
+              {rounds.length === 0 && (
+                <p className="text-sm text-[var(--text-muted)]">아직 실행된 라운드가 없습니다.</p>
+              )}
             </div>
           </div>
 
-          <div className="rounded-xl border border-[#dfd2c6] bg-[#fcf7f0] px-3 py-3">
-            <p className="text-sm font-semibold text-[#2a1a18]">아침 브리핑</p>
-            <pre className="mt-2 whitespace-pre-wrap text-xs text-[#5c4a42]">
+          <div className="soft-panel" style={{ borderLeft: '4px solid var(--accent)' }}>
+            <p className="section-title mb-2">아침 브리핑</p>
+            <pre className="whitespace-pre-wrap text-xs text-[var(--text-base)] leading-5">
               {briefing || '세션 완료 후 아침 브리핑이 자동 생성됩니다.'}
             </pre>
           </div>

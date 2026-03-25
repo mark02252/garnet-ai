@@ -27,6 +27,7 @@ import {
 } from '@/lib/mcp-connections';
 import { defaultRuntimeDraft, mergeRuntimeDraft, type RuntimeDraft } from '@/lib/runtime-draft';
 import { loadStoredRuntimeDraft, saveStoredRuntimeDraft } from '@/lib/runtime-storage';
+import { isElectron } from '@/lib/platform';
 import type { AgentExecutionConfig, BusinessContext, DomainAgentPoolConfig, DomainAgentProfile, DomainKey } from '@/lib/types';
 
 const DOMAIN_KEYS: DomainKey[] = [
@@ -308,8 +309,8 @@ export default function SettingsPage() {
 
   useEffect(() => {
     async function loadUpdateConfig() {
-      if (!window.electronAPI?.getUpdateConfig) return;
-      const config = await window.electronAPI.getUpdateConfig();
+      if (!isElectron() || !(window as any).electronAPI?.getUpdateConfig) return;
+      const config = await (window as any).electronAPI.getUpdateConfig();
       if (config?.ok) {
         setUpdateFeedUrl(config.updateUrl || '');
         setUpdateConfigSource(config.source || 'none');
@@ -764,12 +765,12 @@ export default function SettingsPage() {
   }
 
   async function onCheckUpdate() {
-    if (!window.electronAPI?.checkForUpdates) {
+    if (!isElectron() || !(window as any).electronAPI?.checkForUpdates) {
       setUpdateStatus({ status: 'disabled', message: '데스크톱 앱에서만 업데이트 확인이 가능합니다.' });
       return;
     }
     setCheckingUpdate(true);
-    const result = await window.electronAPI.checkForUpdates();
+    const result = await (window as any).electronAPI.checkForUpdates();
     setUpdateStatus(result);
     if (result.updateUrl) setUpdateFeedUrl(result.updateUrl);
     if (result.configSource) setUpdateConfigSource(result.configSource);
@@ -777,41 +778,41 @@ export default function SettingsPage() {
   }
 
   async function onDownloadUpdate() {
-    if (!window.electronAPI?.downloadUpdate) {
+    if (!isElectron() || !(window as any).electronAPI?.downloadUpdate) {
       setUpdateStatus({ status: 'disabled', message: '데스크톱 앱에서만 업데이트 다운로드가 가능합니다.' });
       return;
     }
     setDownloadingUpdate(true);
-    const result = await window.electronAPI.downloadUpdate();
+    const result = await (window as any).electronAPI.downloadUpdate();
     setUpdateStatus((prev) => ({ ...prev, ...result }));
     setDownloadingUpdate(false);
   }
 
   async function onInstallUpdate() {
-    if (!window.electronAPI?.installUpdate) {
+    if (!isElectron() || !(window as any).electronAPI?.installUpdate) {
       setUpdateStatus({ status: 'disabled', message: '데스크톱 앱에서만 업데이트 설치가 가능합니다.' });
       return;
     }
     setInstallingUpdate(true);
-    const result = await window.electronAPI.installUpdate();
+    const result = await (window as any).electronAPI.installUpdate();
     setUpdateStatus((prev) => ({ ...prev, ...result }));
     setInstallingUpdate(false);
   }
 
   async function onSaveUpdateConfig() {
-    if (!window.electronAPI?.saveUpdateConfig) {
+    if (!isElectron() || !(window as any).electronAPI?.saveUpdateConfig) {
       setUpdateStatus({ status: 'disabled', message: '데스크톱 앱에서만 업데이트 URL 저장이 가능합니다.' });
       return;
     }
     setSavingUpdateConfig(true);
-    const result = await window.electronAPI.saveUpdateConfig(updateFeedUrl);
+    const result = await (window as any).electronAPI.saveUpdateConfig(updateFeedUrl);
     setUpdateStatus({
       status: result.status,
       message: result.message,
       updateUrl: result.updateUrl
     });
-    if (result.ok && window.electronAPI?.getUpdateConfig) {
-      const config = await window.electronAPI.getUpdateConfig();
+    if (result.ok && (window as any).electronAPI?.getUpdateConfig) {
+      const config = await (window as any).electronAPI.getUpdateConfig();
       if (config?.ok) {
         setUpdateFeedUrl(config.updateUrl || '');
         setUpdateConfigSource(config.source || 'none');

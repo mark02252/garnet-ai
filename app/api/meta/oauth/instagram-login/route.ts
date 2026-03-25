@@ -6,13 +6,13 @@ export async function GET() {
     return NextResponse.json({ error: 'META_APP_ID not configured' }, { status: 500 });
   }
 
-  const redirectUri = process.env.NEXT_PUBLIC_APP_URL
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/meta/connect`
-    : 'http://localhost:3000/meta/connect';
+  // Meta 앱에 등록된 리디렉션 URI (https 필수)
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const redirectUri = baseUrl.replace('http://', 'https://') + '/meta/connect';
 
-  const scopes = 'instagram_business_basic,instagram_business_manage_insights';
+  const scopes = 'instagram_business_basic,instagram_business_manage_insights,instagram_manage_comments,instagram_business_content_publish';
 
-  const oauthUrl = `https://api.instagram.com/oauth/authorize?client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
+  const oauthUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
 
   return NextResponse.redirect(oauthUrl);
 }

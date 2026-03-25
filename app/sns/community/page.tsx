@@ -126,14 +126,18 @@ export default function CommunityPage() {
   }
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <div className="mb-6">
-        <p className="dashboard-eyebrow">SNS 스튜디오</p>
-        <h1 className="dashboard-title">커뮤니티</h1>
-      </div>
+    <div className="p-6 max-w-3xl mx-auto space-y-5">
+      {/* Hero */}
+      <section className="dashboard-hero">
+        <div>
+          <p className="dashboard-eyebrow">SNS Studio</p>
+          <h1 className="dashboard-title">커뮤니티</h1>
+          <p className="dashboard-copy">AI가 페르소나 스타일에 맞는 댓글 답변을 일괄 생성합니다.</p>
+        </div>
+      </section>
 
       {/* 컨트롤 */}
-      <div className="card mb-4 flex flex-col gap-3">
+      <div className="soft-card flex flex-col gap-4">
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="text-xs text-[var(--text-muted)] block mb-1">페르소나</label>
@@ -182,34 +186,45 @@ export default function CommunityPage() {
       {/* 댓글 목록 */}
       {comments.length > 0 && (
         <>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between">
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox"
                 checked={selected.size === comments.length}
                 onChange={e => setSelected(e.target.checked ? new Set(comments.map(c => c.id)) : new Set())}
               />
-              전체 선택 ({selected.size}/{comments.length})
+              <span className="text-[var(--text-base)]">전체 선택 ({selected.size}/{comments.length})</span>
             </label>
-            <button className="button-primary text-sm" onClick={generateReplies}
-              disabled={generating || selected.size === 0}>
-              {generating ? 'AI 생성 중...' : `선택 항목 일괄 AI 답변 생성 (${selected.size})`}
+            <button
+              className="button-primary text-sm"
+              onClick={generateReplies}
+              disabled={generating || selected.size === 0}
+            >
+              {generating ? 'AI 생성 중...' : `AI 답변 생성 (${selected.size}건)`}
             </button>
           </div>
 
           <div className="space-y-3">
             {comments.map(c => (
-              <div key={c.id} className={`card ${selected.has(c.id) ? 'border-[var(--accent)]' : ''}`}>
+              <div key={c.id} className={`soft-card transition-all ${selected.has(c.id) ? 'border-[var(--accent)] border' : ''}`}>
                 <div className="flex items-start gap-3">
-                  <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="mt-1" />
+                  <input type="checkbox" checked={selected.has(c.id)} onChange={() => toggleSelect(c.id)} className="mt-1 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-sm">@{c.username}</span>
-                      <span className="text-xs text-[var(--text-muted)]">{new Date(c.timestamp).toLocaleDateString()}</span>
+                    <div className="flex items-center gap-2 mb-2">
+                      {/* Avatar placeholder */}
+                      <div className="h-8 w-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+                        {c.username.slice(0, 2).toUpperCase()}
+                      </div>
+                      <div>
+                        <span className="font-semibold text-sm text-[var(--text-strong)]">@{c.username}</span>
+                        <span className="text-xs text-[var(--text-muted)] ml-2">
+                          {new Date(c.timestamp).toLocaleDateString('ko-KR')}
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-sm text-[var(--text-base)] mb-2">{c.text}</p>
+                    <p className="text-sm text-[var(--text-base)] mb-3 ml-10">{c.text}</p>
                     {replies.has(c.id) && (
-                      <div className="bg-[var(--surface-sub)] rounded p-2 mb-2">
-                        <p className="text-xs text-[var(--text-muted)] mb-1">AI 답변 초안</p>
+                      <div className="ml-10 bg-[var(--surface-sub)] rounded-xl p-3 border border-[var(--border)]">
+                        <p className="text-xs font-semibold text-[var(--accent)] mb-2">AI 답변 초안</p>
                         <textarea
                           className="input w-full text-sm min-h-[60px]"
                           value={replies.get(c.id) || ''}
@@ -224,7 +239,7 @@ export default function CommunityPage() {
                           onClick={() => publishReply(c.id)}
                           disabled={publishing === c.id}
                         >
-                          {publishing === c.id ? '발행 중...' : '발행'}
+                          {publishing === c.id ? '발행 중...' : '답변 발행'}
                         </button>
                       </div>
                     )}
@@ -237,10 +252,18 @@ export default function CommunityPage() {
       )}
 
       {comments.length === 0 && !selectedMediaId && !mediaId && (
-        <EmptyState icon="💬" title="포스팅을 선택하면 댓글을 자동으로 불러옵니다" />
+        <div className="soft-card text-center py-16">
+          <div className="text-5xl mb-4">💬</div>
+          <p className="text-lg font-semibold text-[var(--text-strong)] mb-2">포스팅을 선택해 주세요</p>
+          <p className="text-sm text-[var(--text-muted)]">포스팅을 선택하면 댓글을 자동으로 불러옵니다.</p>
+        </div>
       )}
       {comments.length === 0 && (selectedMediaId || mediaId) && (
-        <EmptyState icon="📭" title="이 게시물의 댓글을 불러올 수 없습니다." description="댓글 관리 기능은 Facebook 연동 후 사용할 수 있습니다." />
+        <div className="soft-card text-center py-16">
+          <div className="text-5xl mb-4">📭</div>
+          <p className="text-lg font-semibold text-[var(--text-strong)] mb-2">댓글을 불러올 수 없습니다</p>
+          <p className="text-sm text-[var(--text-muted)]">댓글 관리 기능은 Facebook 연동 후 사용할 수 있습니다.</p>
+        </div>
       )}
     </div>
   )

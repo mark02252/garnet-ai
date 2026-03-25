@@ -7,7 +7,7 @@ interface QuotaState {
 
 const DEFAULT_QUOTAS: Record<string, QuotaConfig> = {
   YOUTUBE: { dailyLimit: 8000 },
-  TWITTER: { monthlyLimit: 8000 },
+  TWITTER: { dailyLimit: 999999, monthlyLimit: 8000 },
   REDDIT: { dailyLimit: 5000 },
   SERPER: { dailyLimit: 500 },
   NAVER: { dailyLimit: 20000 },

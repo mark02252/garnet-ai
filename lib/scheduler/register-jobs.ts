@@ -13,7 +13,7 @@ import { initCollectors } from '@/lib/collectors/init';
 // 따라서 dynamic import로 lazy 로딩한다.
 async function lazyJobHandler(fnName: string, runtime?: unknown) {
   const mod = await import('@/lib/job-scheduler');
-  const fn = (mod as Record<string, (r?: unknown) => Promise<{ ok: boolean; message: string }>>)[fnName];
+  const fn = (mod as unknown as Record<string, (r?: unknown) => Promise<{ ok: boolean; message: string }>>)[fnName];
   if (!fn) return { ok: false, message: `Handler not found: ${fnName}` };
   return fn(runtime);
 }

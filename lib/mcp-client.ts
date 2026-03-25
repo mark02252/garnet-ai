@@ -22,8 +22,8 @@ function resolveMcpServerScriptPath() {
   const candidates = [
     path.join(process.cwd(), 'scripts', 'mcp-server.mjs'),
     path.join(process.cwd(), '..', 'scripts', 'mcp-server.mjs'),
-    process.resourcesPath ? path.join(process.resourcesPath, 'app.asar', 'scripts', 'mcp-server.mjs') : '',
-    process.resourcesPath ? path.join(process.resourcesPath, 'app.asar.unpacked', 'scripts', 'mcp-server.mjs') : ''
+    (process as any).resourcesPath ? path.join((process as any).resourcesPath, 'app.asar', 'scripts', 'mcp-server.mjs') : '',
+    (process as any).resourcesPath ? path.join((process as any).resourcesPath, 'app.asar.unpacked', 'scripts', 'mcp-server.mjs') : ''
   ].filter(Boolean);
 
   for (const candidate of candidates) {

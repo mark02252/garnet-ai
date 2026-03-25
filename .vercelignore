@@ -1,0 +1,9 @@
+node_modules
+.next
+.next-build
+dist-electron
+src-tauri/target
+vendor_prisma
+*.db
+.env
+.env.local

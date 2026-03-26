@@ -10,7 +10,7 @@ export async function GET() {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const redirectUri = baseUrl.replace('http://', 'https://') + '/meta/connect';
 
-  const scopes = 'instagram_business_basic,instagram_business_manage_insights,instagram_manage_comments,instagram_business_content_publish';
+  const scopes = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights';
 
   const oauthUrl = `https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=${appId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&scope=${encodeURIComponent(scopes)}`;
 

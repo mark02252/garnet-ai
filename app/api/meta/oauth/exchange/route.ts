@@ -142,9 +142,13 @@ async function exchangeInstagramLogin(input: {
   // Instagram API용 App ID/Secret 사용 (Meta App ID가 아닌 Instagram App ID)
   const effectiveAppId = process.env.META_APP_ID || input.appId || '';
   const effectiveAppSecret = process.env.META_APP_SECRET || input.appSecret || '';
-  // redirect_uri는 OAuth 인증 때와 정확히 일치해야 함 (https 강제)
-  let redirectUri = input.redirectUri || `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/meta/connect`;
-  redirectUri = redirectUri.replace('http://localhost', 'https://localhost');
+  // redirect_uri는 OAuth 인증 때와 정확히 일치해야 함
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  let redirectUri = `${baseUrl}/meta/connect`;
+  // 로컬 개발 시 https 강제 (Meta OAuth가 https만 허용)
+  if (redirectUri.includes('localhost')) {
+    redirectUri = redirectUri.replace('http://', 'https://');
+  }
 
   const body = new URLSearchParams({
     client_id: effectiveAppId,

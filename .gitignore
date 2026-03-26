@@ -48,3 +48,4 @@ npm-debug.log*
 vendor_prisma/
 superpowers/
 .garnet-config/
+.vercel

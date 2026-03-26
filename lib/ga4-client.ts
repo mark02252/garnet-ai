@@ -301,6 +301,55 @@ export async function fetchLandingPages(startDate: string, endDate: string): Pro
   }));
 }
 
+export type GA4HourlyPattern = {
+  hour: string;
+  activeUsers: number;
+  sessions: number;
+};
+
+export async function fetchHourlyPattern(startDate: string, endDate: string): Promise<GA4HourlyPattern[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'hour' }],
+    metrics: [{ name: 'activeUsers' }, { name: 'sessions' }],
+    orderBys: [{ dimension: { dimensionName: 'hour' } }]
+  });
+  return (response.rows || []).map(row => ({
+    hour: row.dimensionValues?.[0]?.value || '',
+    activeUsers: Number(row.metricValues?.[0]?.value || 0),
+    sessions: Number(row.metricValues?.[1]?.value || 0)
+  }));
+}
+
+export type GA4NewVsReturning = {
+  userType: string;
+  activeUsers: number;
+  sessions: number;
+  engagementRate: number;
+};
+
+export async function fetchNewVsReturning(startDate: string, endDate: string): Promise<GA4NewVsReturning[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'newVsReturning' }],
+    metrics: [{ name: 'activeUsers' }, { name: 'sessions' }, { name: 'engagementRate' }]
+  });
+  return (response.rows || []).map(row => ({
+    userType: row.dimensionValues?.[0]?.value || '',
+    activeUsers: Number(row.metricValues?.[0]?.value || 0),
+    sessions: Number(row.metricValues?.[1]?.value || 0),
+    engagementRate: Number(row.metricValues?.[2]?.value || 0)
+  }));
+}
+
 export async function analyzeGA4WithAI(
   traffic: GA4DailyTraffic[],
   channels: GA4ChannelBreakdown[],

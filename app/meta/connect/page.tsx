@@ -92,6 +92,14 @@ function MetaConnectContent() {
         return;
       }
 
+      // 환경변수에서 App ID/Secret 자동 채움 (Vercel 배포 시 로컬 저장소에 없을 수 있음)
+      if (!loaded.value.appId && process.env.NEXT_PUBLIC_META_APP_ID) {
+        loaded.value.appId = process.env.NEXT_PUBLIC_META_APP_ID;
+      }
+      if (!loaded.value.redirectUri) {
+        loaded.value.redirectUri = `${window.location.origin}/meta/connect`;
+      }
+
       const needsAppSecret = loaded.value.loginMode === 'meta_business';
       if (
         !loaded.value.appId ||

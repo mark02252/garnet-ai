@@ -81,6 +81,19 @@ type AiInsight = {
   generatedAt: string;
 };
 
+type HourlyPattern = {
+  hour: string;
+  activeUsers: number;
+  sessions: number;
+};
+
+type NewVsReturning = {
+  userType: string;
+  activeUsers: number;
+  sessions: number;
+  engagementRate: number;
+};
+
 type DateRange = '7daysAgo' | '14daysAgo' | '30daysAgo' | '90daysAgo';
 
 // ── Demo Data ──────────────────────────────────────────────────────────────
@@ -205,6 +218,25 @@ const DEMO_INSIGHT: AiInsight = {
   ],
   generatedAt: new Date().toISOString(),
 };
+
+const DEMO_HOURLY: HourlyPattern[] = Array.from({ length: 24 }, (_, i) => {
+  const hour = String(i).padStart(2, '0');
+  // Simulate realistic traffic: low at night, morning/evening peaks
+  let baseSessions = 40;
+  if (i >= 0 && i <= 5) baseSessions = 10 + i * 3;
+  else if (i >= 6 && i <= 9) baseSessions = 60 + (i - 6) * 30;
+  else if (i >= 10 && i <= 13) baseSessions = 120 + Math.random() * 30;
+  else if (i >= 14 && i <= 17) baseSessions = 110 + Math.random() * 20;
+  else if (i >= 18 && i <= 21) baseSessions = 140 + (i === 19 || i === 20 ? 40 : 0) + Math.random() * 20;
+  else baseSessions = 60 - (i - 21) * 15;
+  const sessions = Math.max(8, Math.floor(baseSessions + Math.random() * 20));
+  return { hour, sessions, activeUsers: Math.floor(sessions * 0.77) };
+});
+
+const DEMO_USER_TYPE: NewVsReturning[] = [
+  { userType: 'new', activeUsers: 19800, sessions: 24600, engagementRate: 0.56 },
+  { userType: 'returning', activeUsers: 8200, sessions: 12300, engagementRate: 0.74 },
+];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -383,6 +415,8 @@ export default function AnalyticsPage() {
   const [landingPages, setLandingPages] = useState<LandingPage[]>([]);
   const [realtimeUsers, setRealtimeUsers] = useState<number | null>(null);
   const [insight, setInsight] = useState<AiInsight | null>(null);
+  const [hourlyPattern, setHourlyPattern] = useState<HourlyPattern[]>([]);
+  const [userType, setUserType] = useState<NewVsReturning[]>([]);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
@@ -406,6 +440,8 @@ export default function AnalyticsPage() {
     setDevices(DEMO_DEVICES);
     setGeo(DEMO_GEO);
     setLandingPages(DEMO_LANDING_PAGES);
+    setHourlyPattern(DEMO_HOURLY);
+    setUserType(DEMO_USER_TYPE);
     setRealtimeUsers(23);
     setLoading(false);
   }, [dateRange]);
@@ -414,12 +450,14 @@ export default function AnalyticsPage() {
     setLoading(true);
     const params = `startDate=${dateRange}&endDate=today`;
     try {
-      const [reportRes, engRes, devRes, geoRes, lpRes] = await Promise.allSettled([
+      const [reportRes, engRes, devRes, geoRes, lpRes, hourlyRes, userTypeRes] = await Promise.allSettled([
         fetch(`/api/ga4/report?${params}&type=all`).then(r => r.json()),
         fetch(`/api/ga4/engagement?${params}`).then(r => r.json()),
         fetch(`/api/ga4/devices?${params}`).then(r => r.json()),
         fetch(`/api/ga4/geo?${params}`).then(r => r.json()),
         fetch(`/api/ga4/landing-pages?${params}`).then(r => r.json()),
+        fetch(`/api/ga4/hourly?${params}`).then(r => r.json()),
+        fetch(`/api/ga4/user-type?${params}`).then(r => r.json()),
       ]);
 
       const report = reportRes.status === 'fulfilled' ? reportRes.value : null;
@@ -453,6 +491,16 @@ export default function AnalyticsPage() {
         setLandingPages(lpRes.value.data);
       } else {
         setLandingPages(DEMO_LANDING_PAGES);
+      }
+      if (hourlyRes.status === 'fulfilled' && hourlyRes.value.configured && hourlyRes.value.data) {
+        setHourlyPattern(hourlyRes.value.data);
+      } else {
+        setHourlyPattern(DEMO_HOURLY);
+      }
+      if (userTypeRes.status === 'fulfilled' && userTypeRes.value.configured && userTypeRes.value.data) {
+        setUserType(userTypeRes.value.data);
+      } else {
+        setUserType(DEMO_USER_TYPE);
       }
     } catch {
       loadDemoData();
@@ -538,6 +586,50 @@ export default function AnalyticsPage() {
   const maxGeoUsers = Math.max(...geoChartData.map(g => g['활성 사용자']), 1);
 
   const periodLabel = dateRange === '7daysAgo' ? '7일' : dateRange === '14daysAgo' ? '14일' : dateRange === '90daysAgo' ? '90일' : '30일';
+
+  // ── New section computed values ───────────────────────────────────────
+  // Hourly chart data
+  const hourlyChartData = hourlyPattern.map(h => ({
+    name: `${parseInt(h.hour)}시`,
+    세션: h.sessions,
+    활성사용자: h.activeUsers,
+  }));
+
+  // Peak hour
+  const peakHourEntry = hourlyPattern.reduce(
+    (max, h) => (h.sessions > max.sessions ? h : max),
+    hourlyPattern[0] || { hour: '0', sessions: 0, activeUsers: 0 }
+  );
+  const peakHour = peakHourEntry ? parseInt(peakHourEntry.hour) : 0;
+
+  // New vs Returning
+  const newUser = userType.find(u => u.userType === 'new');
+  const returningUser = userType.find(u => u.userType === 'returning');
+  const totalUserTypeUsers = (newUser?.activeUsers || 0) + (returningUser?.activeUsers || 0);
+  const newUserPct = totalUserTypeUsers > 0 ? ((newUser?.activeUsers || 0) / totalUserTypeUsers) * 100 : 0;
+  const returningUserPct = totalUserTypeUsers > 0 ? ((returningUser?.activeUsers || 0) / totalUserTypeUsers) * 100 : 0;
+
+  // WoW week comparison (split daily traffic into two halves)
+  const halfIdx = Math.floor(traffic.length / 2);
+  const prevWeekData = traffic.slice(0, halfIdx);
+  const currWeekData = traffic.slice(halfIdx);
+  const prevWeekTotals = {
+    users: prevWeekData.reduce((s, d) => s + d.activeUsers, 0),
+    sessions: prevWeekData.reduce((s, d) => s + d.sessions, 0),
+    pageViews: prevWeekData.reduce((s, d) => s + d.screenPageViews, 0),
+  };
+  const currWeekTotals = {
+    users: currWeekData.reduce((s, d) => s + d.activeUsers, 0),
+    sessions: currWeekData.reduce((s, d) => s + d.sessions, 0),
+    pageViews: currWeekData.reduce((s, d) => s + d.screenPageViews, 0),
+  };
+  function wowPct(curr: number, prev: number) {
+    if (prev === 0) return 0;
+    return ((curr - prev) / prev) * 100;
+  }
+
+  // Best channel
+  const bestChannel = channels.length > 0 ? `${channels[0].source}/${channels[0].medium}` : '—';
 
   // ── Render ────────────────────────────────────────────────────────────
 
@@ -1462,6 +1554,394 @@ export default function AnalyticsPage() {
               </div>
             )}
           </div>
+
+          {/* ════════════════════════════════════════════════════════
+              Section 8: 시간대별 트래픽 패턴
+          ════════════════════════════════════════════════════════ */}
+          {hourlyChartData.length > 0 && (
+            <div className="panel" style={{ marginBottom: 20, marginTop: 20 }}>
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#3182f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                  Hourly Pattern
+                </p>
+                <h2 className="section-title">시간대별 트래픽</h2>
+                <p style={{ fontSize: 13, color: '#6b7684', marginTop: 4 }}>
+                  방문이 집중되는 시간대를 파악하세요
+                </p>
+              </div>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={hourlyChartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barSize={14}>
+                  <defs>
+                    <linearGradient id="hourlyBarGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3182f6" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#3182f6" stopOpacity={0.45} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval={2}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={36}
+                  />
+                  <Tooltip
+                    content={<ChartTooltip />}
+                    cursor={{ fill: 'rgba(49,130,246,0.06)' }}
+                  />
+                  <Bar dataKey="세션" fill="url(#hourlyBarGrad)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <p style={{ fontSize: 12, color: '#6b7684', textAlign: 'center', marginTop: 8 }}>
+                피크 타임:{' '}
+                <strong style={{ color: '#3182f6' }}>{peakHour}시</strong>에 세션이 가장 집중됩니다
+              </p>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 9: 신규 vs 재방문 사용자
+          ════════════════════════════════════════════════════════ */}
+          {userType.length > 0 && (
+            <div className="panel" style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                  User Segments
+                </p>
+                <h2 className="section-title">신규 vs 재방문 사용자</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 20 }}>
+                {/* 신규 사용자 */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 20 }}>🆕</span>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#1d4ed8', margin: 0 }}>신규 사용자</p>
+                  </div>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#1d4ed8', margin: '0 0 4px' }}>
+                    {(newUser?.activeUsers || 0).toLocaleString('ko-KR')}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#3182f6', margin: '0 0 14px' }}>
+                    전체의 <strong>{newUserPct.toFixed(1)}%</strong>
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: '#6b7684' }}>참여율</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1d4ed8' }}>
+                      {((newUser?.engagementRate || 0) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div style={{ height: 6, background: '#bfdbfe', borderRadius: 100, marginTop: 6, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min((newUser?.engagementRate || 0) * 100, 100)}%`,
+                        background: '#3182f6',
+                        borderRadius: 100,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 재방문 사용자 */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                    border: '1px solid #ddd6fe',
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <span style={{ fontSize: 20 }}>🔁</span>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed', margin: 0 }}>재방문 사용자</p>
+                  </div>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#7c3aed', margin: '0 0 4px' }}>
+                    {(returningUser?.activeUsers || 0).toLocaleString('ko-KR')}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#8b5cf6', margin: '0 0 14px' }}>
+                    전체의 <strong>{returningUserPct.toFixed(1)}%</strong>
+                  </p>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 12, color: '#6b7684' }}>참여율</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
+                      {((returningUser?.engagementRate || 0) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div style={{ height: 6, background: '#ddd6fe', borderRadius: 100, marginTop: 6, overflow: 'hidden' }}>
+                    <div
+                      style={{
+                        height: '100%',
+                        width: `${Math.min((returningUser?.engagementRate || 0) * 100, 100)}%`,
+                        background: '#8b5cf6',
+                        borderRadius: 100,
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Split Bar */}
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ fontSize: 12, color: '#3182f6', fontWeight: 600 }}>신규 {newUserPct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 12, color: '#8b5cf6', fontWeight: 600 }}>재방문 {returningUserPct.toFixed(1)}%</span>
+                </div>
+                <div style={{ height: 10, background: '#f5f6f7', borderRadius: 100, overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ width: `${newUserPct}%`, background: '#3182f6', transition: 'width 0.6s ease' }} />
+                  <div style={{ width: `${returningUserPct}%`, background: '#8b5cf6', transition: 'width 0.6s ease' }} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 10: 주간 비교 (WoW)
+          ════════════════════════════════════════════════════════ */}
+          {traffic.length >= 4 && (
+            <div className="panel" style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                  Week-over-Week
+                </p>
+                <h2 className="section-title">주간 비교 (WoW)</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                {[
+                  {
+                    label: '사용자',
+                    curr: currWeekTotals.users,
+                    prev: prevWeekTotals.users,
+                    color: '#3182f6',
+                    icon: '👤',
+                  },
+                  {
+                    label: '세션',
+                    curr: currWeekTotals.sessions,
+                    prev: prevWeekTotals.sessions,
+                    color: '#8b5cf6',
+                    icon: '📊',
+                  },
+                  {
+                    label: '페이지뷰',
+                    curr: currWeekTotals.pageViews,
+                    prev: prevWeekTotals.pageViews,
+                    color: '#f59e0b',
+                    icon: '📄',
+                  },
+                ].map(metric => {
+                  const pct = wowPct(metric.curr, metric.prev);
+                  const isUp = pct >= 0;
+                  return (
+                    <div
+                      key={metric.label}
+                      style={{
+                        background: '#f9fafb',
+                        border: '1px solid #e8ebed',
+                        borderRadius: 12,
+                        padding: '18px 20px',
+                        borderTop: `3px solid ${metric.color}`,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
+                        <span style={{ fontSize: 16 }}>{metric.icon}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7684' }}>{metric.label}</span>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                        <div>
+                          <p style={{ fontSize: 10, color: '#b0b8c1', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                            이전 기간
+                          </p>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#6b7684', margin: 0 }}>
+                            {metric.prev.toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+                        <div>
+                          <p style={{ fontSize: 10, color: '#b0b8c1', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                            현재 기간
+                          </p>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 800, color: metric.color, margin: 0 }}>
+                            {metric.curr.toLocaleString('ko-KR')}
+                          </p>
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          fontSize: 13,
+                          fontWeight: 700,
+                          color: isUp ? '#16a34a' : '#dc2626',
+                          background: isUp ? '#f0fdf4' : '#fef2f2',
+                          borderRadius: 8,
+                          padding: '4px 10px',
+                        }}
+                      >
+                        {isUp ? '▲' : '▼'} {Math.abs(pct).toFixed(1)}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 11: 핵심 인사이트 요약
+          ════════════════════════════════════════════════════════ */}
+          {(hourlyChartData.length > 0 || userType.length > 0 || channels.length > 0) && (
+            <div className="panel" style={{ marginBottom: 8 }}>
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                  Key Insights
+                </p>
+                <h2 className="section-title">핵심 인사이트 요약</h2>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                {/* 가장 활발한 시간대 */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: '#3182f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 20,
+                        flexShrink: 0,
+                      }}
+                    >
+                      ⏰
+                    </span>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', margin: 0 }}>
+                      가장 활발한 시간대
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d4ed8', margin: 0 }}>
+                    {peakHour}시
+                  </p>
+                  <p style={{ fontSize: 12, color: '#3182f6', margin: 0, lineHeight: 1.5 }}>
+                    이 시간대에 콘텐츠 발행 및 광고 집중을 권장합니다
+                  </p>
+                </div>
+
+                {/* 신규 사용자 비율 */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
+                    border: '1px solid #ddd6fe',
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: '#8b5cf6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 20,
+                        flexShrink: 0,
+                      }}
+                    >
+                      🆕
+                    </span>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', margin: 0 }}>
+                      신규 사용자 비율
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>
+                    {newUserPct.toFixed(1)}%
+                  </p>
+                  <p style={{ fontSize: 12, color: '#8b5cf6', margin: 0, lineHeight: 1.5 }}>
+                    재방문율 {returningUserPct.toFixed(1)}% — 높을수록 브랜드 충성도가 높습니다
+                  </p>
+                </div>
+
+                {/* 최고 성과 채널 */}
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                    border: '1px solid #bbf7d0',
+                    borderRadius: 12,
+                    padding: '20px 24px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 8,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 10,
+                        background: '#22c55e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 20,
+                        flexShrink: 0,
+                      }}
+                    >
+                      🏆
+                    </span>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', margin: 0 }}>
+                      최고 성과 채널
+                    </p>
+                  </div>
+                  <p
+                    style={{
+                      fontSize: '1.1rem',
+                      fontWeight: 800,
+                      color: '#16a34a',
+                      margin: 0,
+                      wordBreak: 'break-all',
+                      fontFamily: 'ui-monospace, monospace',
+                    }}
+                  >
+                    {bestChannel}
+                  </p>
+                  <p style={{ fontSize: 12, color: '#22c55e', margin: 0, lineHeight: 1.5 }}>
+                    {channels.length > 0
+                      ? `${channels[0].sessions.toLocaleString('ko-KR')}세션으로 가장 높은 유입량`
+                      : '채널 데이터 없음'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>

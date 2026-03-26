@@ -29,7 +29,12 @@ const prismaClient = hasDatabase
       })) as PrismaWithBootstrap)
   : (null as unknown as PrismaWithBootstrap);
 
-async function ensureBaseTables(client: PrismaClient) {
+async function ensureBaseTables(_client: PrismaClient) {
+  // PostgreSQL: prisma db push로 테이블 생성, 런타임 bootstrap 불필요
+  bootstrapDone = true;
+  return;
+
+  /* SQLite 전용 코드 — PostgreSQL 전환으로 비활성화
   if (bootstrapDone) return;
   if (bootstrapPromise) {
     await bootstrapPromise;
@@ -274,6 +279,7 @@ async function ensureBaseTables(client: PrismaClient) {
     bootstrapPromise = null;
     throw error;
   }
+  SQLite 전용 코드 끝 */
 }
 
 if (prismaClient && !prismaClient.__bootstrapMiddlewareAttached) {

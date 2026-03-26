@@ -208,7 +208,7 @@ export default function VideoStudioPage() {
           </p>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
             {hasFalKey
-              ? 'Fal.ai LTX-Video 2.3 모델로 실제 영상을 자동 생성합니다. 스크립트와 영상을 함께 제공합니다.'
+              ? <>Fal.ai LTX-Video 2.3 모델로 실제 영상을 자동 생성합니다. 잔액이 부족하면 <a href="https://fal.ai/dashboard/billing" target="_blank" rel="noopener noreferrer" style={{ color: '#8b5cf6', fontWeight: 600, textDecoration: 'underline' }}>fal.ai/dashboard/billing</a>에서 크레딧을 충전하세요.</>
               : '현재는 AI 스크립트만 제공됩니다. FAL_KEY를 설정하면 LTX-2.3 영상 자동 생성이 활성화됩니다.'}
           </p>
         </div>

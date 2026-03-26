@@ -63,7 +63,12 @@ export type GA4AiInsight = {
 function resolveCredentials(): GA4Credentials | null {
   const propertyId = process.env.GA4_PROPERTY_ID || '';
   const clientEmail = process.env.GA4_CLIENT_EMAIL || '';
-  const privateKey = (process.env.GA4_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+  let privateKey = process.env.GA4_PRIVATE_KEY || '';
+  // Base64 인코딩된 키 지원 (Vercel에서 멀티라인 문제 방지)
+  if (privateKey && !privateKey.includes('BEGIN')) {
+    try { privateKey = Buffer.from(privateKey, 'base64').toString('utf-8'); } catch { /* ignore */ }
+  }
+  privateKey = privateKey.replace(/\\n/g, '\n');
 
   if (!propertyId || !clientEmail || !privateKey) return null;
   return { propertyId, clientEmail, privateKey };

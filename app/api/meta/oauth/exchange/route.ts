@@ -99,7 +99,8 @@ async function fetchApiJson<T>(url: string, init?: RequestInit) {
 
   const payload = (await response.json().catch(() => null)) as T | null;
   if (!response.ok) {
-    throw new Error(getApiError(payload, `Instagram API 호출 실패 (${response.status})`));
+    const detail = payload ? JSON.stringify(payload).slice(0, 200) : '';
+    throw new Error(getApiError(payload, `Instagram API 호출 실패 (${response.status}) ${detail}`));
   }
 
   return payload as T;

@@ -3,6 +3,7 @@ import { runLLM } from '@/lib/llm';
 import type { RuntimeConfig } from '@/lib/types';
 import type { VideoGenerationRequest, VideoGenerationResult } from './types';
 import { FORMAT_LABELS } from './types';
+import { generateVideoWithFal, formatToResolution } from './fal-client';
 
 /**
  * Step 1: AI가 마케팅 영상 스크립트를 생성한다.
@@ -45,18 +46,79 @@ export async function createVideoGeneration(
       runtime
     );
 
-    // 스크립트 저장 + 상태 업데이트
-    // MCP 영상 서버 미연동 시 COMPLETED로 저장 (스크립트만)
+    // 스크립트 저장 (중간 저장)
     await prisma.videoGeneration.update({
       where: { id: record.id },
       data: {
         script,
+        status: 'GENERATING',
+        metadata: JSON.stringify({
+          format: req.format,
+          platform: req.platform,
+          generatedAt: new Date().toISOString(),
+        })
+      }
+    });
+
+    // Step 2: Fal.ai LTX-2.3으로 실제 영상 생성
+    if (process.env.FAL_KEY) {
+      try {
+        const resolution = formatToResolution(req.format);
+        const videoResult = await generateVideoWithFal({
+          prompt: `${req.prompt}. Style: professional marketing video, high quality, cinematic`,
+          resolution,
+          num_frames: (req.duration || 15) * 8, // ~8 frames per second for smooth video
+        });
+
+        await prisma.videoGeneration.update({
+          where: { id: record.id },
+          data: {
+            videoUrl: videoResult.video.url,
+            status: 'COMPLETED',
+          }
+        });
+
+        return {
+          id: record.id,
+          status: 'COMPLETED',
+          script,
+          videoUrl: videoResult.video.url,
+        };
+      } catch (videoError) {
+        // 영상 생성 실패 — 스크립트는 이미 저장됨
+        const errorMsg = videoError instanceof Error ? videoError.message : 'Video generation failed';
+        await prisma.videoGeneration.update({
+          where: { id: record.id },
+          data: {
+            status: 'COMPLETED', // 스크립트는 사용 가능
+            error: errorMsg,
+            metadata: JSON.stringify({
+              format: req.format,
+              platform: req.platform,
+              generatedAt: new Date().toISOString(),
+              videoError: errorMsg,
+            })
+          }
+        });
+        return {
+          id: record.id,
+          status: 'COMPLETED',
+          script,
+          error: errorMsg,
+        };
+      }
+    }
+
+    // FAL_KEY 없음 — 스크립트만 저장
+    await prisma.videoGeneration.update({
+      where: { id: record.id },
+      data: {
         status: 'COMPLETED',
         metadata: JSON.stringify({
           format: req.format,
           platform: req.platform,
           generatedAt: new Date().toISOString(),
-          note: 'MCP video server 미연동 — 스크립트만 생성됨'
+          note: 'FAL_KEY 미설정 — 스크립트만 생성됨'
         })
       }
     });

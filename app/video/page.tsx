@@ -43,12 +43,16 @@ export default function VideoStudioPage() {
   const [generating, setGenerating] = useState(false);
   const [videos, setVideos] = useState<VideoRecord[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [hasFalKey, setHasFalKey] = useState<boolean | null>(null);
 
   const loadVideos = () => {
     fetch('/api/video').then(r => r.json()).then(d => setVideos(d.videos || [])).catch(() => {});
   };
 
-  useEffect(() => { loadVideos(); }, []);
+  useEffect(() => {
+    loadVideos();
+    fetch('/api/video/status').then(r => r.json()).then(d => setHasFalKey(Boolean(d.hasVideoGeneration))).catch(() => setHasFalKey(false));
+  }, []);
 
   const [error, setError] = useState('');
 
@@ -175,7 +179,7 @@ export default function VideoStudioPage() {
             letterSpacing: '0.02em',
           }}
         >
-          {generating ? '스크립트 생성 중...' : '✦ 영상 스크립트 생성'}
+          {generating ? (hasFalKey ? '영상 생성 중...' : '스크립트 생성 중...') : (hasFalKey ? '✦ 영상 생성 (LTX-2.3)' : '✦ 영상 스크립트 생성')}
         </button>
 
         {error && (
@@ -185,21 +189,27 @@ export default function VideoStudioPage() {
         )}
       </div>
 
-      {/* MCP 안내 카드 */}
+      {/* 영상 생성 상태 안내 카드 */}
       <div style={{
         marginBottom: 32, padding: '14px 18px',
-        background: 'var(--surface-sub, #f8fafc)',
-        border: '1px solid var(--surface-border, #e2e8f0)',
+        background: hasFalKey
+          ? 'linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(59,130,246,0.08) 100%)'
+          : 'var(--surface-sub, #f8fafc)',
+        border: hasFalKey
+          ? '1px solid rgba(139,92,246,0.25)'
+          : '1px solid var(--surface-border, #e2e8f0)',
         borderRadius: 10,
         display: 'flex', alignItems: 'flex-start', gap: 12,
       }}>
-        <span style={{ fontSize: 18, flexShrink: 0 }}>ℹ️</span>
+        <span style={{ fontSize: 18, flexShrink: 0 }}>{hasFalKey ? '✅' : 'ℹ️'}</span>
         <div>
           <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-strong)', marginBottom: 3 }}>
-            영상 렌더링 MCP 연동
+            {hasFalKey ? 'LTX-2.3 영상 생성이 활성화되어 있습니다' : '영상 렌더링 MCP 연동'}
           </p>
           <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.6 }}>
-            현재는 AI 스크립트만 제공됩니다. RunwayML 또는 Luma MCP 서버를 연결하면 실제 영상 자동 렌더링이 활성화됩니다.
+            {hasFalKey
+              ? 'Fal.ai LTX-Video 2.3 모델로 실제 영상을 자동 생성합니다. 스크립트와 영상을 함께 제공합니다.'
+              : '현재는 AI 스크립트만 제공됩니다. FAL_KEY를 설정하면 LTX-2.3 영상 자동 생성이 활성화됩니다.'}
           </p>
         </div>
       </div>
@@ -256,6 +266,28 @@ export default function VideoStudioPage() {
                   }}>
 {v.script}
                   </pre>
+                </div>
+              )}
+              {isExpanded && v.videoUrl && (
+                <div style={{ marginTop: 14 }}>
+                  <p style={{ fontSize: 11, fontWeight: 700, marginBottom: 10, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+                    생성된 영상
+                  </p>
+                  <video
+                    src={v.videoUrl}
+                    controls
+                    style={{ width: '100%', maxHeight: 400, borderRadius: 10, background: '#000' }}
+                  />
+                  <a
+                    href={v.videoUrl}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="button-secondary"
+                    style={{ marginTop: 10, display: 'inline-block', fontSize: 13 }}
+                  >
+                    영상 다운로드
+                  </a>
                 </div>
               )}
               {isExpanded && v.error && (

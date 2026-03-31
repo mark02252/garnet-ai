@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-type JobStatus = 'running' | 'idle' | 'error';
+type DotStatus = 'running' | 'idle' | 'error';
 
 const JOBS = [
   { key: 'intel',   label: 'intel' },
@@ -11,32 +11,30 @@ const JOBS = [
 ] as const;
 
 export function AmbientBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
-  const [jobStatuses, setJobStatuses] = useState<Record<string, JobStatus>>({
+  const [statuses, setStatuses] = useState<Record<string, DotStatus>>({
     intel: 'idle', seminar: 'idle', video: 'idle'
   });
 
-  // Poll env-status every 30s — Task 15 will replace with real job status endpoint
+  // Poll real job status endpoint every 30s
   useEffect(() => {
-    const check = async () => {
+    const poll = async () => {
       try {
-        const res = await fetch('/api/env-status');
-        if (res.ok) {
-          // For now, show all as idle; Task 15 wires real job statuses
-        }
+        const res = await fetch('/api/agent/job-status');
+        if (res.ok) setStatuses(await res.json());
       } catch {}
     };
-    check();
-    const interval = setInterval(check, 30_000);
-    return () => clearInterval(interval);
+    poll();
+    const id = setInterval(poll, 30_000);
+    return () => clearInterval(id);
   }, []);
 
-  function dotClass(status: JobStatus) {
+  function dotClass(status: DotStatus) {
     if (status === 'running') return 'dot-running';
     if (status === 'error')   return 'dot-error';
     return '';
   }
 
-  function dotColor(status: JobStatus) {
+  function dotColor(status: DotStatus) {
     if (status === 'running') return 'var(--shell-status-running)';
     if (status === 'error')   return 'var(--shell-status-error)';
     return 'var(--shell-status-idle)';
@@ -56,7 +54,7 @@ export function AmbientBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         <span className="text-[var(--shell-accent)] font-bold text-sm tracking-widest">◈ GARNET</span>
         <div className="w-px h-4 bg-[var(--shell-border)]" />
         {JOBS.map(({ key, label }) => {
-          const status = jobStatuses[key] ?? 'idle';
+          const status = statuses[key] ?? 'idle';
           return (
             <button
               key={key}

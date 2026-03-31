@@ -64,14 +64,6 @@ export function CommandBar() {
     }
   }, [loading, panels, spawnPanel, addEntry, addStep, setEntryStatus, router]);
 
-  // Input wrapper border: focused state > default
-  const wrapperBorder = focused && !loading
-    ? 'rgba(0,212,255,0.6)'
-    : 'rgba(0,212,255,0.25)';
-  const wrapperShadow = focused && !loading
-    ? '0 0 0 1px rgba(0,212,255,0.2), 0 0 20px rgba(0,212,255,0.1)'
-    : 'none';
-
   return (
     <div
       style={{
@@ -89,17 +81,20 @@ export function CommandBar() {
       {/* Input wrapper — 80% width, centered */}
       <div style={{ width: '80%', margin: '0 auto', position: 'relative' }}>
         <div
-          className={input.length > 0 && !loading ? 'cmd-typing' : ''}
+          className={[
+            'cmd-wrapper',
+            input.length > 0 && !loading ? 'cmd-typing' : '',
+            focused && !loading ? 'cmd-focused' : '',
+          ].filter(Boolean).join(' ')}
           style={{
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            border: `1px solid ${wrapperBorder}`,
+            borderWidth: 1,
+            borderStyle: 'solid',
             borderRadius: 12,
             background: 'rgba(0,15,30,0.8)',
             padding: '12px 20px',
-            boxShadow: wrapperShadow,
-            transition: 'border-color 0.2s, box-shadow 0.2s',
             position: 'relative',
             overflow: 'hidden',
           }}

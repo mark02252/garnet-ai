@@ -750,6 +750,16 @@ body {
   }
 }
 
+/* CommandBar wrapper — border-color must come from CSS (not inline) so cmd-glow animation fires */
+.cmd-wrapper {
+  border-color: rgba(0,212,255,0.25);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.cmd-wrapper.cmd-focused {
+  border-color: rgba(0,212,255,0.6);
+  box-shadow: 0 0 0 1px rgba(0,212,255,0.2), 0 0 20px rgba(0,212,255,0.1);
+}
+
 /* CommandBar typing glow */
 @keyframes cmd-glow {
   0%, 100% { border-color: rgba(0,212,255,0.4) }

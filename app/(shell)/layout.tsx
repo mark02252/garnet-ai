@@ -1,8 +1,16 @@
+'use client';
+
 import { CommandPalette } from '@/components/command-palette';
 import { AmbientBar } from '@/components/agent-shell/ambient-bar';
 import { AgentStream } from '@/components/agent-shell/agent-stream';
 import { Canvas } from '@/components/agent-shell/canvas';
 import { CommandBar } from '@/components/agent-shell/command-bar';
+
+function openCommandPalette() {
+  document.dispatchEvent(
+    new KeyboardEvent('keydown', { key: 'k', metaKey: true, bubbles: true })
+  );
+}
 
 export default function ShellLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -32,7 +40,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         className="shell-wrapper shell-theme flex flex-col"
         style={{ height: '100dvh', background: 'var(--shell-bg)', overflow: 'hidden' }}
       >
-        <AmbientBar />
+        <AmbientBar onOpenPalette={openCommandPalette} />
         <div className="flex flex-1 overflow-hidden">
           <AgentStream />
           <div className="flex-1 flex flex-col overflow-hidden">

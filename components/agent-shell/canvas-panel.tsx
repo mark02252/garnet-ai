@@ -3,6 +3,11 @@
 import { motion } from 'framer-motion';
 import { Rnd } from 'react-rnd';
 import { useCanvasStore, type CanvasPanel as CanvasPanelType } from '@/lib/canvas-store';
+import { GA4SummaryPanel } from '@/components/panels/ga4-summary-panel';
+import { SeminarStatusPanel } from '@/components/panels/seminar-status-panel';
+import { IntelBriefPanel } from '@/components/panels/intel-brief-panel';
+import { VideoStatusPanel } from '@/components/panels/video-status-panel';
+import { ApprovalPanel } from '@/components/panels/approval-panel';
 
 const panelVariants = {
   hidden:  { opacity: 0, scale: 0.92, y: 8 },
@@ -74,7 +79,7 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
           </div>
 
           {/* Panel content — generic panels show loading spinner or markdown */}
-          {/* Typed panels (ga4/seminar/intel/video/approval) will be wired in Task 14 */}
+          {/* Typed panels render immediately with their data */}
           <div className="flex-1 overflow-auto p-3">
             {panel.type === 'generic' ? (
               panel.status === 'loading' ? (
@@ -88,13 +93,22 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
                 </p>
               )
             ) : (
-              <div className="text-[12px] text-[var(--shell-text-muted)]">
-                {panel.type} panel — Task 14에서 구현
-              </div>
+              <TypedPanelContent panel={panel} />
             )}
           </div>
         </div>
       </motion.div>
     </Rnd>
   );
+}
+
+function TypedPanelContent({ panel }: { panel: CanvasPanelType }) {
+  switch (panel.type) {
+    case 'ga4':      return <GA4SummaryPanel data={panel.data} />;
+    case 'seminar':  return <SeminarStatusPanel data={panel.data} />;
+    case 'intel':    return <IntelBriefPanel data={panel.data} />;
+    case 'video':    return <VideoStatusPanel data={panel.data} />;
+    case 'approval': return <ApprovalPanel data={panel.data} />;
+    default:         return null;
+  }
 }

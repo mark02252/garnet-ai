@@ -1660,576 +1660,499 @@ git commit -m "feat(shell): wire ambient bar job status + Phase UI-3 complete"
 
 ## Chunk 4: LLM Command Processing (Phase UI-4)
 
-Replace the stub SSE command handler with a real LLM-powered intent classifier that routes commands to typed panels.
+Replace the stub SSE command handler with a real LLM-powered intent classifier (Gemini with keyword fallback), real Prisma/GA4 data fetchers, and a complete command pipeline.
+
+**Architecture decision:** The server fetches panel data and sends it with the `panel` SSE event. Panels receive fully-loaded data immediately — no client-side self-fetch needed. Only `VideoStatusPanel` polls for updates (separate Chunk 6 concern).
 
 ---
 
-### Task 11: LLM intent classifier
+### Task 11: LLM intent module (`lib/agent-intent.ts`)
 
 **Files:**
-- Create: `lib/agent-command.ts` — intent classification + panel spawn logic
-- Modify: `app/api/agent/command/route.ts` — replace stub with real LLM pipeline
+- Create: `lib/agent-intent.ts` — Gemini LLM intent parser with keyword fallback
 
-- [ ] **Step 1: Write failing test for intent classifier**
-
-Create `lib/agent-command.test.ts`:
+- [ ] **Step 1: Create `lib/agent-intent.ts`**
 
 ```typescript
-import { describe, it, expect } from 'vitest';
-import { classifyIntent } from './agent-command';
+// lib/agent-intent.ts
 
-describe('classifyIntent', () => {
-  it('returns ga4_summary for analytics keywords', () => {
-    expect(classifyIntent('GA4 트래픽 보여줘')).toBe('ga4_summary');
-    expect(classifyIntent('어제 방문자 수')).toBe('ga4_summary');
-  });
+export type IntentAction =
+  | { type: 'panel';    panelType: 'ga4' | 'seminar' | 'intel' | 'video' | 'approval' | 'generic'; title: string }
+  | { type: 'navigate'; url: string }
+  | { type: 'text';     content: string };
 
-  it('returns seminar_status for seminar keywords', () => {
-    expect(classifyIntent('세미나 상태')).toBe('seminar_status');
-    expect(classifyIntent('학습 진행 어때')).toBe('seminar_status');
-  });
-
-  it('returns intel_brief for intel keywords', () => {
-    expect(classifyIntent('트렌드 뭐야')).toBe('intel_brief');
-    expect(classifyIntent('인텔 브리핑')).toBe('intel_brief');
-  });
-
-  it('returns video_status for video keywords', () => {
-    expect(classifyIntent('영상 상태')).toBe('video_status');
-    expect(classifyIntent('비디오 생성 중이야?')).toBe('video_status');
-  });
-
-  it('returns approval for approval keywords', () => {
-    expect(classifyIntent('승인 대기 목록')).toBe('approval');
-    expect(classifyIntent('보류 항목 보여줘')).toBe('approval');
-  });
-
-  it('returns generic for unrecognized input', () => {
-    expect(classifyIntent('안녕')).toBe('generic');
-  });
-});
-```
-
-- [ ] **Step 2: Run test — verify it fails**
-
-```bash
-npx vitest run lib/agent-command.test.ts 2>&1 | tail -5
-```
-
-Expected: FAIL (module not found)
-
-- [ ] **Step 3: Implement intent classifier**
-
-Create `lib/agent-command.ts`:
-
-```typescript
-export type PanelIntent =
-  | 'ga4_summary'
-  | 'seminar_status'
-  | 'intel_brief'
-  | 'video_status'
-  | 'approval'
-  | 'generic';
-
-const INTENT_PATTERNS: Array<{ intent: PanelIntent; patterns: RegExp[] }> = [
-  {
-    intent: 'ga4_summary',
-    patterns: [/ga4/i, /트래픽/i, /웹.*분석/i, /사용자.*수/i, /방문자/i, /페이지뷰/i, /전환율/i]
-  },
-  {
-    intent: 'seminar_status',
-    patterns: [/세미나/i, /학습/i, /스터디/i, /라운드/i]
-  },
-  {
-    intent: 'intel_brief',
-    patterns: [/인텔/i, /트렌드/i, /브리핑/i, /키워드/i, /동향/i]
-  },
-  {
-    intent: 'video_status',
-    patterns: [/영상/i, /비디오/i, /video/i, /kling/i, /minimax/i, /luma/i]
-  },
-  {
-    intent: 'approval',
-    patterns: [/승인/i, /보류/i, /결재/i, /대기/i]
-  }
-];
-
-export function classifyIntent(text: string): PanelIntent {
-  for (const { intent, patterns } of INTENT_PATTERNS) {
-    if (patterns.some((p) => p.test(text))) return intent;
-  }
-  return 'generic';
+export interface ParsedIntent {
+  action: IntentAction;
+  reasoning: string;
 }
 
-// Maps intent → panel title and API endpoint to hit for data
-export const INTENT_CONFIG: Record<
-  PanelIntent,
-  { title: string; apiPath: string | null; panelType: string }
-> = {
-  // panelType values MUST match canvas-store.ts PanelData discriminant union: 'ga4' | 'seminar' | 'intel' | 'video' | 'approval' | 'generic'
-  ga4_summary:    { title: 'GA4 트래픽',     apiPath: '/api/ga4/report',         panelType: 'ga4' },
-  seminar_status: { title: '세미나 상태',    apiPath: '/api/seminar/sessions',   panelType: 'seminar' },
-  intel_brief:    { title: '인텔 브리프',    apiPath: '/api/intel/digests',      panelType: 'intel' },
-  video_status:   { title: '영상 생성 상태', apiPath: '/api/video/status',       panelType: 'video' },
-  approval:       { title: '승인 대기',      apiPath: '/api/approvals',          panelType: 'approval' },
-  generic:        { title: '응답',           apiPath: null,                      panelType: 'generic' }
-};
+const INTENT_SYSTEM_PROMPT = `
+당신은 Garnet 마케팅 플랫폼의 명령 해석기입니다.
+사용자의 텍스트 명령을 분석하여 아래 JSON 형식 하나만 반환하세요. 다른 텍스트는 절대 포함하지 마세요.
+
+가능한 action 타입:
+1. panel  — 패널을 열어야 할 때
+   panelType 값: "ga4" | "seminar" | "intel" | "video" | "approval" | "generic"
+   - ga4: 트래픽, 방문자, GA4, 세션, 분석 관련
+   - seminar: 세미나, 토론, 라운드 관련
+   - intel: 트렌드, 인텔리전스, 마케팅 동향 관련
+   - video: 영상 생성, 비디오 관련
+   - approval: 승인, 결재, 대기 항목 관련
+   - generic: 그 외 질문/대화
+
+2. navigate — 페이지로 이동해야 할 때
+   url 값: "/operations" | "/campaigns" | "/analytics" | "/sns/studio" | "/seminar" | "/intel" | "/settings"
+
+3. text — 패널이나 네비게이션 없이 텍스트 답변만 할 때
+
+응답 형식 (JSON only):
+{
+  "action": { "type": "panel", "panelType": "ga4", "title": "GA4 트래픽 현황" },
+  "reasoning": "사용자가 트래픽 현황을 요청했습니다"
+}
+`;
+
+export async function parseIntent(command: string): Promise<ParsedIntent> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const model = process.env.GEMINI_MODEL ?? 'gemini-2.5-flash';
+
+  if (!apiKey) return keywordFallback(command);
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: INTENT_SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: command }] }],
+        generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
+      })
+    });
+    if (!response.ok) return keywordFallback(command);
+
+    const data = (await response.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    const raw = (data.candidates ?? [])
+      .flatMap((c) => c.content?.parts ?? [])
+      .map((p) => p.text ?? '')
+      .join('')
+      .trim();
+
+    return safeParseIntent(raw) ?? keywordFallback(command);
+  } catch {
+    return keywordFallback(command);
+  }
+}
+
+function safeParseIntent(raw: string): ParsedIntent | null {
+  try {
+    const start = raw.indexOf('{');
+    const end   = raw.lastIndexOf('}');
+    if (start === -1 || end <= start) return null;
+    const obj = JSON.parse(raw.slice(start, end + 1)) as {
+      action?: { type?: string; panelType?: string; title?: string; url?: string; content?: string };
+      reasoning?: string;
+    };
+    if (!obj.action?.type) return null;
+    const t = obj.action.type;
+    if (t === 'panel' && obj.action.panelType) {
+      const validPanels = ['ga4','seminar','intel','video','approval','generic'] as const;
+      const pt = obj.action.panelType as typeof validPanels[number];
+      if (!(validPanels as readonly string[]).includes(pt)) return null;
+      return { action: { type: 'panel', panelType: pt, title: obj.action.title ?? '패널' }, reasoning: obj.reasoning ?? '' };
+    }
+    if (t === 'navigate' && obj.action.url) {
+      return { action: { type: 'navigate', url: obj.action.url }, reasoning: obj.reasoning ?? '' };
+    }
+    if (t === 'text') {
+      return { action: { type: 'text', content: obj.action.content ?? '' }, reasoning: obj.reasoning ?? '' };
+    }
+    return null;
+  } catch { return null; }
+}
+
+function keywordFallback(command: string): ParsedIntent {
+  const lower = command.toLowerCase();
+  if (/캠페인|campaign/.test(lower)) return { action: { type: 'navigate', url: '/campaigns' }, reasoning: '캠페인 키워드' };
+  if (/설정|settings/.test(lower))   return { action: { type: 'navigate', url: '/settings' },  reasoning: '설정 키워드' };
+  if (/운영|브리핑|operations/.test(lower)) return { action: { type: 'navigate', url: '/operations' }, reasoning: '운영 키워드' };
+  if (/sns|소셜|콘텐츠/.test(lower))  return { action: { type: 'navigate', url: '/sns/studio' }, reasoning: 'SNS 키워드' };
+  if (/ga4|트래픽|방문자/.test(lower)) return { action: { type: 'panel', panelType: 'ga4',      title: 'GA4 트래픽 현황' }, reasoning: 'GA4 키워드' };
+  if (/세미나|토론|라운드/.test(lower)) return { action: { type: 'panel', panelType: 'seminar',  title: '세미나 현황' },     reasoning: '세미나 키워드' };
+  if (/트렌드|인텔|intel/.test(lower)) return { action: { type: 'panel', panelType: 'intel',    title: '마케팅 인텔리전스' }, reasoning: '인텔 키워드' };
+  if (/영상|비디오|video/.test(lower)) return { action: { type: 'panel', panelType: 'video',    title: '영상 생성 현황' },   reasoning: '영상 키워드' };
+  if (/승인|결재|approval/.test(lower)) return { action: { type: 'panel', panelType: 'approval', title: '승인 대기 항목' },  reasoning: '승인 키워드' };
+  return { action: { type: 'panel', panelType: 'generic', title: '응답' }, reasoning: '기본 generic' };
+}
 ```
 
-- [ ] **Step 4: Run test — verify it passes**
+- [ ] **Step 2: Verify TypeScript**
 
 ```bash
-npx vitest run lib/agent-command.test.ts 2>&1 | tail -5
+npx tsc --noEmit 2>&1 | grep "lib/agent-intent" | head -5
 ```
 
-Expected: all 6 tests PASS.
+Expected: no errors.
 
-- [ ] **Step 5: Replace stub SSE command route with real LLM pipeline**
+- [ ] **Step 3: Commit**
+
+```bash
+git add lib/agent-intent.ts
+git commit -m "feat(agent): add Gemini intent parser with keyword fallback (lib/agent-intent.ts)"
+```
+
+---
+
+### Task 12: Panel data fetchers (`lib/agent-panel-data.ts`)
+
+**Files:**
+- Create: `lib/agent-panel-data.ts` — per-panel Prisma/GA4 fetchers that return canvas-store compatible shapes
+
+- [ ] **Step 1: Create `lib/agent-panel-data.ts`**
+
+```typescript
+// lib/agent-panel-data.ts
+// Fetches live data for each panel type and maps to canvas-store.ts data shapes.
+import { prisma } from '@/lib/prisma';
+import { isGA4Configured, fetchDailyTraffic } from '@/lib/ga4-client';
+import type { GA4SummaryData, SeminarStatusData, IntelBriefData, VideoStatusData, ApprovalData } from '@/lib/canvas-store';
+
+export async function fetchGA4Data(): Promise<GA4SummaryData> {
+  if (!isGA4Configured()) {
+    return { metric: 'Sessions (미설정)', value: 0, wow: 0 };
+  }
+  const [recent, prior] = await Promise.all([
+    fetchDailyTraffic('7daysAgo', 'today'),
+    fetchDailyTraffic('14daysAgo', '8daysAgo'),
+  ]);
+  const recentSessions = recent.reduce((s, d) => s + (d.sessions ?? 0), 0);
+  const priorSessions  = prior.reduce((s, d) => s + (d.sessions ?? 0), 0);
+  const wow = priorSessions > 0 ? Math.round(((recentSessions - priorSessions) / priorSessions) * 100) : 0;
+  return { metric: 'Sessions (7d)', value: recentSessions, wow };
+}
+
+export async function fetchSeminarData(): Promise<SeminarStatusData> {
+  const session = await prisma.seminarSession.findFirst({
+    where: { status: { in: ['RUNNING', 'PAUSED', 'SCHEDULED'] } },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, completedRounds: true, maxRounds: true, status: true }
+  });
+  if (!session) {
+    return { sessionId: '', round: 0, maxRounds: 0, status: '진행 중인 세미나 없음' };
+  }
+  return { sessionId: session.id, round: session.completedRounds, maxRounds: session.maxRounds, status: session.status };
+}
+
+export async function fetchIntelData(): Promise<IntelBriefData> {
+  const items = await prisma.marketingIntel.findMany({
+    where: { createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } },
+    select: { title: true },
+    orderBy: { createdAt: 'desc' },
+    take: 20
+  });
+  const summary = items.length > 0 ? items[0].title : '최근 인텔 없음';
+  return { trendCount: items.length, summary };
+}
+
+export async function fetchVideoData(): Promise<VideoStatusData> {
+  const job = await prisma.videoGeneration.findFirst({
+    where: { status: { in: ['PENDING', 'PROCESSING'] } },
+    orderBy: { createdAt: 'desc' },
+    select: { id: true, status: true, videoUrl: true }
+  });
+  if (!job) return { jobId: '', progress: 0 };
+  const progress = job.status === 'PROCESSING' ? 50 : 0;
+  return { jobId: job.id, progress, url: job.videoUrl ?? undefined };
+}
+
+export async function fetchApprovalData(): Promise<ApprovalData> {
+  const decisions = await prisma.approvalDecision.findMany({
+    select: { id: true, itemType: true, itemId: true, label: true },
+    orderBy: { updatedAt: 'desc' },
+    take: 10
+  });
+  return {
+    items: decisions.map((d) => ({ id: d.id, label: d.label ?? d.itemType, type: d.itemType }))
+  };
+}
+```
+
+- [ ] **Step 2: Verify TypeScript**
+
+```bash
+npx tsc --noEmit 2>&1 | grep "lib/agent-panel-data" | head -5
+```
+
+Expected: no errors. If Prisma model fields mismatch, fix by running `grep -A 30 "model SeminarSession" prisma/schema.prisma`.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add lib/agent-panel-data.ts
+git commit -m "feat(agent): add panel data fetchers for all 5 panel types (lib/agent-panel-data.ts)"
+```
+
+---
+
+### Task 13: Replace command route with full LLM pipeline
+
+**Files:**
+- Modify: `app/api/agent/command/route.ts` — replace stub
+
+- [ ] **Step 1: Replace command route**
 
 Replace the entire content of `app/api/agent/command/route.ts`:
 
 ```typescript
-import { NextRequest } from 'next/server';
-import { z } from 'zod';
-import { streamLLM } from '@/lib/llm';
-import { classifyIntent, INTENT_CONFIG } from '@/lib/agent-command';
+import { parseIntent } from '@/lib/agent-intent';
+import { fetchGA4Data, fetchSeminarData, fetchIntelData, fetchVideoData, fetchApprovalData } from '@/lib/agent-panel-data';
+import { runLLM } from '@/lib/llm';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const bodySchema = z.object({ text: z.string().min(1).max(2000) });
-
-const SYSTEM_PROMPT = `당신은 Garnet 개인 에이전트 어시스턴트입니다.
-사용자의 명령에 간결하고 핵심적인 답변을 제공하고, 데이터 패널을 자동으로 표시합니다.
-답변은 한국어로, 2-3문장 이내로 작성하세요. 마크다운을 최소화하세요.`;
-
-// IMPORTANT: Use { event, data } nested structure — matches handleSSEEvent in command-bar.tsx
+// IMPORTANT: { event, data } nested structure — matches handleSSEEvent in command-bar.tsx
 const encoder = new TextEncoder();
 function send(controller: ReadableStreamDefaultController, event: string, data: unknown) {
   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ event, data })}\n\n`));
 }
 
-export async function POST(req: NextRequest) {
-  const body = bodySchema.safeParse(await req.json());
-  if (!body.success) {
-    return new Response(JSON.stringify({ error: 'Invalid input' }), {
+export async function POST(req: Request) {
+  const { text } = (await req.json()) as { text: string };
+  if (!text?.trim()) {
+    return new Response(JSON.stringify({ error: 'text required' }), {
       status: 400, headers: { 'Content-Type': 'application/json' }
     });
   }
 
-  const { text } = body.data;
-  const intent = classifyIntent(text);
-  const config = INTENT_CONFIG[intent];
-
   const stream = new ReadableStream({
     async start(controller) {
       try {
-        // 1. Announce intent classification as a stream step
-        // Note: entryId here is server-generated; client maps it via 'step' event.
-        // Client's own entryId (from addEntry) handles the stream entry lifecycle.
-        const serverEntryId = crypto.randomUUID();
-        send(controller, 'step', {
-          entryId: serverEntryId,
-          step: { text: `의도 분석: ${config.title}`, status: 'running' }
-        });
-
-        // 2. Call LLM — accumulate response for generic panel
-        let fullText = '';
-        for await (const chunk of streamLLM(SYSTEM_PROMPT, text, 0.35, 800)) {
-          fullText += chunk;
-        }
-
-        // 3. Mark step done
-        send(controller, 'step', {
-          entryId: serverEntryId,
-          step: { text: `${config.title} 패널 생성 완료`, status: 'done' }
-        });
-
-        // 4. Spawn panel — use 'panel' event (matches existing client case 'panel' handler)
-        const panelData = intent === 'generic'
-          ? { markdown: fullText }
-          : {};  // non-generic panels self-fetch via usePanelFetch hook
-
-        send(controller, 'panel', {
-          type: config.panelType,   // short names: 'ga4' | 'seminar' | 'intel' | 'video' | 'approval' | 'generic'
-          title: config.title,
-          status: intent === 'generic' ? 'active' : 'loading',
-          position: { x: 20, y: 20 },
-          size: { width: 380, height: intent === 'approval' ? 320 : 260 },
-          data: panelData
-        });
-
-        // 5. Done
-        send(controller, 'done', {});
-        controller.close();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : 'Command failed';
+        await processCommand(text.trim(), controller);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : '알 수 없는 오류';
         send(controller, 'error', { message });
+      } finally {
         controller.close();
       }
     }
   });
 
   return new Response(stream, {
-    headers: {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      Connection: 'keep-alive'
-    }
+    headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' }
   });
 }
-```
 
-- [ ] **Step 6: Commit**
+async function processCommand(text: string, controller: ReadableStreamDefaultController) {
+  // Step 1: parse intent (Gemini or keyword fallback)
+  const serverEntryId = crypto.randomUUID();
+  send(controller, 'step', { entryId: serverEntryId, step: { text: '명령을 분석하는 중...', status: 'running' } });
+  const intent = await parseIntent(text);
+  send(controller, 'step', { entryId: serverEntryId, step: { text: `의도 파악: ${intent.reasoning}`, status: 'done' } });
 
-```bash
-git add lib/agent-command.ts lib/agent-command.test.ts app/api/agent/command/route.ts
-git commit -m "feat(shell): replace command stub with LLM intent classifier + streaming pipeline"
-```
+  const { action } = intent;
 
----
-
-## Chunk 5: Panel Data Pipeline (Phase UI-4 cont.)
-
-Panels self-fetch their own data on mount rather than receiving static data from the SSE event. This decouples live data freshness from the command dispatch lifecycle.
-
----
-
-### Task 12: Panel self-fetch hook + approvals API
-
-**Files:**
-- Create: `hooks/use-panel-fetch.ts` — generic polling fetch hook
-- Create: `app/api/approvals/route.ts` — list pending approval items
-- Modify: `components/panels/ga4-summary-panel.tsx` — self-fetch
-- Modify: `components/panels/seminar-status-panel.tsx` — self-fetch
-- Modify: `components/panels/intel-brief-panel.tsx` — self-fetch
-- Modify: `components/panels/approval-panel.tsx` — self-fetch with approve action
-
-- [ ] **Step 1: Create approvals GET route**
-
-Create `app/api/approvals/route.ts`:
-
-```typescript
-import { NextResponse } from 'next/server';
-import { listApprovalDecisions } from '@/lib/approval-actions';
-
-export async function GET() {
-  try {
-    // Return last 20 decisions across all types
-    const decisions = await listApprovalDecisions({ limit: 20 });
-    return NextResponse.json({ items: decisions });
-  } catch (error) {
-    return NextResponse.json({ items: [] });
+  // Navigate
+  if (action.type === 'navigate') {
+    send(controller, 'navigate', { url: action.url });
+    send(controller, 'done', {});
+    return;
   }
+
+  // Text-only
+  if (action.type === 'text') {
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '답변 생성 중...', status: 'running' } });
+    const reply = await runLLM(
+      '당신은 Garnet AI 어시스턴트입니다. 간결한 한국어 답변을 마크다운으로 제공하세요.',
+      text, 0.5, 800
+    );
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '답변 완료', status: 'done' } });
+    send(controller, 'panel', {
+      type: 'generic', title: '응답', status: 'active',
+      position: { x: 80, y: 80 }, size: { width: 480, height: 340 },
+      data: { markdown: reply }
+    });
+    send(controller, 'done', {});
+    return;
+  }
+
+  // Panel — fetch real data server-side
+  const { panelType, title } = action;
+  send(controller, 'step', { entryId: serverEntryId, step: { text: `${title} 데이터 로드 중...`, status: 'running' } });
+
+  let panelData: unknown = {};
+  if (panelType === 'ga4')      panelData = await fetchGA4Data();
+  if (panelType === 'seminar')  panelData = await fetchSeminarData();
+  if (panelType === 'intel')    panelData = await fetchIntelData();
+  if (panelType === 'video')    panelData = await fetchVideoData();
+  if (panelType === 'approval') panelData = await fetchApprovalData();
+
+  if (panelType === 'generic') {
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '답변 생성 중...', status: 'running' } });
+    const reply = await runLLM(
+      '당신은 Garnet AI 어시스턴트입니다. 간결한 한국어 답변을 마크다운으로 제공하세요.',
+      text, 0.5, 800
+    );
+    panelData = { markdown: reply };
+  }
+
+  send(controller, 'step', { entryId: serverEntryId, step: { text: `${title} 데이터 로드 완료`, status: 'done' } });
+  send(controller, 'panel', {
+    type: panelType, title, status: 'active',
+    position: { x: 80 + Math.floor(Math.random() * 60), y: 80 + Math.floor(Math.random() * 40) },
+    size: { width: panelType === 'approval' ? 520 : 400, height: panelType === 'approval' ? 400 : 300 },
+    data: panelData
+  });
+  send(controller, 'done', {});
 }
 ```
 
-- [ ] **Step 2: Create use-panel-fetch hook**
+- [ ] **Step 2: Smoke test**
 
-Create `hooks/use-panel-fetch.ts`:
+Start dev server and run:
+
+```bash
+curl -s -N -X POST http://localhost:3000/api/agent/command \
+  -H "Content-Type: application/json" \
+  -d '{"text":"GA4 트래픽 보여줘"}' --no-buffer
+```
+
+Expected: SSE stream with `step` events → `panel` (type: "ga4", status: "active", non-empty data) → `done`. No `error` event.
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add app/api/agent/command/route.ts
+git commit -m "feat(agent): wire LLM intent + real panel data fetchers into command route"
+```
+
+---
+
+## Chunk 5: Panel Display Components (Phase UI-4 cont.)
+
+Panel components render the server-fetched data from canvas-store. No HTTP self-fetch needed — data arrives fully loaded from the SSE pipeline. `VideoStatusPanel` polls for live progress updates.
+
+---
+
+### Task 14: Wire typed panel display components
+
+**Files:**
+- Modify: `components/panels/ga4-summary-panel.tsx`
+- Modify: `components/panels/seminar-status-panel.tsx`
+- Modify: `components/panels/intel-brief-panel.tsx`
+- Modify: `components/panels/video-status-panel.tsx` — polling refresh
+- Modify: `components/panels/approval-panel.tsx` — approve action
+- Modify: `components/agent-shell/canvas-panel.tsx` — fix loading guard + wire TypedPanelContent
+
+- [ ] **Step 1: Update GA4SummaryPanel**
+
+Replace content of `components/panels/ga4-summary-panel.tsx`:
+
+```typescript
+import type { GA4SummaryData } from '@/lib/canvas-store';
+
+export function GA4SummaryPanel({ data }: { data: GA4SummaryData }) {
+  const wowSign  = data.wow >= 0 ? '+' : '';
+  const wowColor = data.wow >= 0 ? 'var(--shell-status-success)' : 'var(--shell-status-error)';
+  return (
+    <div className="p-1">
+      <div className="text-[28px] font-bold text-[var(--shell-text-primary)]">{data.value.toLocaleString()}</div>
+      <div className="text-[12px] text-[var(--shell-text-muted)] mt-1">{data.metric}</div>
+      <div className="text-[13px] font-semibold mt-2" style={{ color: wowColor }}>{wowSign}{data.wow}% WoW</div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Update SeminarStatusPanel**
+
+Replace content of `components/panels/seminar-status-panel.tsx`:
+
+```typescript
+import type { SeminarStatusData } from '@/lib/canvas-store';
+
+export function SeminarStatusPanel({ data }: { data: SeminarStatusData }) {
+  if (!data.sessionId) {
+    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)]">진행 중인 세미나 없음</div>;
+  }
+  const progress = data.maxRounds > 0 ? (data.round / data.maxRounds) * 100 : 0;
+  return (
+    <div className="p-1">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-[12px] text-[var(--shell-text-muted)]">Round</span>
+        <span className="text-[13px] font-semibold text-[var(--shell-text-primary)]">{data.round} / {data.maxRounds}</span>
+      </div>
+      <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: 'var(--shell-border)' }}>
+        <div className="h-full rounded-full transition-all" style={{ width: `${progress}%`, background: 'var(--shell-accent)' }} />
+      </div>
+      <div className="text-[11px] text-[var(--shell-text-muted)] mt-2">{data.status}</div>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 3: Update IntelBriefPanel**
+
+Replace content of `components/panels/intel-brief-panel.tsx`:
+
+```typescript
+import type { IntelBriefData } from '@/lib/canvas-store';
+
+export function IntelBriefPanel({ data }: { data: IntelBriefData }) {
+  return (
+    <div className="p-1">
+      <div className="text-[24px] font-bold text-[var(--shell-accent)]">{data.trendCount}</div>
+      <div className="text-[11px] text-[var(--shell-text-muted)] mb-2">트렌드 감지됨 (24h)</div>
+      <p className="text-[12px] text-[var(--shell-text-secondary)] leading-relaxed">{data.summary}</p>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 4: Update VideoStatusPanel with polling refresh**
+
+Replace content of `components/panels/video-status-panel.tsx`:
 
 ```typescript
 'use client';
 
 import { useEffect, useState } from 'react';
+import type { VideoStatusData } from '@/lib/canvas-store';
 
-type FetchState<T> =
-  | { status: 'loading' }
-  | { status: 'ok'; data: T }
-  | { status: 'error'; message: string };
+export function VideoStatusPanel({ data: initial }: { data: VideoStatusData }) {
+  const [data, setData] = useState<VideoStatusData>(initial);
 
-export function usePanelFetch<T>(
-  url: string,
-  options?: { refreshMs?: number; enabled?: boolean }
-): FetchState<T> {
-  const { refreshMs, enabled = true } = options ?? {};
-  const [state, setState] = useState<FetchState<T>>({ status: 'loading' });
-
+  // Poll every 10s while job is in progress
   useEffect(() => {
-    if (!enabled) return;
-
-    let cancelled = false;
-    const load = async () => {
+    if (!data.jobId || data.progress >= 100) return;
+    const id = setInterval(async () => {
       try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const data: T = await res.json();
-        if (!cancelled) setState({ status: 'ok', data });
-      } catch (err) {
-        if (!cancelled)
-          setState({ status: 'error', message: err instanceof Error ? err.message : 'Fetch failed' });
-      }
-    };
+        const res = await fetch('/api/video/status');
+        if (res.ok) {
+          const d = (await res.json()) as { jobId?: string; progress?: number; url?: string };
+          if (d.jobId === data.jobId) {
+            setData((prev) => ({ ...prev, progress: d.progress ?? prev.progress, url: d.url }));
+          }
+        }
+      } catch {}
+    }, 10_000);
+    return () => clearInterval(id);
+  }, [data.jobId, data.progress]);
 
-    load();
-    if (refreshMs) {
-      const id = setInterval(load, refreshMs);
-      return () => { cancelled = true; clearInterval(id); };
-    }
-    return () => { cancelled = true; };
-  }, [url, refreshMs, enabled]);
-
-  return state;
-}
-```
-
-- [ ] **Step 3: Update GA4 summary panel to self-fetch**
-
-Replace the content of `components/panels/ga4-summary-panel.tsx`:
-
-```typescript
-'use client';
-
-import { usePanelFetch } from '@/hooks/use-panel-fetch';
-
-type GA4ReportResponse = {
-  sessions?: number;
-  users?: number;
-  sessionsPrev?: number;
-  usersPrev?: number;
-};
-
-export function GA4SummaryPanel() {
-  const state = usePanelFetch<GA4ReportResponse>('/api/ga4/report');
-
-  if (state.status === 'loading') {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)] animate-pulse">데이터 로딩 중…</div>;
-  }
-  if (state.status === 'error') {
-    return <div className="p-1 text-[12px]" style={{ color: 'var(--shell-status-error)' }}>⚠ {state.message}</div>;
-  }
-
-  const { data } = state;
-  const value = data.sessions ?? data.users ?? 0;
-  const prev = data.sessionsPrev ?? data.usersPrev ?? 0;
-  const wow = prev > 0 ? Math.round(((value - prev) / prev) * 100) : 0;
-  const wowSign = wow >= 0 ? '+' : '';
-  const wowColor = wow >= 0 ? 'var(--shell-status-success)' : 'var(--shell-status-error)';
-  const metric = data.sessions != null ? '세션' : '사용자';
-
-  return (
-    <div className="p-1">
-      <div className="text-[28px] font-bold text-[var(--shell-text-primary)]">
-        {value.toLocaleString()}
-      </div>
-      <div className="text-[12px] text-[var(--shell-text-muted)] mt-1">{metric} (오늘)</div>
-      {prev > 0 && (
-        <div className="text-[13px] font-semibold mt-2" style={{ color: wowColor }}>
-          {wowSign}{wow}% WoW
-        </div>
-      )}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 4: Update seminar status panel to self-fetch**
-
-Replace the content of `components/panels/seminar-status-panel.tsx`:
-
-```typescript
-'use client';
-
-import { usePanelFetch } from '@/hooks/use-panel-fetch';
-
-type SessionRow = { id: string; status: string; currentRound: number; maxRounds: number };
-type SessionsResponse = { sessions: SessionRow[] };
-
-export function SeminarStatusPanel() {
-  const state = usePanelFetch<SessionsResponse>('/api/seminar/sessions');
-
-  if (state.status === 'loading') {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)] animate-pulse">로딩 중…</div>;
-  }
-  if (state.status === 'error') {
-    return <div className="p-1 text-[12px]" style={{ color: 'var(--shell-status-error)' }}>⚠ {state.message}</div>;
-  }
-
-  const sessions = state.data.sessions ?? [];
-  if (sessions.length === 0) {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)]">진행 중인 세미나 없음</div>;
-  }
-
-  const latest = sessions[0];
-  const progress = (latest.currentRound / latest.maxRounds) * 100;
-
-  return (
-    <div className="p-1">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-[12px] text-[var(--shell-text-muted)]">Round</span>
-        <span className="text-[13px] font-semibold text-[var(--shell-text-primary)]">
-          {latest.currentRound} / {latest.maxRounds}
-        </span>
-      </div>
-      <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: 'var(--shell-border)' }}>
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${progress}%`, background: 'var(--shell-accent)' }}
-        />
-      </div>
-      <div className="text-[11px] text-[var(--shell-text-muted)] mt-2">{latest.status}</div>
-    </div>
-  );
-}
-```
-
-- [ ] **Step 5: Update intel brief panel to self-fetch**
-
-Replace the content of `components/panels/intel-brief-panel.tsx`:
-
-```typescript
-'use client';
-
-import { usePanelFetch } from '@/hooks/use-panel-fetch';
-
-type DigestsResponse = { digests: Array<{ id: string; summary?: string; title?: string }> };
-
-export function IntelBriefPanel() {
-  const state = usePanelFetch<DigestsResponse>('/api/intel/digests');
-
-  if (state.status === 'loading') {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)] animate-pulse">로딩 중…</div>;
-  }
-  if (state.status === 'error') {
-    return <div className="p-1 text-[12px]" style={{ color: 'var(--shell-status-error)' }}>⚠ {state.message}</div>;
-  }
-
-  const digests = state.data.digests ?? [];
-  const latest = digests[0];
-
-  return (
-    <div className="p-1">
-      <div className="text-[24px] font-bold text-[var(--shell-accent)]">{digests.length}</div>
-      <div className="text-[11px] text-[var(--shell-text-muted)] mb-2">최근 인텔 브리프</div>
-      {latest && (
-        <p className="text-[12px] text-[var(--shell-text-secondary)] leading-relaxed">
-          {latest.summary ?? latest.title ?? '요약 없음'}
-        </p>
-      )}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 6: Update approval panel to self-fetch + wire approve action**
-
-Replace the content of `components/panels/approval-panel.tsx`:
-
-```typescript
-'use client';
-
-import { useState } from 'react';
-import { usePanelFetch } from '@/hooks/use-panel-fetch';
-import type { ApprovalDecision } from '@/lib/approval-actions';
-
-type ApprovalsResponse = { items: ApprovalDecision[] };
-
-export function ApprovalPanel() {
-  const state = usePanelFetch<ApprovalsResponse>('/api/approvals');
-  const [approving, setApproving] = useState<string | null>(null);
-
-  if (state.status === 'loading') {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)] animate-pulse">로딩 중…</div>;
-  }
-  if (state.status === 'error') {
-    return <div className="p-1 text-[12px]" style={{ color: 'var(--shell-status-error)' }}>⚠ {state.message}</div>;
-  }
-
-  const items = state.data.items ?? [];
-  if (items.length === 0) {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)]">대기 중인 승인 없음</div>;
-  }
-
-  const handleApprove = async (item: ApprovalDecision) => {
-    setApproving(item.id);
-    try {
-      await fetch('/api/approvals/execute', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ kind: item.itemType, targetId: item.itemId, label: item.label })
-      });
-    } finally {
-      setApproving(null);
-    }
-  };
-
-  return (
-    <div className="p-1 flex flex-col gap-2">
-      {items.slice(0, 5).map((item) => (
-        <div
-          key={item.id}
-          className="flex items-center justify-between rounded"
-          style={{ background: 'var(--shell-surface-hover)', padding: '8px 10px' }}
-        >
-          <span className="text-[12px] text-[var(--shell-text-primary)] truncate max-w-[180px]">
-            {item.label ?? item.itemType}
-          </span>
-          <button
-            onClick={() => handleApprove(item)}
-            disabled={approving === item.id}
-            className="text-[11px] px-2 py-1 rounded"
-            style={{
-              background: approving === item.id ? 'var(--shell-border)' : 'var(--shell-accent)',
-              color: '#fff', border: 'none', cursor: approving === item.id ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {approving === item.id ? '처리 중…' : '승인'}
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-```
-
-- [ ] **Step 7: Update VideoStatusPanel to self-fetch**
-
-Replace the content of `components/panels/video-status-panel.tsx` to self-fetch from `/api/video/status`:
-
-```typescript
-'use client';
-
-import { usePanelFetch } from '@/hooks/use-panel-fetch';
-
-type VideoStatusResponse = {
-  jobId?: string;
-  progress?: number;
-  url?: string;
-  status?: string;
-};
-
-export function VideoStatusPanel() {
-  const state = usePanelFetch<VideoStatusResponse>('/api/video/status', { refreshMs: 10_000 });
-
-  if (state.status === 'loading') {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)] animate-pulse">로딩 중…</div>;
-  }
-  if (state.status === 'error') {
-    return <div className="p-1 text-[12px]" style={{ color: 'var(--shell-status-error)' }}>⚠ {state.message}</div>;
-  }
-
-  const { data } = state;
-  if (!data.jobId) {
-    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)]">진행 중인 영상 작업 없음</div>;
-  }
-
-  const progress = data.progress ?? 0;
-
+  if (!data.jobId) return <div className="p-1 text-[12px] text-[var(--shell-text-muted)]">진행 중인 영상 없음</div>;
   return (
     <div className="p-1">
       <div className="flex items-center justify-between mb-2">
         <span className="text-[12px] text-[var(--shell-text-muted)]">진행률</span>
-        <span className="text-[13px] font-semibold text-[var(--shell-text-primary)]">{progress}%</span>
+        <span className="text-[13px] font-semibold text-[var(--shell-text-primary)]">{data.progress}%</span>
       </div>
       <div className="w-full rounded-full overflow-hidden" style={{ height: 4, background: 'var(--shell-border)' }}>
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${progress}%`, background: 'var(--shell-accent)' }}
-        />
+        <div className="h-full rounded-full transition-all" style={{ width: `${data.progress}%`, background: 'var(--shell-accent)' }} />
       </div>
       {data.url && (
-        <a href={data.url} target="_blank" rel="noopener noreferrer"
-          className="text-[11px] mt-2 block" style={{ color: 'var(--shell-accent)' }}>
+        <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-[11px] mt-2 block" style={{ color: 'var(--shell-accent)' }}>
           영상 다운로드 →
         </a>
       )}
@@ -2239,14 +2162,72 @@ export function VideoStatusPanel() {
 }
 ```
 
-- [ ] **Step 8: Update canvas-panel.tsx — fix loading guard + wire typed panels**
+- [ ] **Step 5: Update ApprovalPanel with approve action**
 
-In `components/agent-shell/canvas-panel.tsx`, the current content area uses a `panel.status === 'loading'` guard that blocks all typed content. Self-fetching panels own their own loading spinners, so the guard must be restructured.
-
-Update the panel content area (the `<div className="flex-1 overflow-auto p-3">` block) to:
+Replace content of `components/panels/approval-panel.tsx`:
 
 ```typescript
-{/* Panel content — generic shows loading spinner, typed panels self-fetch */}
+'use client';
+
+import { useState } from 'react';
+import type { ApprovalData } from '@/lib/canvas-store';
+
+export function ApprovalPanel({ data }: { data: ApprovalData }) {
+  const [approving, setApproving] = useState<string | null>(null);
+
+  if (data.items.length === 0) {
+    return <div className="p-1 text-[12px] text-[var(--shell-text-muted)]">대기 중인 승인 없음</div>;
+  }
+
+  const handleApprove = async (item: { id: string; label: string; type: string }) => {
+    setApproving(item.id);
+    try {
+      await fetch('/api/approvals/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: item.type, targetId: item.id, label: item.label })
+      });
+    } finally {
+      setApproving(null);
+    }
+  };
+
+  return (
+    <div className="p-1 flex flex-col gap-2">
+      {data.items.slice(0, 5).map((item) => (
+        <div key={item.id} className="flex items-center justify-between rounded"
+          style={{ background: 'var(--shell-surface-hover)', padding: '8px 10px' }}>
+          <span className="text-[12px] text-[var(--shell-text-primary)] truncate max-w-[180px]">{item.label}</span>
+          <button onClick={() => handleApprove(item)} disabled={approving === item.id}
+            className="text-[11px] px-2 py-1 rounded"
+            style={{ background: approving === item.id ? 'var(--shell-border)' : 'var(--shell-accent)',
+                     color: '#fff', border: 'none', cursor: approving === item.id ? 'not-allowed' : 'pointer' }}>
+            {approving === item.id ? '처리 중\u2026' : '승인'}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+```
+
+- [ ] **Step 6: Update canvas-panel.tsx — fix loading guard + wire TypedPanelContent**
+
+The current content area has a `panel.status === 'loading'` guard blocking typed content. Since panels now arrive server-fetched with `status: 'active'`, the guard is only needed for generic panels awaiting LLM output.
+
+Add imports at the **top** of `canvas-panel.tsx` (with existing imports):
+
+```typescript
+import { GA4SummaryPanel } from '@/components/panels/ga4-summary-panel';
+import { SeminarStatusPanel } from '@/components/panels/seminar-status-panel';
+import { IntelBriefPanel } from '@/components/panels/intel-brief-panel';
+import { VideoStatusPanel } from '@/components/panels/video-status-panel';
+import { ApprovalPanel } from '@/components/panels/approval-panel';
+```
+
+Replace the content area (`<div className="flex-1 overflow-auto p-3">` block):
+
+```typescript
 <div className="flex-1 overflow-auto p-3">
   {panel.type === 'generic' ? (
     panel.status === 'loading' ? (
@@ -2260,45 +2241,46 @@ Update the panel content area (the `<div className="flex-1 overflow-auto p-3">` 
       </p>
     )
   ) : (
-    // Typed panels render immediately and handle their own loading state via usePanelFetch
     <TypedPanelContent panel={panel} />
   )}
 </div>
 ```
 
-Add the panel component imports at the **top** of `canvas-panel.tsx` (alongside existing imports). `CanvasPanel` is already imported — do not duplicate it:
-
-```typescript
-// Add to existing imports section at top of file:
-import { GA4SummaryPanel } from '@/components/panels/ga4-summary-panel';
-import { SeminarStatusPanel } from '@/components/panels/seminar-status-panel';
-import { IntelBriefPanel } from '@/components/panels/intel-brief-panel';
-import { VideoStatusPanel } from '@/components/panels/video-status-panel';
-import { ApprovalPanel } from '@/components/panels/approval-panel';
-```
-
-Add the `TypedPanelContent` function at the **bottom** of `canvas-panel.tsx` (after the main export):
+Add at the **bottom** of `canvas-panel.tsx` (after the main export). `CanvasPanel` is already imported — do not add a second import:
 
 ```typescript
 function TypedPanelContent({ panel }: { panel: CanvasPanel }) {
   switch (panel.type) {
-    case 'ga4':      return <GA4SummaryPanel />;
-    case 'seminar':  return <SeminarStatusPanel />;
-    case 'intel':    return <IntelBriefPanel />;
-    case 'video':    return <VideoStatusPanel />;
-    case 'approval': return <ApprovalPanel />;
+    case 'ga4':      return <GA4SummaryPanel data={panel.data} />;
+    case 'seminar':  return <SeminarStatusPanel data={panel.data} />;
+    case 'intel':    return <IntelBriefPanel data={panel.data} />;
+    case 'video':    return <VideoStatusPanel data={panel.data} />;
+    case 'approval': return <ApprovalPanel data={panel.data} />;
     default:         return null;
   }
 }
 ```
 
-> This pattern gives each self-fetching component full control over its loading/error/data states. `status: 'loading'` on the panel only applies to generic text panels waiting for LLM output. Typed panels are rendered immediately and show their own inline spinners via `usePanelFetch`.
+- [ ] **Step 7: Verify TypeScript**
+
+```bash
+npx tsc --noEmit 2>&1 | grep -E "error TS" | head -10
+```
+
+Expected: no errors. If canvas-store data shape mismatches, check that `lib/agent-panel-data.ts` return types match `GA4SummaryData`, `SeminarStatusData`, etc. defined in `lib/canvas-store.ts`.
+
+- [ ] **Step 8: Smoke test full pipeline**
+
+Open http://localhost:3001, type "GA4 트래픽 보여줘", press Enter. Verify:
+- [ ] Stream entry appears with step events
+- [ ] GA4 panel spawns with `status: 'active'` and real metric data (not empty)
+- [ ] Panel shows session count + WoW %
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add hooks/use-panel-fetch.ts app/api/approvals/route.ts components/panels/ components/agent-shell/canvas-panel.tsx
-git commit -m "feat(shell): self-fetching panels + approvals API + use-panel-fetch hook"
+git add components/panels/ components/agent-shell/canvas-panel.tsx
+git commit -m "feat(shell): wire typed panel display components with server-fetched canvas-store data"
 ```
 
 ---
@@ -2556,7 +2538,7 @@ git commit -m "fix(nav): update all domain pages — campaign CTA links from '/'
 | UI-1 | 1–5 | Dark Agent Shell loads at `/`, canvas + stream + command bar working |
 | UI-2 | 6–7 | SSE pipeline + typed panels + command routing |
 | UI-3 | 8–10 | Ambient polish + mobile fallback + job status wiring (stub) |
-| UI-4 | 11–14 | LLM intent classifier, self-fetching panels, real job status API, nav fix |
+| UI-4 | 11–17 | Gemini intent parser, data fetchers, LLM pipeline, typed panel display, job status API, nav fix |
 
 **Not in this plan (future phases):**
 - History panel component (`type: 'history'` in canvas store)

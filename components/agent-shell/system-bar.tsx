@@ -95,7 +95,7 @@ export function SystemBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         >
           <span className={isRunning ? 'dot-running' : ''} style={{ fontSize: 8 }}>●</span>
           {isRunning
-            ? `SYSTEM ACTIVE ● ${runningCount} JOB${runningCount > 1 ? 'S' : ''} RUNNING`
+            ? `SYSTEM ACTIVE ● ${runningCount} JOBS RUNNING`
             : 'SYSTEM ACTIVE ● STANDBY'}
         </span>
       </div>

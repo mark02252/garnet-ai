@@ -16,6 +16,18 @@ const panelVariants = {
   exit:    { opacity: 0, scale: 0.95, y: -4, transition: { duration: 0.15 } }
 };
 
+// L-bracket corner decorations — four cyan corner accents
+function LBracketCorners() {
+  return (
+    <>
+      <span className="lb-tl" />
+      <span className="lb-tr" />
+      <span className="lb-bl" />
+      <span className="lb-br" />
+    </>
+  );
+}
+
 export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
   const updatePanel = useCanvasStore((s) => s.updatePanel);
   const removePanel = useCanvasStore((s) => s.removePanel);
@@ -44,51 +56,78 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
         initial="hidden"
         animate="visible"
         exit="exit"
-        style={{ width: '100%', height: '100%' }}
+        style={{ width: '100%', height: '100%', position: 'relative' }}
       >
+        {/* Spawn scan-line — sweeps top to bottom once on mount */}
+        <motion.div
+          initial={{ top: 0, opacity: 1 }}
+          animate={{ top: '100%', opacity: 0 }}
+          transition={{ duration: 0.3, ease: 'linear' }}
+          style={{
+            position: 'absolute',
+            left: 0,
+            right: 0,
+            height: 2,
+            background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8), transparent)',
+            pointerEvents: 'none',
+            zIndex: 11,
+          }}
+        />
+
         <div
           className="canvas-panel flex flex-col h-full"
           data-status={panel.status}
         >
+          <LBracketCorners />
+
           {/* Panel header */}
           <div
             className="flex items-center justify-between px-3 py-2 cursor-move"
-            style={{ borderBottom: '1px solid var(--shell-border)', flexShrink: 0 }}
+            style={{ borderBottom: '1px solid rgba(0,212,255,0.1)', flexShrink: 0 }}
           >
             <div className="flex items-center gap-2">
               {panel.status === 'loading' && (
-                <span className="dot-running text-[var(--shell-accent)] text-[10px]">●</span>
+                <span className="dot-running" style={{ color: 'var(--shell-accent)', fontSize: 10 }}>●</span>
               )}
               {panel.status === 'completed' && (
-                <span className="text-[var(--shell-status-success)] text-[10px]">●</span>
+                <span style={{ color: 'var(--shell-status-success)', fontSize: 10 }}>●</span>
               )}
               {panel.status === 'error' && (
-                <span className="text-[var(--shell-status-error)] text-[10px]">●</span>
+                <span style={{ color: 'var(--shell-status-error)', fontSize: 10 }}>●</span>
               )}
-              <span className="text-[12px] font-semibold text-[var(--shell-text-primary)]">
+              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--shell-text-primary)' }}>
                 {panel.title}
               </span>
             </div>
             <button
               onClick={() => removePanel(panel.id)}
-              className="text-[var(--shell-text-muted)] hover:text-[var(--shell-text-primary)] transition-colors text-[16px] leading-none"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px' }}
+              style={{
+                color: 'var(--shell-text-muted)',
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0 2px',
+                fontSize: 16,
+                lineHeight: 1,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--shell-text-primary)')}
+              onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--shell-text-muted)')}
             >
               ×
             </button>
           </div>
 
-          {/* Panel content — generic panels show loading spinner or markdown */}
-          {/* Typed panels render immediately with their data */}
+          {/* Panel content */}
           <div className="flex-1 overflow-auto p-3">
             {panel.type === 'generic' ? (
               panel.status === 'loading' ? (
-                <div className="flex items-center gap-2 text-[var(--shell-text-muted)] text-[12px]">
-                  <span className="dot-running text-[var(--shell-accent)]">●</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--shell-text-muted)', fontSize: 12 }}>
+                  <span className="dot-running" style={{ color: 'var(--shell-accent)' }}>●</span>
                   처리 중...
                 </div>
               ) : (
-                <p className="text-[13px] text-[var(--shell-text-secondary)] whitespace-pre-wrap">
+                <p style={{ fontSize: 13, color: 'var(--shell-text-secondary)', whiteSpace: 'pre-wrap' }}>
                   {panel.data.markdown}
                 </p>
               )

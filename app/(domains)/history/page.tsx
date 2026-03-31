@@ -140,7 +140,7 @@ export default function HistoryPage() {
           브리프, 태그, 날짜 기준으로 과거 전략 실행과 산출물을 빠르게 탐색하고, 어떤 유형의 실행이 반복되는지 한눈에 파악할 수 있습니다.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/" className="button-primary">
+          <Link href="/campaigns" className="button-primary">
             캠페인 스튜디오 열기
           </Link>
           <Link href="/dashboard" className="button-secondary">

@@ -350,7 +350,7 @@ export default function DatasetsPage() {
               <button type="button" onClick={setSampleData} className="button-primary">
                 샘플 불러오기
               </button>
-              <Link href="/" className="button-secondary">
+              <Link href="/campaigns" className="button-secondary">
                 캠페인 스튜디오
               </Link>
             </div>

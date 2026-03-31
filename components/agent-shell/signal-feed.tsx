@@ -97,6 +97,8 @@ export function SignalFeed() {
     return () => {
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       if (countdownRef.current) clearInterval(countdownRef.current);
+      hideTimerRef.current = null;
+      countdownRef.current = null;
     };
   }, [hasRunning, visible]);
 

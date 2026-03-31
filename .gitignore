@@ -49,3 +49,4 @@ vendor_prisma/
 superpowers/
 .garnet-config/
 .vercel
+.worktrees/

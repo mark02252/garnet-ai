@@ -33,7 +33,7 @@ export default async function CampaignsPage() {
             <div className="mt-4 flex flex-wrap gap-2">
               <CreateCampaignRoomDialog />
               <Link href="/operations" className="button-secondary">오늘의 브리핑</Link>
-              <Link href="/" className="button-secondary">새 브리프</Link>
+              <Link href="/campaigns" className="button-secondary">새 브리프</Link>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
               <span className="accent-pill">활성 {activeCount}개</span>

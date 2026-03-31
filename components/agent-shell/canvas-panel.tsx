@@ -86,7 +86,7 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
             style={{ borderBottom: '1px solid rgba(0,212,255,0.1)', flexShrink: 0 }}
           >
             <div className="flex items-center gap-2">
-              {panel.status === 'loading' && (
+              {(panel.status === 'loading' || panel.status === 'active') && (
                 <span className="dot-running" style={{ color: 'var(--shell-accent)', fontSize: 10 }}>●</span>
               )}
               {panel.status === 'completed' && (

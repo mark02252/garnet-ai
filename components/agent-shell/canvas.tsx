@@ -15,7 +15,7 @@ function ArcReactorIdle() {
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'column',
-        gap: 20,
+        gap: 16,
         pointerEvents: 'none',
       }}
     >
@@ -104,6 +104,7 @@ export function Canvas() {
     >
       {/* Arc ring overlay — two rotating concentric circles */}
       <svg
+        aria-hidden="true"
         style={{
           position: 'absolute',
           inset: 0,
@@ -134,7 +135,7 @@ export function Canvas() {
         </g>
       </svg>
 
-      <AnimatePresence>
+      <AnimatePresence mode="popLayout">
         {panels.map((panel) => (
           <CanvasPanel key={panel.id} panel={panel} />
         ))}

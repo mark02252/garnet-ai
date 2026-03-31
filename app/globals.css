@@ -648,7 +648,6 @@ body {
   --shell-accent: #00d4ff;
   --shell-accent-secondary: #0066ff;
   --shell-accent-glow: rgba(0,212,255,0.2);
-  --shell-glow: rgba(0,212,255,0.2);
 
   --shell-status-running: #00d4ff;
   --shell-status-success: #00ff88;
@@ -728,7 +727,7 @@ body {
   animation: scan-line-sweep var(--scan-duration, 4s) linear infinite;
 }
 
-/* Arc ring rotation */
+/* Arc ring rotation — used via inline animation string in canvas.tsx SVG elements */
 @keyframes arc-rotate {
   0%   { transform: rotate(0deg) }
   100% { transform: rotate(360deg) }
@@ -759,7 +758,7 @@ body {
 .cmd-typing { animation: cmd-glow 1.5s ease-in-out infinite; }
 
 /* Spinner for loading state */
-@keyframes spin {
+@keyframes shell-spin {
   0%   { transform: rotate(0deg) }
   100% { transform: rotate(360deg) }
 }

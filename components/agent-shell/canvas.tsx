@@ -5,6 +5,80 @@ import { AnimatePresence } from 'framer-motion';
 import { useCanvasStore } from '@/lib/canvas-store';
 import { CanvasPanel } from './canvas-panel';
 
+function ArcReactorIdle() {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexDirection: 'column',
+        gap: 20,
+        pointerEvents: 'none',
+      }}
+    >
+      {/* Concentric rings */}
+      <div className="arc-reactor-breathe" style={{ position: 'relative', width: 112, height: 112 }}>
+        {/* Outer ring */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            borderRadius: '50%',
+            border: '1px solid rgba(0,212,255,0.15)',
+          }}
+        />
+        {/* Middle ring */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 16,
+            borderRadius: '50%',
+            border: '1px solid rgba(0,212,255,0.3)',
+            boxShadow: '0 0 12px rgba(0,212,255,0.2)',
+          }}
+        />
+        {/* Inner ring */}
+        <div
+          style={{
+            position: 'absolute',
+            inset: 32,
+            borderRadius: '50%',
+            border: '1px solid rgba(0,212,255,0.5)',
+            boxShadow: '0 0 8px rgba(0,212,255,0.4), inset 0 0 8px rgba(0,212,255,0.2)',
+          }}
+        />
+        {/* Center dot */}
+        <div
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            background: '#00d4ff',
+            boxShadow: '0 0 12px #00d4ff',
+          }}
+        />
+      </div>
+      <p
+        style={{
+          fontSize: 10,
+          letterSpacing: '0.3em',
+          color: 'var(--shell-text-muted)',
+          margin: 0,
+        }}
+      >
+        STANDBY
+      </p>
+    </div>
+  );
+}
+
 export function Canvas() {
   const panels = useCanvasStore((s) => s.panels);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,29 +97,50 @@ export function Canvas() {
   return (
     <div
       ref={containerRef}
-      className="canvas-dot-grid canvas-noise flex-1 relative overflow-hidden"
+      className="canvas-hex-grid canvas-noise flex-1 relative overflow-hidden"
       style={{ background: 'var(--shell-bg)' }}
       data-canvas-width={dims.width}
       data-canvas-height={dims.height}
     >
+      {/* Arc ring overlay — two rotating concentric circles */}
+      <svg
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+        }}
+      >
+        <g style={{ transformOrigin: 'center', animation: 'arc-rotate 60s linear infinite' }}>
+          <circle
+            cx="50%"
+            cy="50%"
+            r="42%"
+            fill="none"
+            stroke="rgba(0,212,255,0.06)"
+            strokeWidth="1"
+          />
+        </g>
+        <g style={{ transformOrigin: 'center', animation: 'arc-rotate 40s linear reverse infinite' }}>
+          <circle
+            cx="50%"
+            cy="50%"
+            r="27%"
+            fill="none"
+            stroke="rgba(0,212,255,0.04)"
+            strokeWidth="0.5"
+          />
+        </g>
+      </svg>
+
       <AnimatePresence>
         {panels.map((panel) => (
           <CanvasPanel key={panel.id} panel={panel} />
         ))}
       </AnimatePresence>
 
-      {panels.length === 0 && (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <div className="text-center">
-            <p className="text-[var(--shell-text-muted)] text-[13px]">
-              아래에서 명령을 입력하세요
-            </p>
-            <p className="text-[var(--shell-text-muted)] text-[11px] mt-1 opacity-50">
-              에이전트가 결과를 여기에 표시합니다
-            </p>
-          </div>
-        </div>
-      )}
+      {panels.length === 0 && <ArcReactorIdle />}
     </div>
   );
 }

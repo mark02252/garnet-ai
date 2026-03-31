@@ -57,7 +57,7 @@ export async function listApprovedDecisionKeys(itemTypes: ApprovalActionKind[]) 
   await ensureApprovalDecisionTable();
   if (!itemTypes.length) return new Set<string>();
 
-  const placeholders = itemTypes.map(() => '?').join(', ');
+  const placeholders = itemTypes.map((_, i) => `$${i + 1}`).join(', ');
   const rows = await prisma.$queryRawUnsafe<ApprovalDecisionRow[]>(
     `
       SELECT "itemType", "itemId"
@@ -81,14 +81,15 @@ export async function listApprovalDecisions(options?: {
 
   const filters: string[] = [];
   const params: Array<string> = [];
+  let paramIndex = 1;
 
   if (options?.itemTypes?.length) {
-    filters.push(`"itemType" IN (${options.itemTypes.map(() => '?').join(', ')})`);
+    filters.push(`"itemType" IN (${options.itemTypes.map(() => `$${paramIndex++}`).join(', ')})`);
     params.push(...options.itemTypes);
   }
 
   if (options?.itemIds?.length) {
-    filters.push(`"itemId" IN (${options.itemIds.map(() => '?').join(', ')})`);
+    filters.push(`"itemId" IN (${options.itemIds.map(() => `$${paramIndex++}`).join(', ')})`);
     params.push(...options.itemIds);
   }
 
@@ -129,7 +130,7 @@ export async function markApprovalDecisionApproved(input: {
     `
       INSERT INTO "ApprovalDecision" (
         "id", "itemType", "itemId", "decision", "label", "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, 'APPROVED', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, 'APPROVED', $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       ON CONFLICT("itemType", "itemId", "decision")
       DO UPDATE SET
         "label" = excluded."label",

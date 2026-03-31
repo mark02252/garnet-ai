@@ -1414,122 +1414,259 @@ export default function AnalyticsPage() {
                 </p>
                 <h2 className="section-title">AI 성과 분석</h2>
               </div>
-              <button
-                onClick={runAiAnalysis}
-                disabled={analyzing}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 7,
-                  padding: '9px 20px',
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: '#fff',
-                  background: analyzing ? '#94a3b8' : 'linear-gradient(135deg, #3182f6 0%, #8b5cf6 100%)',
-                  border: 'none',
-                  borderRadius: 10,
-                  cursor: analyzing ? 'not-allowed' : 'pointer',
-                  transition: 'opacity 0.15s',
-                  boxShadow: analyzing ? 'none' : '0 2px 8px rgba(49,130,246,0.3)',
-                }}
-              >
-                <span style={{ fontSize: 15 }}>{analyzing ? '⏳' : '✨'}</span>
-                {analyzing ? '분석 중...' : isDemo ? 'AI 분석 미리보기' : 'AI 분석 실행'}
-              </button>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {insight && (
+                  <button
+                    onClick={() => { setInsight(null); runAiAnalysis(); }}
+                    disabled={analyzing}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '8px 16px',
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: '#6b7684',
+                      background: '#f2f4f6',
+                      border: 'none',
+                      borderRadius: 10,
+                      cursor: analyzing ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    <span style={{ fontSize: 13 }}>↺</span>
+                    다시 분석
+                  </button>
+                )}
+                <button
+                  onClick={runAiAnalysis}
+                  disabled={analyzing}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    padding: '9px 20px',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: '#fff',
+                    background: analyzing ? '#94a3b8' : 'linear-gradient(135deg, #3182f6 0%, #8b5cf6 100%)',
+                    border: 'none',
+                    borderRadius: 10,
+                    cursor: analyzing ? 'not-allowed' : 'pointer',
+                    transition: 'opacity 0.15s',
+                    boxShadow: analyzing ? 'none' : '0 2px 8px rgba(49,130,246,0.3)',
+                  }}
+                >
+                  <span style={{ fontSize: 15 }}>{analyzing ? '⏳' : '✨'}</span>
+                  {analyzing ? '분석 중...' : isDemo ? 'AI 분석 미리보기' : 'AI 분석 실행'}
+                </button>
+              </div>
             </div>
 
             {insight ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                {/* Summary */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+                {/* ── 1. Executive Summary Card ── */}
                 <div
                   style={{
-                    background: 'rgba(49,130,246,0.05)',
-                    border: '1px solid rgba(49,130,246,0.15)',
-                    borderRadius: 10,
-                    padding: '14px 16px',
+                    background: 'linear-gradient(135deg, #1e40af 0%, #6d28d9 60%, #7c3aed 100%)',
+                    borderRadius: 16,
+                    padding: '28px 32px',
+                    position: 'relative',
+                    overflow: 'hidden',
                   }}
                 >
-                  <p style={{ fontSize: 14, color: '#191f28', lineHeight: 1.7, margin: 0 }}>
-                    {insight.summary}
-                  </p>
-                  <p style={{ fontSize: 11, color: '#b0b8c1', margin: '8px 0 0' }}>
-                    {new Date(insight.generatedAt).toLocaleString('ko-KR')} 생성
-                  </p>
+                  {/* decorative circle */}
+                  <div style={{
+                    position: 'absolute', top: -40, right: -40,
+                    width: 180, height: 180,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.06)',
+                    pointerEvents: 'none',
+                  }} />
+                  <div style={{
+                    position: 'absolute', bottom: -30, left: 120,
+                    width: 120, height: 120,
+                    borderRadius: '50%',
+                    background: 'rgba(255,255,255,0.04)',
+                    pointerEvents: 'none',
+                  }} />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                      <span style={{
+                        background: 'rgba(255,255,255,0.18)',
+                        borderRadius: 8,
+                        padding: '3px 10px',
+                        fontSize: 11,
+                        fontWeight: 700,
+                        color: '#e0e7ff',
+                        letterSpacing: '0.08em',
+                        textTransform: 'uppercase',
+                      }}>Executive Summary</span>
+                    </div>
+                    <p style={{ fontSize: 15, color: '#fff', lineHeight: 1.75, margin: 0, fontWeight: 400, maxWidth: 720 }}>
+                      {insight.summary}
+                    </p>
+                    <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', margin: '14px 0 0' }}>
+                      {new Date(insight.generatedAt).toLocaleString('ko-KR')} 생성 · Powered by AI
+                    </p>
+                  </div>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-                  {/* Highlights */}
-                  {insight.highlights.length > 0 && (
-                    <div
-                      style={{
-                        background: '#f0fdf4',
-                        border: '1px solid #bbf7d0',
-                        borderRadius: 10,
-                        padding: '14px 16px',
-                      }}
-                    >
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#16a34a', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                        주요 발견
-                      </p>
-                      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {insight.highlights.map((h, i) => (
-                          <li key={i} style={{ display: 'flex', gap: 7, fontSize: 13, color: '#166534', lineHeight: 1.5 }}>
-                            <span style={{ color: '#22c55e', flexShrink: 0, marginTop: 1 }}>•</span>
-                            <span>{h}</span>
-                          </li>
-                        ))}
-                      </ul>
+                {/* ── 2. Key Findings ── */}
+                {insight.highlights.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#191f28', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
+                      주요 발견 사항
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
+                      {insight.highlights.map((h, i) => {
+                        const isWarning = i === 0;
+                        const isOpportunity = i === 1;
+                        const iconColor = isWarning ? '#ef4444' : isOpportunity ? '#22c55e' : '#3182f6';
+                        const iconBg = isWarning ? '#fef2f2' : isOpportunity ? '#f0fdf4' : '#eff6ff';
+                        const iconLabel = isWarning ? '⚠' : isOpportunity ? '↑' : 'i';
+                        const badgeText = isWarning ? '높은 영향' : isOpportunity ? '성장 기회' : '참고 정보';
+                        const badgeBg = isWarning ? '#fee2e2' : isOpportunity ? '#dcfce7' : '#dbeafe';
+                        const badgeColor = isWarning ? '#dc2626' : isOpportunity ? '#16a34a' : '#1d4ed8';
+                        const title = h.length > 30 ? h.slice(0, h.indexOf('—') > 0 ? h.indexOf('—') : 30).trim() : h;
+                        const desc = h.indexOf('—') > 0 ? h.slice(h.indexOf('—') + 1).trim() : (h.length > 30 ? h.slice(30) : '');
+                        return (
+                          <div key={i} className="soft-card" style={{ padding: '16px 18px', borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 8 }}>
+                              <div style={{
+                                width: 34, height: 34, borderRadius: '50%',
+                                background: iconBg,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 14, fontWeight: 700, color: iconColor, flexShrink: 0,
+                              }}>
+                                {iconLabel}
+                              </div>
+                              <span style={{
+                                fontSize: 11, fontWeight: 700, padding: '3px 8px',
+                                borderRadius: 6, background: badgeBg, color: badgeColor,
+                              }}>
+                                {badgeText}
+                              </span>
+                            </div>
+                            <div>
+                              <p style={{ fontSize: 13, fontWeight: 700, color: '#191f28', margin: '0 0 4px', lineHeight: 1.4 }}>
+                                {title}
+                              </p>
+                              {desc && (
+                                <p style={{ fontSize: 12, color: '#6b7684', margin: 0, lineHeight: 1.55 }}>
+                                  {desc}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Recommendations */}
-                  {insight.recommendations.length > 0 && (
-                    <div
-                      style={{
-                        background: '#eff6ff',
-                        border: '1px solid #bfdbfe',
-                        borderRadius: 10,
-                        padding: '14px 16px',
-                      }}
-                    >
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                        개선 권고
-                      </p>
-                      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {insight.recommendations.map((r, i) => (
-                          <li key={i} style={{ display: 'flex', gap: 7, fontSize: 13, color: '#1e40af', lineHeight: 1.5 }}>
-                            <span style={{ color: '#3182f6', flexShrink: 0, marginTop: 1 }}>→</span>
-                            <span>{r}</span>
-                          </li>
-                        ))}
-                      </ul>
+                {/* ── 3. Recommendations ── */}
+                {insight.recommendations.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#191f28', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
+                      우선순위별 개선 권고
+                    </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {insight.recommendations.map((r, i) => {
+                        const priority = i === 0 ? 'HIGH' : i === 1 ? 'MEDIUM' : 'LOW';
+                        const borderColor = priority === 'HIGH' ? '#ef4444' : priority === 'MEDIUM' ? '#f97316' : '#3182f6';
+                        const badgeBg = priority === 'HIGH' ? '#fef2f2' : priority === 'MEDIUM' ? '#fff7ed' : '#eff6ff';
+                        const badgeColor = priority === 'HIGH' ? '#dc2626' : priority === 'MEDIUM' ? '#ea580c' : '#1d4ed8';
+                        const badgeLabel = priority === 'HIGH' ? '높음' : priority === 'MEDIUM' ? '중간' : '낮음';
+                        const impact = priority === 'HIGH' ? '전환율 +0.5%p 예상' : priority === 'MEDIUM' ? '유입 +15% 예상' : '참여도 개선';
+                        return (
+                          <div
+                            key={i}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 14,
+                              padding: '14px 18px',
+                              background: '#fff',
+                              border: '1px solid #f2f4f6',
+                              borderLeft: `4px solid ${borderColor}`,
+                              borderRadius: 10,
+                            }}
+                          >
+                            <span style={{
+                              fontSize: 11, fontWeight: 800, padding: '3px 9px',
+                              borderRadius: 6, background: badgeBg, color: badgeColor,
+                              letterSpacing: '0.04em', flexShrink: 0,
+                              minWidth: 40, textAlign: 'center',
+                            }}>
+                              {badgeLabel}
+                            </span>
+                            <p style={{ fontSize: 13, color: '#191f28', margin: 0, lineHeight: 1.55, flex: 1 }}>
+                              {r}
+                            </p>
+                            <span style={{
+                              fontSize: 11, color: '#8b9299', background: '#f8f9fa',
+                              borderRadius: 6, padding: '3px 8px', flexShrink: 0,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {impact}
+                            </span>
+                          </div>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
+                )}
 
-                  {/* Anomalies */}
-                  {insight.anomalies.length > 0 && (
-                    <div
-                      style={{
-                        background: '#fef2f2',
-                        border: '1px solid #fecaca',
-                        borderRadius: 10,
-                        padding: '14px 16px',
-                      }}
-                    >
-                      <p style={{ fontSize: 11, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-                        이상 징후
-                      </p>
-                      <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {insight.anomalies.map((a, i) => (
-                          <li key={i} style={{ display: 'flex', gap: 7, fontSize: 13, color: '#991b1b', lineHeight: 1.5 }}>
-                            <span style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }}>!</span>
-                            <span>{a}</span>
-                          </li>
-                        ))}
-                      </ul>
+                {/* ── 4. Anomaly Detection ── */}
+                {insight.anomalies.length > 0 && (
+                  <div
+                    style={{
+                      background: '#fff5f5',
+                      border: '1px solid #fecaca',
+                      borderRadius: 14,
+                      padding: '18px 20px',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{
+                          width: 32, height: 32, borderRadius: '50%',
+                          background: '#fee2e2',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 16,
+                        }}>
+                          ⚠
+                        </div>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', margin: 0 }}>
+                          이상 감지 — Anomaly Detection
+                        </p>
+                      </div>
+                      <span style={{
+                        fontSize: 11, fontWeight: 700, padding: '4px 10px',
+                        borderRadius: 20, background: '#dc2626', color: '#fff',
+                        letterSpacing: '0.04em',
+                      }}>
+                        즉시 확인 필요
+                      </span>
                     </div>
-                  )}
-                </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {insight.anomalies.map((a, i) => (
+                        <div key={i} style={{
+                          display: 'flex', gap: 10, alignItems: 'flex-start',
+                          padding: '10px 14px',
+                          background: '#fff',
+                          border: '1px solid #fecaca',
+                          borderRadius: 8,
+                        }}>
+                          <span style={{ color: '#ef4444', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>!</span>
+                          <p style={{ fontSize: 13, color: '#7f1d1d', margin: 0, lineHeight: 1.55 }}>{a}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
             ) : (
               <div

@@ -262,7 +262,9 @@ export async function ensureSeminarTables() {
       FOREIGN KEY ("sessionId") REFERENCES "SeminarSession"("id") ON DELETE CASCADE ON UPDATE CASCADE
     )
   `);
-  const finalReportColumns = await prisma.$queryRawUnsafe<TableInfoRow[]>(`PRAGMA table_info("SeminarFinalReport")`);
+  const finalReportColumns = await prisma.$queryRawUnsafe<TableInfoRow[]>(
+    `SELECT column_name as name FROM information_schema.columns WHERE table_name = 'SeminarFinalReport' AND table_schema = 'public'`
+  );
   if (!finalReportColumns.some((column) => column.name === 'structured')) {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE "SeminarFinalReport"

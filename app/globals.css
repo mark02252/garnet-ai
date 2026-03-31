@@ -635,47 +635,46 @@ body {
 .shell-theme {
   color-scheme: dark;
 
-  --shell-bg: #0a0a0f;
-  --shell-surface: rgba(255, 255, 255, 0.04);
-  --shell-surface-hover: rgba(255, 255, 255, 0.06);
-  --shell-border: rgba(255, 255, 255, 0.08);
-  --shell-border-active: rgba(49, 130, 246, 0.4);
+  --shell-bg: #050810;
+  --shell-surface: rgba(0,20,40,0.8);
+  --shell-surface-hover: rgba(0,212,255,0.05);
+  --shell-border: rgba(0,212,255,0.15);
+  --shell-border-active: rgba(0,212,255,0.5);
 
-  --shell-text-primary: #e8eaed;
-  --shell-text-secondary: #8b949e;
-  --shell-text-muted: #484f58;
+  --shell-text-primary: #a8d8ff;
+  --shell-text-secondary: #6aabcc;
+  --shell-text-muted: #3a6080;
 
-  --shell-accent: #3182f6;
-  --shell-accent-glow: rgba(49, 130, 246, 0.15);
+  --shell-accent: #00d4ff;
+  --shell-accent-secondary: #0066ff;
+  --shell-accent-glow: rgba(0,212,255,0.2);
+  --shell-glow: rgba(0,212,255,0.2);
 
-  --shell-status-running: #3182f6;
-  --shell-status-success: #22c55e;
-  --shell-status-error: #ef4444;
-  --shell-status-idle: #484f58;
+  --shell-status-running: #00d4ff;
+  --shell-status-success: #00ff88;
+  --shell-status-error: #ff4466;
+  --shell-status-idle: #3a6080;
 }
 
 /* Canvas panel base */
 .canvas-panel {
-  background: var(--shell-surface);
-  border: 1px solid var(--shell-border);
+  background: rgba(0,12,28,0.92);
+  border: 1px solid rgba(0,212,255,0.2);
   border-radius: 12px;
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
   color: var(--shell-text-primary);
+  position: relative;
 }
 
-.canvas-panel[data-status='loading'] {
-  animation: shell-scan-line 1.5s linear infinite;
+.canvas-panel[data-status='loading'],
+.canvas-panel[data-status='active'] {
+  animation: panel-glow-pulse 2s ease-in-out infinite;
 }
-
 .canvas-panel[data-status='completed'] {
-  border-color: rgba(34, 197, 94, 0.5);
-  transition: border-color 0.3s ease;
+  border-color: rgba(0,255,136,0.2);
 }
-
-@keyframes shell-scan-line {
-  0%   { border-top-color: rgba(49, 130, 246, 0); }
-  50%  { border-top-color: rgba(49, 130, 246, 0.8); }
-  100% { border-top-color: rgba(49, 130, 246, 0); }
+.canvas-panel[data-status='error'] {
+  border-color: rgba(255,68,102,0.3);
 }
 
 /* Pulse dot animations */
@@ -694,16 +693,10 @@ body {
   line-height: 1.6;
 }
 
-/* Canvas dot-grid background */
-.canvas-dot-grid {
-  background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
-  background-size: 28px 28px;
-}
-
-/* Shell command bar glow on focus-within */
-.command-bar-input:focus {
-  outline: none;
-  box-shadow: 0 0 0 1px rgba(49, 130, 246, 0.5), 0 0 16px rgba(49, 130, 246, 0.15);
+/* Hexagon grid — pointy-top, tile 80×92px, two staggered hexagons */
+.canvas-hex-grid {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='92'%3E%3Cpath d='M20,1 L39,11.5 L39,34.5 L20,45 L1,34.5 L1,11.5 Z' fill='none' stroke='%2300d4ff' stroke-opacity='0.05' stroke-width='0.5'/%3E%3Cpath d='M60,47 L79,57.5 L79,80.5 L60,91 L41,80.5 L41,57.5 Z' fill='none' stroke='%2300d4ff' stroke-opacity='0.05' stroke-width='0.5'/%3E%3C/svg%3E");
+  background-size: 80px 92px;
 }
 
 /* Canvas noise texture */
@@ -714,4 +707,143 @@ body {
   pointer-events: none;
   opacity: 0.025;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+}
+
+/* ── JARVIS UI — keyframes and utilities ── */
+
+/* Logo pulse */
+@keyframes logo-pulse {
+  0%, 100% { opacity: 1 }
+  50%       { opacity: 0.6 }
+}
+.logo-pulse { animation: logo-pulse 3s ease-in-out infinite; }
+
+/* Scan-line sweep — SystemBar (default 56px/4s), overridable via CSS vars */
+@keyframes scan-line-sweep {
+  0%   { transform: translateY(0); opacity: 1 }
+  80%  { opacity: 1 }
+  100% { transform: translateY(var(--scan-height, 56px)); opacity: 0 }
+}
+.scan-line-sweep {
+  animation: scan-line-sweep var(--scan-duration, 4s) linear infinite;
+}
+
+/* Arc ring rotation */
+@keyframes arc-rotate {
+  0%   { transform: rotate(0deg) }
+  100% { transform: rotate(360deg) }
+}
+
+/* Arc reactor idle breathe */
+@keyframes arc-reactor-breathe {
+  0%, 100% { opacity: 0.5; transform: scale(1) }
+  50%       { opacity: 0.9; transform: scale(1.04) }
+}
+.arc-reactor-breathe { animation: arc-reactor-breathe 2s ease-in-out infinite; }
+
+/* Panel glow pulse */
+@keyframes panel-glow-pulse {
+  0%, 100% {
+    box-shadow: 0 0 8px rgba(0,212,255,0.15), inset 0 0 8px rgba(0,212,255,0.03);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(0,212,255,0.3), inset 0 0 12px rgba(0,212,255,0.06);
+  }
+}
+
+/* CommandBar typing glow */
+@keyframes cmd-glow {
+  0%, 100% { border-color: rgba(0,212,255,0.4) }
+  50%       { border-color: rgba(0,212,255,0.7) }
+}
+.cmd-typing { animation: cmd-glow 1.5s ease-in-out infinite; }
+
+/* Spinner for loading state */
+@keyframes spin {
+  0%   { transform: rotate(0deg) }
+  100% { transform: rotate(360deg) }
+}
+
+/* L-bracket corner decorations for canvas panels */
+.lb-tl, .lb-tr, .lb-bl, .lb-br {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  pointer-events: none;
+  z-index: 1;
+}
+.lb-tl { top: 0; left: 0; }
+.lb-tl::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 12px; height: 2px;
+  background: #00d4ff;
+}
+.lb-tl::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 2px; height: 12px;
+  background: #00d4ff;
+}
+
+.lb-tr { top: 0; right: 0; }
+.lb-tr::before {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 12px; height: 2px;
+  background: #00d4ff;
+}
+.lb-tr::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 2px; height: 12px;
+  background: #00d4ff;
+}
+
+.lb-bl { bottom: 0; left: 0; }
+.lb-bl::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 12px; height: 2px;
+  background: #00d4ff;
+}
+.lb-bl::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 2px; height: 12px;
+  background: #00d4ff;
+}
+
+.lb-br { bottom: 0; right: 0; }
+.lb-br::before {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 12px; height: 2px;
+  background: #00d4ff;
+}
+.lb-br::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 2px; height: 12px;
+  background: #00d4ff;
+}
+
+/* Thin scrollbar for SignalFeed */
+.signal-feed-scroll {
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0,212,255,0.2) transparent;
+}
+
+/* CommandBar placeholder color override for loading state */
+.command-bar-input::placeholder {
+  color: var(--placeholder-color, var(--shell-text-muted));
 }

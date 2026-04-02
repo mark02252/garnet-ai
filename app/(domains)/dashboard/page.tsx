@@ -356,7 +356,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {data.kpiGoals.map((kpi, i) => {
             const pct = kpi.targetValue > 0 ? Math.round((kpi.currentValue / kpi.targetValue) * 100) : 0
-            const borderColors = ['#3b82f6', '#6366f1', '#f59e0b', '#10b981']
+            const borderColors = ['#00d4ff', '#0066ff', '#ffaa00', '#00ff88']
             const borderColor = borderColors[i % borderColors.length]
             return (
               <div key={kpi.id} className="metric-card" style={{ borderTop: `4px solid ${borderColor}` }}>
@@ -393,17 +393,17 @@ export default function DashboardPage() {
         const postCount = data.topPosts.length
         return (
           <div className="grid gap-4 md:grid-cols-3">
-            <div className="metric-card" style={{ borderTop: '4px solid #ec4899' }}>
+            <div className="metric-card" style={{ borderTop: '4px solid #ff4466' }}>
               <p className="metric-label">총 좋아요</p>
               <p className="metric-value">{totalLikes.toLocaleString()}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
             </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #8b5cf6' }}>
+            <div className="metric-card" style={{ borderTop: '4px solid #6aabcc' }}>
               <p className="metric-label">총 댓글</p>
               <p className="metric-value">{totalComments.toLocaleString()}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
             </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #06b6d4' }}>
+            <div className="metric-card" style={{ borderTop: '4px solid #00d4ff' }}>
               <p className="metric-label">게시 빈도</p>
               <p className="metric-value">이번 달 {postCount}개</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">분석된 게시물 수</p>
@@ -424,7 +424,7 @@ export default function DashboardPage() {
           IMAGE: '이미지', VIDEO: '비디오', CAROUSEL_ALBUM: '캐러셀', UNKNOWN: '기타',
         }
         const typeColors: Record<string, string> = {
-          IMAGE: '#3b82f6', VIDEO: '#6366f1', CAROUSEL_ALBUM: '#f59e0b', UNKNOWN: '#94a3b8',
+          IMAGE: '#00d4ff', VIDEO: '#0066ff', CAROUSEL_ALBUM: '#ffaa00', UNKNOWN: '#3a6080',
         }
         return (
           <div className="soft-card">
@@ -434,7 +434,7 @@ export default function DashboardPage() {
                 .sort(([, a], [, b]) => b - a)
                 .map(([type, count]) => {
                   const pct = Math.round((count / total) * 100)
-                  const color = typeColors[type] || '#94a3b8'
+                  const color = typeColors[type] || '#3a6080'
                   return (
                     <div key={type}>
                       <div className="flex items-center justify-between text-xs mb-1.5">

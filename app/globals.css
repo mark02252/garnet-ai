@@ -3,26 +3,41 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  /* ── Toss-inspired design tokens ── */
-  --app-bg: #f5f6f7;
-  --surface: #ffffff;
-  --surface-sub: #f9fafb;
-  --surface-border: #e8ebed;
-  --surface-border-strong: #d1d5db;
-  --surface-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  /* ── JARVIS design tokens ── */
+  --app-bg: #050810;
+  --bg-base: #050810;
+  --bg-sub: #0a0f1a;
 
-  --text-strong: #191f28;
-  --text-base: #333d4b;
-  --text-muted: #6b7684;
-  --text-disabled: #b0b8c1;
+  /* Surface */
+  --surface: rgba(0, 12, 28, 0.92);
+  --surface-sub: rgba(0, 20, 40, 0.6);
+  --surface-alt: rgba(0, 20, 40, 0.8);
+  --surface-border: rgba(0, 212, 255, 0.15);
+  --surface-border-strong: rgba(0, 212, 255, 0.3);
+  --surface-hover: rgba(0, 212, 255, 0.05);
+  --surface-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 
-  --accent: #3182f6;
-  --accent-hover: #1b6ef3;
-  --accent-soft: rgba(49, 130, 246, 0.1);
-  --accent-rgb: 49, 130, 246;
+  /* Text */
+  --text-strong: #e8f4ff;
+  --text-base: #a8d8ff;
+  --text-muted: #3a6080;
+  --text-secondary: #6aabcc;
+  --text-disabled: #1e3a50;
 
+  /* Accent */
+  --accent: #00d4ff;
+  --accent-hover: #00b8d9;
+  --accent-soft: rgba(0, 212, 255, 0.08);
+  --accent-rgb: 0, 212, 255;
+  --accent-secondary: #0066ff;
+  --accent-glow: rgba(0, 212, 255, 0.2);
+
+  /* Border */
+  --border: rgba(0, 212, 255, 0.15);
+
+  /* Border radius (unchanged) */
   --radius-xs: 4px;
   --radius-sm: 6px;
   --radius: 8px;
@@ -31,17 +46,23 @@
   --radius-xl: 16px;
   --radius-2xl: 20px;
 
-  /* ── Status badge tokens ── */
-  --status-active: #22c55e;
-  --status-active-bg: #f0fdf4;
-  --status-paused: #f59e0b;
-  --status-paused-bg: #fffbeb;
-  --status-completed: #3b82f6;
-  --status-completed-bg: #eff6ff;
-  --status-draft: #6b7280;
-  --status-draft-bg: #f9fafb;
-  --status-failed: #ef4444;
-  --status-failed-bg: #fef2f2;
+  /* Status tokens */
+  --status-active: #00ff88;
+  --status-active-bg: rgba(0, 255, 136, 0.1);
+  --status-paused: #ffaa00;
+  --status-paused-bg: rgba(255, 170, 0, 0.1);
+  --status-completed: #00d4ff;
+  --status-completed-bg: rgba(0, 212, 255, 0.1);
+  --status-draft: #3a6080;
+  --status-draft-bg: rgba(58, 96, 128, 0.15);
+  --status-failed: #ff4466;
+  --status-failed-bg: rgba(255, 68, 102, 0.1);
+
+  /* Status badge */
+  --status-success: #00ff88;
+  --status-error: #ff4466;
+  --status-warning: #ffaa00;
+  --status-running: #00d4ff;
 }
 
 /* ── Base ── */

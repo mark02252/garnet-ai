@@ -277,12 +277,12 @@ function NavButton({ item, active }: { item: NavItem; active: boolean }) {
       className={[
         'relative flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2.5 transition-colors',
         active
-          ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+          ? 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--surface-border)]'
           : 'text-[var(--text-muted)] hover:bg-[var(--surface-sub)] hover:text-[var(--text-base)]'
       ].join(' ')}
     >
       {active && (
-        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)]" />
+        <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)] shadow-[0_0_6px_var(--accent-glow)]" />
       )}
       <span className="shrink-0">{item.icon}</span>
       <span className="truncate text-[13px] font-medium">{item.label}</span>
@@ -301,17 +301,17 @@ export function AppNav() {
         className="mb-3 flex h-9 items-center gap-2.5 px-2 text-[var(--accent)]"
         title="Garnet"
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--accent-soft)] text-[13px] font-bold">
-          G
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--accent-soft)] border border-[var(--surface-border)] text-[12px] font-bold text-[var(--accent)]">
+          ◈
         </span>
-        <span className="text-[15px] font-bold text-[var(--text-strong)]">Garnet</span>
+        <span className="text-[13px] font-bold text-[var(--text-base)] tracking-[2px]">GARNET</span>
       </Link>
 
       {/* Grouped nav */}
       <nav className="flex flex-1 flex-col gap-4">
         {navGroups.map((group) => (
           <div key={group.label}>
-            <p className="mb-1 px-2.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--text-muted)] opacity-60">
+            <p className="mb-1 px-2.5 text-[8px] font-semibold uppercase tracking-[2px] text-[var(--text-muted)]">
               {group.label}
             </p>
             <div className="flex flex-col gap-0.5">

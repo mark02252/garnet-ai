@@ -11,7 +11,7 @@ export default function DomainsLayout({ children }: { children: React.ReactNode 
           <AppNav />
           <div className="min-w-0">
             <header className="app-topbar">
-              <p className="text-[13px] font-semibold text-[#333d4b]">Garnet</p>
+              <p className="text-[10px] font-semibold uppercase tracking-[2px] text-[var(--text-muted)]">Garnet OS</p>
               <SupabaseAuthChip />
             </header>
             <main className="app-main">{children}</main>

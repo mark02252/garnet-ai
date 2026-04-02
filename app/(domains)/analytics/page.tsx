@@ -270,19 +270,19 @@ function calcEngagementWoW(data: EngagementMetric[]): number {
 }
 
 function getChannelColor(source: string, medium: string): string {
-  if (medium === 'organic') return '#22c55e';
+  if (medium === 'organic') return '#00ff88';
   if (medium === 'social') {
     if (source === 'instagram') return '#e1306c';
     if (source === 'facebook') return '#1877f2';
     if (source === 'youtube') return '#ff0000';
     if (source === 'kakao') return '#f7e600';
-    return '#8b5cf6';
+    return '#6aabcc';
   }
-  if (medium === 'email') return '#f59e0b';
-  if (medium === 'referral') return '#6b7280';
-  if (medium === '(none)') return '#3182f6';
+  if (medium === 'email') return '#ffaa00';
+  if (medium === 'referral') return '#3a6080';
+  if (medium === '(none)') return '#00d4ff';
   if (medium === 'cpc' || medium === 'paid') return '#f97316';
-  return '#94a3b8';
+  return '#3a6080';
 }
 
 function getDeviceName(cat: string): string {
@@ -293,10 +293,10 @@ function getDeviceName(cat: string): string {
 }
 
 function getDeviceColor(cat: string): string {
-  if (cat === 'desktop') return '#3182f6';
-  if (cat === 'mobile') return '#22c55e';
-  if (cat === 'tablet') return '#f59e0b';
-  return '#8b5cf6';
+  if (cat === 'desktop') return '#00d4ff';
+  if (cat === 'mobile') return '#00ff88';
+  if (cat === 'tablet') return '#ffaa00';
+  return '#6aabcc';
 }
 
 // ── Sparkline Component ────────────────────────────────────────────────────
@@ -338,7 +338,7 @@ function Sparkline({
 
 function WoWBadge({ pct }: { pct: number }) {
   const isGood = pct >= 0;
-  const color = isGood ? '#22c55e' : '#ef4444';
+  const color = isGood ? '#00ff88' : '#ff4466';
   const bg = isGood ? '#f0fdf4' : '#fef2f2';
   const arrow = isGood ? '▲' : '▼';
   return (
@@ -651,7 +651,7 @@ export default function AnalyticsPage() {
         >
           <span style={{ fontSize: 16, lineHeight: 1.4 }}>📊</span>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#3182f6', margin: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#00d4ff', margin: 0 }}>
               미리보기 모드 — 데모 데이터로 표시 중
             </p>
             <p style={{ fontSize: 12, color: '#6b7684', margin: '3px 0 0' }}>
@@ -659,7 +659,7 @@ export default function AnalyticsPage() {
               <code
                 style={{
                   background: 'rgba(49,130,246,0.1)',
-                  color: '#3182f6',
+                  color: '#00d4ff',
                   borderRadius: 4,
                   padding: '1px 5px',
                   fontSize: 11,
@@ -711,7 +711,7 @@ export default function AnalyticsPage() {
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  background: '#22c55e',
+                  background: '#00ff88',
                   display: 'inline-block',
                   boxShadow: '0 0 0 3px rgba(34,197,94,0.25)',
                   animation: 'pulse 2s infinite',
@@ -747,7 +747,7 @@ export default function AnalyticsPage() {
                     fontSize: 12,
                     fontWeight: active ? 700 : 500,
                     color: active ? '#fff' : '#6b7684',
-                    background: active ? '#3182f6' : 'transparent',
+                    background: active ? '#00d4ff' : 'transparent',
                     border: 'none',
                     borderRadius: 7,
                     padding: '5px 12px',
@@ -781,7 +781,7 @@ export default function AnalyticsPage() {
               height: 36,
               borderRadius: '50%',
               border: '3px solid #e8ebed',
-              borderTopColor: '#3182f6',
+              borderTopColor: '#00d4ff',
               animation: 'spin 0.8s linear infinite',
             }}
           />
@@ -814,21 +814,21 @@ export default function AnalyticsPage() {
                 value: totalUsers,
                 wow: wowUsers,
                 dataKey: 'activeUsers' as keyof DailyTraffic,
-                color: '#3182f6',
+                color: '#00d4ff',
               },
               {
                 label: '세션',
                 value: totalSessions,
                 wow: wowSessions,
                 dataKey: 'sessions' as keyof DailyTraffic,
-                color: '#8b5cf6',
+                color: '#6aabcc',
               },
               {
                 label: '페이지뷰',
                 value: totalPageViews,
                 wow: wowPageViews,
                 dataKey: 'screenPageViews' as keyof DailyTraffic,
-                color: '#f59e0b',
+                color: '#ffaa00',
               },
               {
                 label: '참여율',
@@ -836,7 +836,7 @@ export default function AnalyticsPage() {
                 displayValue: `${avgEngagement.toFixed(1)}%`,
                 wow: wowEngagement,
                 dataKey: 'activeUsers' as keyof DailyTraffic,
-                color: '#22c55e',
+                color: '#00ff88',
               },
             ].map((kpi) => (
               <div
@@ -871,15 +871,15 @@ export default function AnalyticsPage() {
           <div className="panel" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#3182f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Traffic Overview
                 </p>
                 <h2 className="section-title">트래픽 트렌드</h2>
               </div>
               <div style={{ display: 'flex', gap: 16 }}>
                 {[
-                  { label: '활성 사용자', color: '#3182f6' },
-                  { label: '세션', color: '#8b5cf6' },
+                  { label: '활성 사용자', color: '#00d4ff' },
+                  { label: '세션', color: '#6aabcc' },
                 ].map(l => (
                   <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 12, height: 3, background: l.color, borderRadius: 2, display: 'inline-block' }} />
@@ -892,12 +892,12 @@ export default function AnalyticsPage() {
               <AreaChart data={trafficChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3182f6" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#3182f6" stopOpacity={0.01} />
+                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.01} />
                   </linearGradient>
                   <linearGradient id="gradSessions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.01} />
+                    <stop offset="5%" stopColor="#6aabcc" stopOpacity={0.2} />
+                    <stop offset="95%" stopColor="#6aabcc" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
                 <XAxis
@@ -918,20 +918,20 @@ export default function AnalyticsPage() {
                 <Area
                   type="monotone"
                   dataKey="활성 사용자"
-                  stroke="#3182f6"
+                  stroke="#00d4ff"
                   strokeWidth={2}
                   fill="url(#gradUsers)"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: '#3182f6' }}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: '#00d4ff' }}
                 />
                 <Area
                   type="monotone"
                   dataKey="세션"
-                  stroke="#8b5cf6"
+                  stroke="#6aabcc"
                   strokeWidth={2}
                   fill="url(#gradSessions)"
                   dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: '#8b5cf6' }}
+                  activeDot={{ r: 4, strokeWidth: 0, fill: '#6aabcc' }}
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -944,15 +944,15 @@ export default function AnalyticsPage() {
             <div className="panel" style={{ marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
                 <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                  <p style={{ fontSize: 11, fontWeight: 600, color: '#00ff88', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                     Engagement
                   </p>
                   <h2 className="section-title">참여도 & 이탈률</h2>
                 </div>
                 <div style={{ display: 'flex', gap: 16 }}>
                   {[
-                    { label: '참여율', color: '#22c55e' },
-                    { label: '이탈률', color: '#ef4444' },
+                    { label: '참여율', color: '#00ff88' },
+                    { label: '이탈률', color: '#ff4466' },
                   ].map(l => (
                     <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ width: 12, height: 3, background: l.color, borderRadius: 2, display: 'inline-block' }} />
@@ -965,12 +965,12 @@ export default function AnalyticsPage() {
                 <AreaChart data={engagementChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradEngage" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#22c55e" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0.01} />
+                      <stop offset="5%" stopColor="#00ff88" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#00ff88" stopOpacity={0.01} />
                     </linearGradient>
                     <linearGradient id="gradBounce" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ef4444" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01} />
+                      <stop offset="5%" stopColor="#ff4466" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#ff4466" stopOpacity={0.01} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -992,20 +992,20 @@ export default function AnalyticsPage() {
                   <Area
                     type="monotone"
                     dataKey="참여율"
-                    stroke="#22c55e"
+                    stroke="#00ff88"
                     strokeWidth={2}
                     fill="url(#gradEngage)"
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: '#22c55e' }}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: '#00ff88' }}
                   />
                   <Area
                     type="monotone"
                     dataKey="이탈률"
-                    stroke="#ef4444"
+                    stroke="#ff4466"
                     strokeWidth={2}
                     fill="url(#gradBounce)"
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: '#ef4444' }}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: '#ff4466' }}
                   />
                 </AreaChart>
               </ResponsiveContainer>
@@ -1026,7 +1026,7 @@ export default function AnalyticsPage() {
             {/* Left: 유입 채널 */}
             <div className="panel">
               <div style={{ marginBottom: 16 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#6aabcc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Acquisition
                 </p>
                 <h2 className="section-title">유입 채널 Top 10</h2>
@@ -1101,7 +1101,7 @@ export default function AnalyticsPage() {
             {/* Right: 디바이스 분포 */}
             <div className="panel" style={{ display: 'flex', flexDirection: 'column' }}>
               <div style={{ marginBottom: 16 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#ffaa00', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Devices
                 </p>
                 <h2 className="section-title">디바이스 분포</h2>
@@ -1193,7 +1193,7 @@ export default function AnalyticsPage() {
             {/* Left: 상위 페이지 */}
             <div className="panel">
               <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#3182f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Content
                 </p>
                 <h2 className="section-title">상위 페이지 Top 10</h2>
@@ -1251,7 +1251,7 @@ export default function AnalyticsPage() {
             {/* Right: 상위 국가 */}
             <div className="panel">
               <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#00ff88', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Geography
                 </p>
                 <h2 className="section-title">상위 국가</h2>
@@ -1272,7 +1272,7 @@ export default function AnalyticsPage() {
                           style={{
                             height: '100%',
                             width: `${pct}%`,
-                            background: i === 0 ? '#3182f6' : `rgba(49,130,246,${0.85 - i * 0.07})`,
+                            background: i === 0 ? '#00d4ff' : `rgba(49,130,246,${0.85 - i * 0.07})`,
                             borderRadius: 100,
                             transition: 'width 0.6s ease',
                           }}
@@ -1294,7 +1294,7 @@ export default function AnalyticsPage() {
           {landingPages.length > 0 && (
             <div className="panel" style={{ marginBottom: 20 }}>
               <div style={{ marginBottom: 16 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#ffaa00', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Landing Pages
                 </p>
                 <h2 className="section-title">랜딩 페이지 성과</h2>
@@ -1324,7 +1324,7 @@ export default function AnalyticsPage() {
                     {landingPages.map((lp, i) => {
                       const bounceColor =
                         lp.bounceRate > 0.7
-                          ? { bg: '#fef2f2', text: '#ef4444' }
+                          ? { bg: '#fef2f2', text: '#ff4466' }
                           : lp.bounceRate > 0.5
                           ? { bg: '#fffbeb', text: '#d97706' }
                           : { bg: '#f0fdf4', text: '#16a34a' };
@@ -1333,7 +1333,7 @@ export default function AnalyticsPage() {
                           ? { bg: '#f0fdf4', text: '#16a34a' }
                           : lp.engagementRate > 0.3
                           ? { bg: '#fffbeb', text: '#d97706' }
-                          : { bg: '#fef2f2', text: '#ef4444' };
+                          : { bg: '#fef2f2', text: '#ff4466' };
                       return (
                         <tr
                           key={i}
@@ -1409,7 +1409,7 @@ export default function AnalyticsPage() {
           <div className="panel" style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#6aabcc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   AI Insights
                 </p>
                 <h2 className="section-title">AI 성과 분석</h2>
@@ -1448,7 +1448,7 @@ export default function AnalyticsPage() {
                     fontSize: 13,
                     fontWeight: 700,
                     color: '#fff',
-                    background: analyzing ? '#94a3b8' : 'linear-gradient(135deg, #3182f6 0%, #8b5cf6 100%)',
+                    background: analyzing ? '#3a6080' : 'linear-gradient(135deg, #00d4ff 0%, #6aabcc 100%)',
                     border: 'none',
                     borderRadius: 10,
                     cursor: analyzing ? 'not-allowed' : 'pointer',
@@ -1522,7 +1522,7 @@ export default function AnalyticsPage() {
                       {insight.highlights.map((h, i) => {
                         const isWarning = i === 0;
                         const isOpportunity = i === 1;
-                        const iconColor = isWarning ? '#ef4444' : isOpportunity ? '#22c55e' : '#3182f6';
+                        const iconColor = isWarning ? '#ff4466' : isOpportunity ? '#00ff88' : '#00d4ff';
                         const iconBg = isWarning ? '#fef2f2' : isOpportunity ? '#f0fdf4' : '#eff6ff';
                         const iconLabel = isWarning ? '⚠' : isOpportunity ? '↑' : 'i';
                         const badgeText = isWarning ? '높은 영향' : isOpportunity ? '성장 기회' : '참고 정보';
@@ -1574,7 +1574,7 @@ export default function AnalyticsPage() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {insight.recommendations.map((r, i) => {
                         const priority = i === 0 ? 'HIGH' : i === 1 ? 'MEDIUM' : 'LOW';
-                        const borderColor = priority === 'HIGH' ? '#ef4444' : priority === 'MEDIUM' ? '#f97316' : '#3182f6';
+                        const borderColor = priority === 'HIGH' ? '#ff4466' : priority === 'MEDIUM' ? '#f97316' : '#00d4ff';
                         const badgeBg = priority === 'HIGH' ? '#fef2f2' : priority === 'MEDIUM' ? '#fff7ed' : '#eff6ff';
                         const badgeColor = priority === 'HIGH' ? '#dc2626' : priority === 'MEDIUM' ? '#ea580c' : '#1d4ed8';
                         const badgeLabel = priority === 'HIGH' ? '높음' : priority === 'MEDIUM' ? '중간' : '낮음';
@@ -1659,7 +1659,7 @@ export default function AnalyticsPage() {
                           border: '1px solid #fecaca',
                           borderRadius: 8,
                         }}>
-                          <span style={{ color: '#ef4444', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>!</span>
+                          <span style={{ color: '#ff4466', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>!</span>
                           <p style={{ fontSize: 13, color: '#7f1d1d', margin: 0, lineHeight: 1.55 }}>{a}</p>
                         </div>
                       ))}
@@ -1698,7 +1698,7 @@ export default function AnalyticsPage() {
           {hourlyChartData.length > 0 && (
             <div className="panel" style={{ marginBottom: 20, marginTop: 20 }}>
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#3182f6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Hourly Pattern
                 </p>
                 <h2 className="section-title">시간대별 트래픽</h2>
@@ -1710,8 +1710,8 @@ export default function AnalyticsPage() {
                 <BarChart data={hourlyChartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barSize={14}>
                   <defs>
                     <linearGradient id="hourlyBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3182f6" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#3182f6" stopOpacity={0.45} />
+                      <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#00d4ff" stopOpacity={0.45} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -1736,7 +1736,7 @@ export default function AnalyticsPage() {
               </ResponsiveContainer>
               <p style={{ fontSize: 12, color: '#6b7684', textAlign: 'center', marginTop: 8 }}>
                 피크 타임:{' '}
-                <strong style={{ color: '#3182f6' }}>{peakHour}시</strong>에 세션이 가장 집중됩니다
+                <strong style={{ color: '#00d4ff' }}>{peakHour}시</strong>에 세션이 가장 집중됩니다
               </p>
             </div>
           )}
@@ -1747,7 +1747,7 @@ export default function AnalyticsPage() {
           {userType.length > 0 && (
             <div className="panel" style={{ marginBottom: 20 }}>
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#6aabcc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   User Segments
                 </p>
                 <h2 className="section-title">신규 vs 재방문 사용자</h2>
@@ -1769,7 +1769,7 @@ export default function AnalyticsPage() {
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#1d4ed8', margin: '0 0 4px' }}>
                     {(newUser?.activeUsers || 0).toLocaleString('ko-KR')}
                   </p>
-                  <p style={{ fontSize: 12, color: '#3182f6', margin: '0 0 14px' }}>
+                  <p style={{ fontSize: 12, color: '#00d4ff', margin: '0 0 14px' }}>
                     전체의 <strong>{newUserPct.toFixed(1)}%</strong>
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1783,7 +1783,7 @@ export default function AnalyticsPage() {
                       style={{
                         height: '100%',
                         width: `${Math.min((newUser?.engagementRate || 0) * 100, 100)}%`,
-                        background: '#3182f6',
+                        background: '#00d4ff',
                         borderRadius: 100,
                       }}
                     />
@@ -1806,7 +1806,7 @@ export default function AnalyticsPage() {
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#7c3aed', margin: '0 0 4px' }}>
                     {(returningUser?.activeUsers || 0).toLocaleString('ko-KR')}
                   </p>
-                  <p style={{ fontSize: 12, color: '#8b5cf6', margin: '0 0 14px' }}>
+                  <p style={{ fontSize: 12, color: '#6aabcc', margin: '0 0 14px' }}>
                     전체의 <strong>{returningUserPct.toFixed(1)}%</strong>
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1820,7 +1820,7 @@ export default function AnalyticsPage() {
                       style={{
                         height: '100%',
                         width: `${Math.min((returningUser?.engagementRate || 0) * 100, 100)}%`,
-                        background: '#8b5cf6',
+                        background: '#6aabcc',
                         borderRadius: 100,
                       }}
                     />
@@ -1831,12 +1831,12 @@ export default function AnalyticsPage() {
               {/* Split Bar */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, color: '#3182f6', fontWeight: 600 }}>신규 {newUserPct.toFixed(1)}%</span>
-                  <span style={{ fontSize: 12, color: '#8b5cf6', fontWeight: 600 }}>재방문 {returningUserPct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 12, color: '#00d4ff', fontWeight: 600 }}>신규 {newUserPct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 12, color: '#6aabcc', fontWeight: 600 }}>재방문 {returningUserPct.toFixed(1)}%</span>
                 </div>
                 <div style={{ height: 10, background: '#f5f6f7', borderRadius: 100, overflow: 'hidden', display: 'flex' }}>
-                  <div style={{ width: `${newUserPct}%`, background: '#3182f6', transition: 'width 0.6s ease' }} />
-                  <div style={{ width: `${returningUserPct}%`, background: '#8b5cf6', transition: 'width 0.6s ease' }} />
+                  <div style={{ width: `${newUserPct}%`, background: '#00d4ff', transition: 'width 0.6s ease' }} />
+                  <div style={{ width: `${returningUserPct}%`, background: '#6aabcc', transition: 'width 0.6s ease' }} />
                 </div>
               </div>
             </div>
@@ -1848,7 +1848,7 @@ export default function AnalyticsPage() {
           {traffic.length >= 4 && (
             <div className="panel" style={{ marginBottom: 20 }}>
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#f59e0b', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#ffaa00', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Week-over-Week
                 </p>
                 <h2 className="section-title">주간 비교 (WoW)</h2>
@@ -1859,21 +1859,21 @@ export default function AnalyticsPage() {
                     label: '사용자',
                     curr: currWeekTotals.users,
                     prev: prevWeekTotals.users,
-                    color: '#3182f6',
+                    color: '#00d4ff',
                     icon: '👤',
                   },
                   {
                     label: '세션',
                     curr: currWeekTotals.sessions,
                     prev: prevWeekTotals.sessions,
-                    color: '#8b5cf6',
+                    color: '#6aabcc',
                     icon: '📊',
                   },
                   {
                     label: '페이지뷰',
                     curr: currWeekTotals.pageViews,
                     prev: prevWeekTotals.pageViews,
-                    color: '#f59e0b',
+                    color: '#ffaa00',
                     icon: '📄',
                   },
                 ].map(metric => {
@@ -1940,7 +1940,7 @@ export default function AnalyticsPage() {
           {(hourlyChartData.length > 0 || userType.length > 0 || channels.length > 0) && (
             <div className="panel" style={{ marginBottom: 8 }}>
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#22c55e', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#00ff88', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Key Insights
                 </p>
                 <h2 className="section-title">핵심 인사이트 요약</h2>
@@ -1964,7 +1964,7 @@ export default function AnalyticsPage() {
                         width: 40,
                         height: 40,
                         borderRadius: 10,
-                        background: '#3182f6',
+                        background: '#00d4ff',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -1981,7 +1981,7 @@ export default function AnalyticsPage() {
                   <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d4ed8', margin: 0 }}>
                     {peakHour}시
                   </p>
-                  <p style={{ fontSize: 12, color: '#3182f6', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 12, color: '#00d4ff', margin: 0, lineHeight: 1.5 }}>
                     이 시간대에 콘텐츠 발행 및 광고 집중을 권장합니다
                   </p>
                 </div>
@@ -2004,7 +2004,7 @@ export default function AnalyticsPage() {
                         width: 40,
                         height: 40,
                         borderRadius: 10,
-                        background: '#8b5cf6',
+                        background: '#6aabcc',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2021,7 +2021,7 @@ export default function AnalyticsPage() {
                   <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>
                     {newUserPct.toFixed(1)}%
                   </p>
-                  <p style={{ fontSize: 12, color: '#8b5cf6', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 12, color: '#6aabcc', margin: 0, lineHeight: 1.5 }}>
                     재방문율 {returningUserPct.toFixed(1)}% — 높을수록 브랜드 충성도가 높습니다
                   </p>
                 </div>
@@ -2044,7 +2044,7 @@ export default function AnalyticsPage() {
                         width: 40,
                         height: 40,
                         borderRadius: 10,
-                        background: '#22c55e',
+                        background: '#00ff88',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2070,7 +2070,7 @@ export default function AnalyticsPage() {
                   >
                     {bestChannel}
                   </p>
-                  <p style={{ fontSize: 12, color: '#22c55e', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 12, color: '#00ff88', margin: 0, lineHeight: 1.5 }}>
                     {channels.length > 0
                       ? `${channels[0].sessions.toLocaleString('ko-KR')}세션으로 가장 높은 유입량`
                       : '채널 데이터 없음'}

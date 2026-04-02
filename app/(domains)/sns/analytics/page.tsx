@@ -449,7 +449,7 @@ export default function AnalyticsPage() {
                 contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
                 formatter={(value) => [formatCompactNumber(Number(value)), '팔로워']}
               />
-              <Line type="monotone" dataKey="followers" stroke="#8b5cf6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="followers" stroke="#6aabcc" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -617,7 +617,7 @@ export default function AnalyticsPage() {
                 contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
                 formatter={(value) => [formatCompactNumber(Number(value)), '일별 도달']}
               />
-              <Line type="monotone" dataKey="reach" stroke="#3182f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="reach" stroke="#00d4ff" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
           <p className="text-[11px] text-[var(--text-muted)] mt-1">
@@ -646,7 +646,7 @@ export default function AnalyticsPage() {
                       className="h-full rounded-full transition-all duration-500"
                       style={{
                         width: `${Math.round((stat.avgReach / maxReach) * 100)}%`,
-                        background: stat.type === 'VIDEO' ? '#8b5cf6' : stat.type === 'CAROUSEL_ALBUM' ? '#f59e0b' : '#3182f6',
+                        background: stat.type === 'VIDEO' ? '#6aabcc' : stat.type === 'CAROUSEL_ALBUM' ? '#ffaa00' : '#00d4ff',
                       }}
                     />
                   </div>
@@ -699,7 +699,7 @@ export default function AnalyticsPage() {
                 className="h-full rounded-full transition-all duration-500"
                 style={{
                   width: `${Math.min(Number(avgEngagement) * 10, 100)}%`,
-                  background: Number(avgEngagement) >= 3 ? '#10b981' : Number(avgEngagement) >= 1 ? '#3182f6' : '#f59e0b',
+                  background: Number(avgEngagement) >= 3 ? '#00ff88' : Number(avgEngagement) >= 1 ? '#00d4ff' : '#ffaa00',
                 }}
               />
             </div>

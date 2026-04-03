@@ -20,10 +20,15 @@ export async function runMaintenanceJob(): Promise<JobRunResult> {
     where: { createdAt: { lt: oneEightyDaysAgo }, relevance: { lt: 0.1 } }
   });
 
-  // $executeRawUnsafe는 PostgreSQL에서 DML 시 affected row count(number)를 반환한다
-  const deletedGovernorCount = (await prisma.$executeRawUnsafe(
-    `DELETE FROM "GovernorAction" WHERE "deletedAt" IS NOT NULL AND "deletedAt" < NOW()`
-  )) as number;
+  // GovernorAction 테이블이 아직 없을 수 있으므로(첫 배포) 안전하게 처리
+  let deletedGovernorCount = 0;
+  try {
+    deletedGovernorCount = (await prisma.$executeRawUnsafe(
+      `DELETE FROM "GovernorAction" WHERE "deletedAt" IS NOT NULL AND "deletedAt" < NOW()`
+    )) as number;
+  } catch {
+    // 테이블 미존재 등 — 무시하고 0으로 처리
+  }
 
   return {
     ok: true,

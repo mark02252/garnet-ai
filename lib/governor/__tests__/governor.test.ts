@@ -12,7 +12,7 @@ vi.mock('@/lib/governor-scorer', () => ({
   scoreRisk: vi.fn().mockResolvedValue({ riskLevel: 'LOW', reason: 'test' }),
 }));
 
-import { enqueue, listPending, markExecuted, markFailed, markRejected } from '@/lib/governor';
+import { enqueue, listPending, markExecuted, markFailed, markRejected, ensureGovernorTable, listByStatus, updateStatus, getById } from '@/lib/governor';
 import { prisma } from '@/lib/prisma';
 
 const MOCK_ROW = {
@@ -41,6 +41,10 @@ describe('governor', () => {
     expect(typeof markExecuted).toBe('function');
     expect(typeof markFailed).toBe('function');
     expect(typeof markRejected).toBe('function');
+    expect(typeof ensureGovernorTable).toBe('function');
+    expect(typeof listByStatus).toBe('function');
+    expect(typeof updateStatus).toBe('function');
+    expect(typeof getById).toBe('function');
   });
 
   it('enqueue returns action with PENDING_SCORE status and parsed payload', async () => {
@@ -57,7 +61,7 @@ describe('governor', () => {
       expect.stringContaining('UPDATE'),
       expect.anything(),
       expect.anything(),
-      expect.anything(),
+      expect.stringContaining('boom'),
     );
   });
 });

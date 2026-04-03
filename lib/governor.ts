@@ -25,7 +25,7 @@ export type GovernorAction = {
   updatedAt: string;
 };
 
-type GovernorActionRow = {
+export type GovernorActionRow = {
   id: string;
   kind: string;
   payload: string;

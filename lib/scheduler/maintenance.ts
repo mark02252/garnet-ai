@@ -20,8 +20,13 @@ export async function runMaintenanceJob(): Promise<JobRunResult> {
     where: { createdAt: { lt: oneEightyDaysAgo }, relevance: { lt: 0.1 } }
   });
 
+  // $executeRawUnsafe는 PostgreSQL에서 DML 시 affected row count(number)를 반환한다
+  const deletedGovernorCount = (await prisma.$executeRawUnsafe(
+    `DELETE FROM "GovernorAction" WHERE "deletedAt" IS NOT NULL AND "deletedAt" < NOW()`
+  )) as number;
+
   return {
     ok: true,
-    message: `정리 완료: JobRun ${deletedJobRuns.count}건 삭제, raw ${clearedRaw.count}건 정리, Intel ${deletedIntel.count}건 삭제`
+    message: `정리 완료: JobRun ${deletedJobRuns.count}건, raw ${clearedRaw.count}건, Intel ${deletedIntel.count}건, Governor ${deletedGovernorCount}건 삭제`
   };
 }

@@ -7,6 +7,7 @@ import { buildDailyDigest } from '@/lib/intel/digest-builder';
 import { runMaintenanceJob } from './maintenance';
 import { resetAllQuotas } from '@/lib/collectors/quota-tracker';
 import { initCollectors } from '@/lib/collectors/init';
+import { flushPendingExec } from '@/lib/governor-executor';
 
 // job-scheduler.ts는 ga4-client.ts를 top-level import하는데,
 // GA4 환경변수 미설정 시 import 자체가 실패함.
@@ -54,7 +55,19 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     category: 'system',
     enabled: true,
     handler: () => lazyJobHandler('runUrgentRecommendationsJob')
-  }
+  },
+  {
+    id: 'governor-flush',
+    name: 'Governor 자동 실행',
+    description: '매시간 LOW 위험 대기 액션을 자동 실행합니다.',
+    cron: '0 * * * *',
+    category: 'system',
+    enabled: true,
+    handler: async () => {
+      await flushPendingExec();
+      return { ok: true, message: 'governor-flush 완료' };
+    }
+  },
 ];
 
 const COLLECTION_JOBS: ScheduledJobConfig[] = [

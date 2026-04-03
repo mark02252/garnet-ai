@@ -104,6 +104,7 @@ export default function AnalyticsPage() {
   const [chatLoading, setChatLoading] = useState(false)
   const [report, setReport] = useState<Report | null>(null)
   const [reportLoading, setReportLoading] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
   const [reachDaily, setReachDaily] = useState<Array<{ date: string; reach: number }>>([])
   const [days, setDays] = useState(30)
   const [lastSyncAt, setLastSyncAt] = useState<string | null>(null)
@@ -276,6 +277,7 @@ export default function AnalyticsPage() {
   async function handleGenerateReport() {
     if (!personaId) return
     setReportLoading(true)
+    setReportError(null)
     try {
       const draft = await loadStoredMetaConnectionDraft(window.location.origin)
       const accessToken = draft.value.accessToken || ''
@@ -285,12 +287,14 @@ export default function AnalyticsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ personaId, accessToken, businessAccountId }),
       })
+      const data = await res.json()
       if (res.ok) {
-        const data = await res.json()
         setReport(data.report ?? data)
+      } else {
+        setReportError(data.error || '리포트 생성에 실패했습니다.')
       }
     } catch {
-      /* ignore */
+      setReportError('리포트 생성 중 오류가 발생했습니다.')
     } finally {
       setReportLoading(false)
     }
@@ -852,6 +856,10 @@ export default function AnalyticsPage() {
             </button>
           </div>
         </div>
+
+        {reportError && (
+          <p className="text-sm text-[var(--status-error)] mt-2">{reportError}</p>
+        )}
 
         {report && (
           <div className="space-y-6">

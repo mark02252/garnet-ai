@@ -121,13 +121,13 @@ export default function ApprovalsPage() {
               <div className="mt-3 flex gap-2 justify-end">
                 <button
                   onClick={() => handleDecide(item.id, 'REJECTED')}
-                  disabled={deciding === item.id}
+                  disabled={deciding !== null}
                   className="rounded-md border border-[var(--surface-border)] px-3 py-1.5 text-xs text-[var(--text-muted)] hover:text-rose-400 hover:border-rose-500/40 disabled:opacity-50">
                   거절
                 </button>
                 <button
                   onClick={() => handleDecide(item.id, 'APPROVED')}
-                  disabled={deciding === item.id}
+                  disabled={deciding !== null}
                   className="rounded-md bg-[#00d4ff] px-3 py-1.5 text-xs font-semibold text-[#050810] hover:bg-[#00b8d9] disabled:opacity-50">
                   {deciding === item.id ? '처리 중…' : '승인'}
                 </button>

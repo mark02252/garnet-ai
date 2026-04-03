@@ -3,7 +3,7 @@ import { z } from 'zod';
 export const mcpConnectionTransportSchema = z.enum(['builtin-local', 'stdio', 'streamable-http']);
 export const mcpConnectionAuthModeSchema = z.enum(['none', 'bearer', 'basic']);
 export const mcpConnectionSetupModeSchema = z.enum(['builtin', 'command', 'url', 'oauth', 'manual']);
-export const mcpConnectionScopeSchema = z.enum(['internal', 'workspace', 'design', 'qa', 'observability', 'delivery', 'data', 'research']);
+export const mcpConnectionScopeSchema = z.enum(['internal', 'workspace', 'design', 'qa', 'observability', 'delivery', 'data', 'research', 'social']);
 export const mcpConnectionPhaseSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)]);
 
 export const mcpConnectionSchema = z.object({
@@ -311,6 +311,50 @@ const MCP_PRESET_CONNECTIONS: McpConnectionDraft[] = [
     setupHint: 'brave.com/search/api에서 API Key를 발급해 bearer token에 입력하세요.',
     note: 'Wave 1 — 캠페인 실시간 리서치 (검색 fallback 연동)',
     recommendedScreens: ['캠페인 스튜디오']
+  },
+  {
+    id: 'instagram-mcp',
+    name: 'Instagram MCP',
+    description: '인스타그램 Graph API 23개 도구 — 피드·스토리·릴스 발행, DM 읽기/보내기, 해시태그 탐색, 미디어 인사이트',
+    phase: 1,
+    scope: 'social',
+    transport: 'stdio',
+    setupMode: 'command',
+    authMode: 'bearer',
+    enabled: false,
+    readonly: false,
+    command: 'npx',
+    args: ['-y', '@mcpware/instagram-mcp'],
+    url: '',
+    bearerToken: '',
+    basicUsername: '',
+    basicPassword: '',
+    documentationUrl: 'https://github.com/mcpware/instagram-mcp',
+    setupHint: 'Meta Developer Console에서 발급한 Instagram Business 액세스 토큰을 Bearer Token에 입력하세요. Garnet SNS 설정에서 연결된 토큰을 재사용할 수 있습니다. DM 기능은 Meta Advanced Access 승인이 별도로 필요합니다.',
+    note: 'Wave 1 — 스토리·릴스·DM 채널 확장. 기존 Instagram OAuth 토큰 재사용 가능.',
+    recommendedScreens: ['SNS 스튜디오', '캘린더', '커뮤니티', '성과 분석']
+  },
+  {
+    id: 'meta-ads-mcp',
+    name: 'Meta Ads MCP',
+    description: 'Facebook·Instagram 광고 캠페인 생성·분석·예산 최적화 — 오가닉 발행에서 유료 광고까지 닫힌 루프 완성',
+    phase: 2,
+    scope: 'social',
+    transport: 'streamable-http',
+    setupMode: 'manual',
+    authMode: 'bearer',
+    enabled: false,
+    readonly: false,
+    command: '',
+    args: [],
+    url: 'https://mcp.pipeboard.co',
+    bearerToken: '',
+    basicUsername: '',
+    basicPassword: '',
+    documentationUrl: 'https://github.com/pipeboard-co/meta-ads-mcp',
+    setupHint: 'pipeboard.co에서 Meta Ads 계정을 연결하고 발급된 API 토큰을 Bearer Token에 입력하세요. 광고 계정에 캠페인 관리 권한이 필요합니다.',
+    note: 'Wave 2 — 성과 좋은 포스트를 AI가 광고로 전환·집행하는 유료 확산 루프. Meta Ads 계정 필요.',
+    recommendedScreens: ['성과 분석', '캠페인 스튜디오', '마케팅 대시보드']
   },
   {
     id: 'db-toolbox',

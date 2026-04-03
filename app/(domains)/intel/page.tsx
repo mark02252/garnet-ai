@@ -306,7 +306,8 @@ function IntelCard({ item }: { item: IntelItem }) {
   );
 }
 
-function EmptyState() {
+function EmptyState({ hasSearchKey }: { hasSearchKey: boolean | null }) {
+  const noKey = hasSearchKey === false;
   return (
     <div
       className="soft-card"
@@ -331,20 +332,29 @@ function EmptyState() {
           fontSize: 28,
         }}
       >
-        📡
+        {noKey ? '🔑' : '📡'}
       </div>
       <div>
         <p style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-strong)', margin: '0 0 6px' }}>
-          수집된 인텔리전스가 없습니다
+          {noKey ? 'API 키가 설정되지 않았습니다' : '수집된 인텔리전스가 없습니다'}
         </p>
         <p style={{ fontSize: 13, color: 'var(--text-muted)', margin: 0, lineHeight: 1.6 }}>
-          워치리스트에 키워드를 추가하고 수집을 실행해보세요.
-          <br />
-          AI가 자동으로 관련 인사이트를 수집합니다.
+          {noKey ? (
+            <>
+              검색 API 키(<code style={{ background: 'var(--surface-raised)', padding: '1px 6px', borderRadius: 4 }}>SEARCH_API_KEY</code>)가 없으면<br />
+              웹/뉴스 수집이 실행되지 않습니다. .env에 키를 추가해 주세요.
+            </>
+          ) : (
+            <>
+              워치리스트에 키워드를 추가하고 수집을 실행해보세요.
+              <br />
+              크론 스케줄러가 자동으로 인사이트를 수집합니다.
+            </>
+          )}
         </p>
       </div>
       <a
-        href="/watchlist"
+        href={noKey ? '/settings' : '/watchlist'}
         style={{
           marginTop: 4,
           padding: '10px 24px',
@@ -357,7 +367,7 @@ function EmptyState() {
           display: 'inline-block',
         }}
       >
-        워치리스트 설정하기
+        {noKey ? '설정으로 이동' : '워치리스트 설정하기'}
       </a>
     </div>
   );
@@ -366,12 +376,21 @@ function EmptyState() {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function IntelPage() {
-  const [allItems, setAllItems]   = useState<IntelItem[]>([]);
-  const [platform, setPlatform]   = useState('');
-  const [urgency, setUrgency]     = useState('');
-  const [sort, setSort]           = useState<'relevance' | 'createdAt'>('relevance');
-  const [loading, setLoading]     = useState(true);
-  const [fetchedAt, setFetchedAt] = useState<Date | null>(null);
+  const [allItems, setAllItems]     = useState<IntelItem[]>([]);
+  const [platform, setPlatform]     = useState('');
+  const [urgency, setUrgency]       = useState('');
+  const [sort, setSort]             = useState<'relevance' | 'createdAt'>('relevance');
+  const [loading, setLoading]       = useState(true);
+  const [fetchedAt, setFetchedAt]   = useState<Date | null>(null);
+  const [hasSearchKey, setHasSearchKey] = useState<boolean | null>(null);
+
+  // 최초 1회: 검색 API 키 설정 여부 확인
+  useEffect(() => {
+    fetch('/api/env-status')
+      .then((r) => r.json())
+      .then((d) => setHasSearchKey(Boolean(d?.keyStatus?.searchApiKey)))
+      .catch(() => setHasSearchKey(null));
+  }, []);
 
   // Fetch on platform change (server-side filter)
   useEffect(() => {
@@ -530,7 +549,7 @@ export default function IntelPage() {
           </p>
         </div>
       ) : displayItems.length === 0 ? (
-        <EmptyState />
+        <EmptyState hasSearchKey={hasSearchKey} />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {/* Count label */}

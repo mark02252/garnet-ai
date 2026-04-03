@@ -77,20 +77,21 @@ function timelineBadge(type: TimelineItem['type']) {
 
 function timelineTone(type: TimelineItem['type']) {
   if (type === 'run') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
-  if (type === 'seminar') return 'bg-emerald-100 text-emerald-700';
-  if (type === 'dataset') return 'bg-violet-100 text-violet-700';
-  if (type === 'learning') return 'bg-amber-100 text-amber-700';
-  return 'bg-rose-100 text-rose-700';
+  if (type === 'seminar') return 'bg-emerald-900/40 text-emerald-300';
+  if (type === 'dataset') return 'bg-violet-900/40 text-violet-300';
+  if (type === 'learning') return 'bg-amber-900/40 text-amber-300';
+  return 'bg-rose-900/40 text-rose-300';
 }
 
 function reachSummary(direction: 'UP' | 'DOWN' | 'FLAT' | null | undefined) {
-  if (direction === 'UP') return { label: '상승 추세', tone: 'text-emerald-700' };
-  if (direction === 'DOWN') return { label: '하락 추세', tone: 'text-rose-700' };
+  if (direction === 'UP') return { label: '상승 추세', tone: 'text-emerald-400' };
+  if (direction === 'DOWN') return { label: '하락 추세', tone: 'text-rose-400' };
   return { label: '보합 추세', tone: 'text-[#7aaccc]' };
 }
 
 export default async function OperationsPage() {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
   const [
     totalRuns,
     recentRunCount,
@@ -107,11 +108,10 @@ export default async function OperationsPage() {
     memoryTagRows,
     sessions,
     latestReachAnalysis,
-    campaignRooms
   ] = await Promise.all([
-    prisma.run.count(),
-    prisma.run.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
-    prisma.deliverable.count(),
+    prisma.run.count().catch(() => 0),
+    prisma.run.count({ where: { createdAt: { gte: sevenDaysAgo } } }).catch(() => 0),
+    prisma.deliverable.count().catch(() => 0),
     prisma.run.findMany({
       orderBy: { createdAt: 'desc' },
       take: 8,
@@ -120,36 +120,37 @@ export default async function OperationsPage() {
         memoryLog: { select: { tags: true } },
         _count: { select: { attachments: true, webSources: true } }
       }
-    }),
-    prisma.dataset.count(),
-    prisma.dataset.count({ where: { analysis: { not: null } } }),
+    }).catch(() => []),
+    prisma.dataset.count().catch(() => 0),
+    prisma.dataset.count({ where: { analysis: { not: null } } }).catch(() => 0),
     prisma.dataset.findMany({
       orderBy: { updatedAt: 'desc' },
       take: 6,
       select: { id: true, name: true, type: true, analysis: true, updatedAt: true }
-    }),
-    prisma.learningArchive.count(),
-    prisma.learningArchive.count({ where: { status: 'CONFIRMED' } }),
-    prisma.learningArchive.count({ where: { status: 'DRAFT' } }),
+    }).catch(() => []),
+    prisma.learningArchive.count().catch(() => 0),
+    prisma.learningArchive.count({ where: { status: 'CONFIRMED' } }).catch(() => 0),
+    prisma.learningArchive.count({ where: { status: 'DRAFT' } }).catch(() => 0),
     prisma.learningArchive.findMany({
       orderBy: { updatedAt: 'desc' },
       take: 6,
       include: { run: { select: { id: true, topic: true } } }
-    }),
+    }).catch(() => []),
     prisma.learningArchive.findMany({
       orderBy: { updatedAt: 'desc' },
-      take: 160,
+      take: 40,
       select: { tags: true }
-    }),
+    }).catch(() => []),
     prisma.memoryLog.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 160,
+      take: 40,
       select: { tags: true }
-    }),
-    listSeminarSessions(12),
-    prisma.instagramReachAnalysisRun.findFirst({ orderBy: { createdAt: 'desc' } }),
-    getCampaignRooms(4)
+    }).catch(() => []),
+    listSeminarSessions(12).catch(() => []),
+    prisma.instagramReachAnalysisRun.findFirst({ orderBy: { createdAt: 'desc' } }).catch(() => null),
   ]);
+
+  const campaignRooms = await getCampaignRooms(4).catch(() => []);
 
   const activeSeminars = sessions.filter((session) => session.status === 'RUNNING' || session.status === 'PLANNED');
   const runningSeminars = sessions.filter((session) => session.status === 'RUNNING');
@@ -508,7 +509,7 @@ export default async function OperationsPage() {
             <CollapsibleSection title="오늘 먼저 볼 일" defaultOpen={true} badge={<span className="accent-pill">{priorities.length || 1} items</span>}>
               {priorities.length === 0 ? (
                 <div className="soft-card" style={{ borderLeft: '4px solid #10b981' }}>
-                  <strong className="text-emerald-700">긴급 병목은 크지 않습니다.</strong>
+                  <strong className="text-emerald-400">긴급 병목은 크지 않습니다.</strong>
                   <p className="mt-1 text-sm text-[var(--text-base)]">오늘은 최신 실행을 보고서와 플레이북으로 정리하는 자산화 작업에 집중해도 좋습니다.</p>
                 </div>
               ) : (
@@ -547,9 +548,9 @@ export default async function OperationsPage() {
                       <span
                         className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
                           room.status === 'ACTIVE'
-                            ? 'bg-emerald-100 text-emerald-700'
+                            ? 'bg-emerald-900/40 text-emerald-300'
                             : room.status === 'NEEDS_REVIEW'
-                              ? 'bg-amber-100 text-amber-700'
+                              ? 'bg-amber-900/40 text-amber-300'
                               : 'bg-[var(--accent-soft)] text-[var(--accent)]'
                         }`}
                       >
@@ -752,7 +753,7 @@ export default async function OperationsPage() {
                   <Link key={session.id} href="/seminar" className="list-card block">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-[var(--text-strong)]">{session.title || session.topic}</p>
-                      <span className="rounded-full bg-rose-100 px-2.5 py-1 text-[11px] font-semibold text-rose-700">실패</span>
+                      <span className="rounded-full bg-rose-900/40 px-2.5 py-1 text-[11px] font-semibold text-rose-300">실패</span>
                     </div>
                     <p className="mt-2 text-xs text-[var(--text-muted)]">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
                   </Link>

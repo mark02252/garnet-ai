@@ -111,31 +111,30 @@ export default function DashboardPage() {
     setSyncMessage('')
     try {
       const { accountId, accessToken, personaId } = connectionRef.current
-      // 1. Instagram 도달 동기화
+      // Instagram 도달 동기화 + SNS 분석 동기화 병렬 실행
       if (accountId && accessToken) {
-        await fetch('/api/instagram/reach/agent', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            lookbackDays: 30,
-            accessToken,
-            instagramBusinessAccountId: accountId,
-            graphApiVersion: 'v25.0',
-            connectionMode: 'instagram_login',
+        await Promise.all([
+          fetch('/api/instagram/reach/agent', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lookbackDays: 30,
+              accessToken,
+              instagramBusinessAccountId: accountId,
+              graphApiVersion: 'v25.0',
+              connectionMode: 'instagram_login',
+            }),
           }),
-        })
-      }
-      // 2. SNS 분석 동기화
-      if (accountId && accessToken) {
-        await fetch('/api/sns/analytics/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accessToken,
-            businessAccountId: accountId,
-            personaId,
+          fetch('/api/sns/analytics/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              accessToken,
+              businessAccountId: accountId,
+              personaId,
+            }),
           }),
-        })
+        ])
       }
       // 3. 대시보드 다시 로드
       setLoading(true)
@@ -155,15 +154,12 @@ export default function DashboardPage() {
       const result = await loadDashboard(days)
       setLoading(false)
 
-      // 자동 동기화: 마지막 동기화가 1시간 이상 지났으면 자동 실행
+      // 자동 동기화: 마지막 동기화가 6시간 이상 지났을 때만 자동 실행
       if (result?.lastSyncAt) {
         const elapsed = Date.now() - new Date(result.lastSyncAt).getTime()
-        if (elapsed > 60 * 60 * 1000) {
+        if (elapsed > 6 * 60 * 60 * 1000) {
           void handleSync()
         }
-      } else if (connectionRef.current.accountId) {
-        // 동기화 기록 없으면 첫 동기화 실행
-        void handleSync()
       }
     })()
   // eslint-disable-next-line react-hooks/exhaustive-deps

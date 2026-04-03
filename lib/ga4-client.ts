@@ -356,39 +356,31 @@ export async function analyzeGA4WithAI(
   pages: GA4PagePerformance[],
   runtime?: RuntimeConfig
 ): Promise<GA4AiInsight> {
-  const systemPrompt = `당신은 디지털 마케팅 데이터 분석 전문가입니다. GA4 데이터를 분석하여 실행 가능한 인사이트를 제공합니다.
-반드시 아래 JSON 형식으로만 응답하세요:
-{
-  "summary": "전체 성과 요약 (2-3문장)",
-  "highlights": ["주요 발견 1", "주요 발견 2", "주요 발견 3"],
-  "recommendations": ["개선 권고 1", "개선 권고 2"],
-  "anomalies": ["이상 징후 (있는 경우)"]
-}`;
+  const systemPrompt = `당신은 GA4 분석 전문가입니다. 반드시 아래 JSON만 출력하세요. 각 항목은 한국어 한 문장으로 간결하게:
+{"summary":"2문장 요약","highlights":["발견1","발견2","발견3"],"recommendations":["권고1","권고2"],"anomalies":["이상징후 또는 없음"]}`;
 
-  const userPrompt = `다음 GA4 데이터를 분석해주세요:
+  // Trim data to reduce prompt size and response length
+  const trafficSummary = traffic.slice(-7).map(d => ({
+    date: d.date, users: d.activeUsers, sessions: d.sessions, conversions: d.conversions ?? 0
+  }));
+  const topChannels = channels.slice(0, 5).map(c => ({ channel: c.channel, sessions: c.sessions }));
+  const topPages = pages.slice(0, 5).map(p => ({ path: p.pagePath, views: p.pageViews, conversions: p.conversions ?? 0 }));
 
-## 일별 트래픽 (최근 ${traffic.length}일)
-${JSON.stringify(traffic.slice(-14), null, 2)}
-
-## 유입 채널 Top 10
-${JSON.stringify(channels.slice(0, 10), null, 2)}
-
-## 상위 페이지
-${JSON.stringify(pages.slice(0, 10), null, 2)}
-
-분석 포인트:
-1. 전주 대비 트래픽 변화 추이
-2. 가장 효과적인 유입 채널
-3. 전환에 기여하는 핵심 페이지
-4. 이상 징후 (급격한 트래픽 변동 등)
-5. 즉시 실행 가능한 개선 권고`;
+  const userPrompt = `GA4 데이터:
+트래픽(7일):${JSON.stringify(trafficSummary)}
+채널Top5:${JSON.stringify(topChannels)}
+페이지Top5:${JSON.stringify(topPages)}`;
 
   const raw = await runLLM(systemPrompt, userPrompt, 0.3, 4000, runtime);
 
   // Extract string value for a given key from potentially-truncated JSON
   const extractField = (text: string, key: string): string | null => {
-    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
-    return match ? match[1] : null;
+    // Full match (closing quote present)
+    const full = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+    if (full) return full[1];
+    // Truncated: take everything from opening quote to end of text (min 10 chars)
+    const partial = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"]{10,})`));
+    return partial ? partial[1].trim() : null;
   };
   const extractArray = (text: string, key: string): string[] => {
     const match = text.match(new RegExp(`"${key}"\\s*:\\s*\\[([^\\]]*)`));

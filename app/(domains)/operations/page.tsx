@@ -86,7 +86,7 @@ function timelineTone(type: TimelineItem['type']) {
 function reachSummary(direction: 'UP' | 'DOWN' | 'FLAT' | null | undefined) {
   if (direction === 'UP') return { label: '상승 추세', tone: 'text-emerald-700' };
   if (direction === 'DOWN') return { label: '하락 추세', tone: 'text-rose-700' };
-  return { label: '보합 추세', tone: 'text-[#6b7684]' };
+  return { label: '보합 추세', tone: 'text-[#7aaccc]' };
 }
 
 export default async function OperationsPage() {

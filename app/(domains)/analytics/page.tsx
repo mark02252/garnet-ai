@@ -279,10 +279,10 @@ function getChannelColor(source: string, medium: string): string {
     return '#6aabcc';
   }
   if (medium === 'email') return '#ffaa00';
-  if (medium === 'referral') return '#3a6080';
+  if (medium === 'referral') return '#4a9abf';
   if (medium === '(none)') return '#00d4ff';
   if (medium === 'cpc' || medium === 'paid') return '#f97316';
-  return '#3a6080';
+  return '#4a9abf';
 }
 
 function getDeviceName(cat: string): string {
@@ -385,14 +385,14 @@ function ChartTooltip({
         fontSize: 12,
       }}
     >
-      <p style={{ color: '#6b7684', marginBottom: 6, fontWeight: 600 }}>{label}</p>
+      <p style={{ color: '#7aaccc', marginBottom: 6, fontWeight: 600 }}>{label}</p>
       {payload.map((p) => (
         <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
           <span
             style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0 }}
           />
-          <span style={{ color: '#6b7684' }}>{p.name}</span>
-          <span style={{ fontWeight: 700, color: '#191f28', marginLeft: 'auto', paddingLeft: 12 }}>
+          <span style={{ color: '#7aaccc' }}>{p.name}</span>
+          <span style={{ fontWeight: 700, color: '#e8f4ff', marginLeft: 'auto', paddingLeft: 12 }}>
             {pctMode
               ? `${(typeof p.value === 'number' ? p.value : 0).toFixed(1)}%`
               : (typeof p.value === 'number' ? p.value : 0).toLocaleString('ko-KR')}
@@ -654,7 +654,7 @@ export default function AnalyticsPage() {
             <p style={{ fontSize: 13, fontWeight: 700, color: '#00d4ff', margin: 0 }}>
               미리보기 모드 — 데모 데이터로 표시 중
             </p>
-            <p style={{ fontSize: 12, color: '#6b7684', margin: '3px 0 0' }}>
+            <p style={{ fontSize: 12, color: '#7aaccc', margin: '3px 0 0' }}>
               GA4 연동 후 실제 데이터로 자동 전환됩니다.{' '}
               <code
                 style={{
@@ -721,7 +721,7 @@ export default function AnalyticsPage() {
                 실시간 {realtimeUsers.toLocaleString('ko-KR')}명
               </span>
               {isDemo && (
-                <span style={{ fontSize: 11, color: '#6b7684' }}>(데모)</span>
+                <span style={{ fontSize: 11, color: '#7aaccc' }}>(데모)</span>
               )}
             </div>
           )}
@@ -746,7 +746,7 @@ export default function AnalyticsPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: active ? 700 : 500,
-                    color: active ? '#fff' : '#6b7684',
+                    color: active ? '#fff' : '#7aaccc',
                     background: active ? '#00d4ff' : 'transparent',
                     border: 'none',
                     borderRadius: 7,
@@ -785,7 +785,7 @@ export default function AnalyticsPage() {
               animation: 'spin 0.8s linear infinite',
             }}
           />
-          <p style={{ color: '#6b7684', fontSize: 14 }}>데이터를 불러오는 중...</p>
+          <p style={{ color: '#7aaccc', fontSize: 14 }}>데이터를 불러오는 중...</p>
           <style>{`
             @keyframes spin { to { transform: rotate(360deg); } }
             @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
@@ -883,7 +883,7 @@ export default function AnalyticsPage() {
                 ].map(l => (
                   <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 12, height: 3, background: l.color, borderRadius: 2, display: 'inline-block' }} />
-                    <span style={{ fontSize: 12, color: '#6b7684' }}>{l.label}</span>
+                    <span style={{ fontSize: 12, color: '#7aaccc' }}>{l.label}</span>
                   </div>
                 ))}
               </div>
@@ -956,7 +956,7 @@ export default function AnalyticsPage() {
                   ].map(l => (
                     <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{ width: 12, height: 3, background: l.color, borderRadius: 2, display: 'inline-block' }} />
-                      <span style={{ fontSize: 12, color: '#6b7684' }}>{l.label}</span>
+                      <span style={{ fontSize: 12, color: '#7aaccc' }}>{l.label}</span>
                     </div>
                   ))}
                 </div>
@@ -1084,7 +1084,7 @@ export default function AnalyticsPage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#191f28',
+                          color: '#e8f4ff',
                           width: 52,
                           textAlign: 'right',
                           flexShrink: 0,
@@ -1148,8 +1148,8 @@ export default function AnalyticsPage() {
                       pointerEvents: 'none',
                     }}
                   >
-                    <p style={{ fontSize: 11, color: '#6b7684', margin: 0 }}>총 세션</p>
-                    <p style={{ fontSize: 18, fontWeight: 800, color: '#191f28', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 11, color: '#7aaccc', margin: 0 }}>총 세션</p>
+                    <p style={{ fontSize: 18, fontWeight: 800, color: '#e8f4ff', margin: '2px 0 0' }}>
                       {totalDeviceSessions.toLocaleString('ko-KR')}
                     </p>
                   </div>
@@ -1168,8 +1168,8 @@ export default function AnalyticsPage() {
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ fontSize: 12, color: '#6b7684' }}>{d.name}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#191f28' }}>
+                      <span style={{ fontSize: 12, color: '#7aaccc' }}>{d.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff' }}>
                         {((d.value / totalDeviceSessions) * 100).toFixed(0)}%
                       </span>
                     </div>
@@ -1236,10 +1236,10 @@ export default function AnalyticsPage() {
                       >
                         {pg.pagePath.length > 30 ? pg.pagePath.slice(0, 30) + '…' : pg.pagePath}
                       </td>
-                      <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#191f28', padding: '7px 0 7px 8px' }}>
+                      <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#e8f4ff', padding: '7px 0 7px 8px' }}>
                         {pg.screenPageViews.toLocaleString('ko-KR')}
                       </td>
-                      <td style={{ textAlign: 'right', fontSize: 12, color: '#6b7684', padding: '7px 0 7px 8px' }}>
+                      <td style={{ textAlign: 'right', fontSize: 12, color: '#7aaccc', padding: '7px 0 7px 8px' }}>
                         {pg.activeUsers.toLocaleString('ko-KR')}
                       </td>
                     </tr>
@@ -1278,7 +1278,7 @@ export default function AnalyticsPage() {
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#191f28', width: 52, textAlign: 'right', flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff', width: 52, textAlign: 'right', flexShrink: 0 }}>
                         {g['활성 사용자'].toLocaleString('ko-KR')}
                       </span>
                     </div>
@@ -1357,7 +1357,7 @@ export default function AnalyticsPage() {
                           >
                             {lp.landingPage.length > 40 ? lp.landingPage.slice(0, 40) + '…' : lp.landingPage}
                           </td>
-                          <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#191f28', padding: '9px 8px' }}>
+                          <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#e8f4ff', padding: '9px 8px' }}>
                             {lp.sessions.toLocaleString('ko-KR')}
                           </td>
                           <td style={{ textAlign: 'right', padding: '9px 8px' }}>
@@ -1426,7 +1426,7 @@ export default function AnalyticsPage() {
                       padding: '8px 16px',
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#6b7684',
+                      color: '#7aaccc',
                       background: '#f2f4f6',
                       border: 'none',
                       borderRadius: 10,
@@ -1448,7 +1448,7 @@ export default function AnalyticsPage() {
                     fontSize: 13,
                     fontWeight: 700,
                     color: '#fff',
-                    background: analyzing ? '#3a6080' : 'linear-gradient(135deg, #00d4ff 0%, #6aabcc 100%)',
+                    background: analyzing ? '#4a9abf' : 'linear-gradient(135deg, #00d4ff 0%, #6aabcc 100%)',
                     border: 'none',
                     borderRadius: 10,
                     cursor: analyzing ? 'not-allowed' : 'pointer',
@@ -1515,7 +1515,7 @@ export default function AnalyticsPage() {
                 {/* ── 2. Key Findings ── */}
                 {insight.highlights.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#191f28', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
                       주요 발견 사항
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
@@ -1549,11 +1549,11 @@ export default function AnalyticsPage() {
                               </span>
                             </div>
                             <div>
-                              <p style={{ fontSize: 13, fontWeight: 700, color: '#191f28', margin: '0 0 4px', lineHeight: 1.4 }}>
+                              <p style={{ fontSize: 13, fontWeight: 700, color: '#e8f4ff', margin: '0 0 4px', lineHeight: 1.4 }}>
                                 {title}
                               </p>
                               {desc && (
-                                <p style={{ fontSize: 12, color: '#6b7684', margin: 0, lineHeight: 1.55 }}>
+                                <p style={{ fontSize: 12, color: '#7aaccc', margin: 0, lineHeight: 1.55 }}>
                                   {desc}
                                 </p>
                               )}
@@ -1568,7 +1568,7 @@ export default function AnalyticsPage() {
                 {/* ── 3. Recommendations ── */}
                 {insight.recommendations.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#191f28', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
                       우선순위별 개선 권고
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -1601,7 +1601,7 @@ export default function AnalyticsPage() {
                             }}>
                               {badgeLabel}
                             </span>
-                            <p style={{ fontSize: 13, color: '#191f28', margin: 0, lineHeight: 1.55, flex: 1 }}>
+                            <p style={{ fontSize: 13, color: '#e8f4ff', margin: 0, lineHeight: 1.55, flex: 1 }}>
                               {r}
                             </p>
                             <span style={{
@@ -1680,7 +1680,7 @@ export default function AnalyticsPage() {
                 }}
               >
                 <span style={{ fontSize: 32 }}>✨</span>
-                <p style={{ fontSize: 14, color: '#6b7684', margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#7aaccc', margin: 0 }}>
                   {isDemo
                     ? 'AI 분석 미리보기 버튼을 클릭하면 데모 인사이트를 확인할 수 있습니다.'
                     : 'AI 분석 실행 버튼을 클릭하면 GA4 데이터를 기반으로 인사이트를 생성합니다.'}
@@ -1702,7 +1702,7 @@ export default function AnalyticsPage() {
                   Hourly Pattern
                 </p>
                 <h2 className="section-title">시간대별 트래픽</h2>
-                <p style={{ fontSize: 13, color: '#6b7684', marginTop: 4 }}>
+                <p style={{ fontSize: 13, color: '#7aaccc', marginTop: 4 }}>
                   방문이 집중되는 시간대를 파악하세요
                 </p>
               </div>
@@ -1734,7 +1734,7 @@ export default function AnalyticsPage() {
                   <Bar dataKey="세션" fill="url(#hourlyBarGrad)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              <p style={{ fontSize: 12, color: '#6b7684', textAlign: 'center', marginTop: 8 }}>
+              <p style={{ fontSize: 12, color: '#7aaccc', textAlign: 'center', marginTop: 8 }}>
                 피크 타임:{' '}
                 <strong style={{ color: '#00d4ff' }}>{peakHour}시</strong>에 세션이 가장 집중됩니다
               </p>
@@ -1773,7 +1773,7 @@ export default function AnalyticsPage() {
                     전체의 <strong>{newUserPct.toFixed(1)}%</strong>
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: '#6b7684' }}>참여율</span>
+                    <span style={{ fontSize: 12, color: '#7aaccc' }}>참여율</span>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#1d4ed8' }}>
                       {((newUser?.engagementRate || 0) * 100).toFixed(1)}%
                     </span>
@@ -1810,7 +1810,7 @@ export default function AnalyticsPage() {
                     전체의 <strong>{returningUserPct.toFixed(1)}%</strong>
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: '#6b7684' }}>참여율</span>
+                    <span style={{ fontSize: 12, color: '#7aaccc' }}>참여율</span>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
                       {((returningUser?.engagementRate || 0) * 100).toFixed(1)}%
                     </span>
@@ -1892,14 +1892,14 @@ export default function AnalyticsPage() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
                         <span style={{ fontSize: 16 }}>{metric.icon}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#6b7684' }}>{metric.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#7aaccc' }}>{metric.label}</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                         <div>
                           <p style={{ fontSize: 10, color: '#b0b8c1', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                             이전 기간
                           </p>
-                          <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#6b7684', margin: 0 }}>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#7aaccc', margin: 0 }}>
                             {metric.prev.toLocaleString('ko-KR')}
                           </p>
                         </div>

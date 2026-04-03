@@ -26,7 +26,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         className="shell-mobile-fallback"
         style={{
           height: '100dvh', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 12, background: '#050810', color: '#3a6080',
+          flexDirection: 'column', gap: 12, background: '#050810', color: '#6090a8',
           fontSize: 14, textAlign: 'center', padding: 24
         }}
       >

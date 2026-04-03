@@ -10,21 +10,24 @@ export function ApprovalPanel({ data }: { data: ApprovalData }) {
   const [governorLoaded, setGovernorLoaded] = useState(false);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchGovernorCount() {
       try {
-        const res = await fetch('/api/governor/queue');
+        const res = await fetch('/api/governor/queue', { signal: controller.signal });
         if (!res.ok) return;
-        const json = await res.json() as { items: unknown[] };
-        setGovernorCount(json.items.length);
-      } catch {
+        const json = await res.json();
+        setGovernorCount(Array.isArray(json?.items) ? json.items.length : 0);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') return;
         // 조용히 실패
       } finally {
-        setGovernorLoaded(true);
+        if (!controller.signal.aborted) setGovernorLoaded(true);
       }
     }
     void fetchGovernorCount();
     const timer = setInterval(() => { void fetchGovernorCount(); }, 30_000);
-    return () => clearInterval(timer);
+    return () => { controller.abort(); clearInterval(timer); };
   }, []);
 
   const totalPending = data.items.length + governorCount;

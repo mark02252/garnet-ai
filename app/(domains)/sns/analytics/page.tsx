@@ -23,24 +23,56 @@ type BestTimeSlot = { day: string; hour: string; count: number }
 type ContentTypeStat = { type: string; label: string; avgReach: number; count: number }
 
 type ReportTopPost = {
-  postId: string; reach: number; engagementRate: number; whyGood: string
-  caption?: string; permalink?: string
+  mediaId: string
+  caption: string
+  reach: number
+  engagement: number
+  mediaType: string
+  timestamp: string
+  whyGood: string
+}
+type ReportLowPost = {
+  mediaId: string
+  caption: string
+  reach: number
+  mediaType: string
+  improvementTip: string
 }
 type ReportRecommendation = {
-  topic: string; contentType: string; suggestedCaption: string; reason: string
+  topic: string
+  contentType: 'TEXT' | 'CAROUSEL'
+  suggestedCaption: string
+  reason: string
   suggestedHashtags?: string[]
 }
 type ReportAdSuggestion = {
-  postId?: string; reason: string; suggestedBudget: number; expectedReach: number
+  targetPostDescription: string
+  suggestedBudget: string
+  expectedEffect: string
+  objective: string
 }
 type ReportPatterns = {
-  bestTimeSlots: string[]; bestContentTypes: string[]; insights: string[]
+  bestPostingTimes: string[]
+  bestContentType: string
+  topHashtags: string[]
+  topKeywords: string[]
+  audienceInsight: string
 }
 type Report = {
-  id: string; personaId: string; createdAt: string
-  summary: { totalReach: number; avgEngagementRate: number; trend: string }
+  id: string
+  personaId: string
+  createdAt: string
+  summary: {
+    period: string
+    totalReach: number
+    avgReach: number
+    reachChange: number
+    totalEngagement: number
+    avgEngagementRate: number
+    trendDirection: 'UP' | 'DOWN' | 'FLAT'
+  }
   topPosts: ReportTopPost[]
-  lowPosts: ReportTopPost[]
+  lowPosts: ReportLowPost[]
   patterns: ReportPatterns
   recommendations: ReportRecommendation[]
   adSuggestions: ReportAdSuggestion[]

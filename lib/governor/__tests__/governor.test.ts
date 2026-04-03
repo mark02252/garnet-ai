@@ -12,7 +12,7 @@ vi.mock('@/lib/governor-scorer', () => ({
   scoreRisk: vi.fn().mockResolvedValue({ riskLevel: 'LOW', reason: 'test' }),
 }));
 
-import { enqueue, listPending, markExecuted, markFailed, markRejected, ensureGovernorTable, listByStatus, updateStatus, getById } from '@/lib/governor';
+import { enqueue, listPending, markExecuted, markFailed, markRejected, ensureGovernorTable, listByStatus, updateStatus, getById, resetTableEnsuredForTests } from '@/lib/governor';
 import { prisma } from '@/lib/prisma';
 
 const MOCK_ROW = {
@@ -32,6 +32,7 @@ const MOCK_ROW = {
 describe('governor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetTableEnsuredForTests();
     vi.mocked(prisma.$executeRawUnsafe).mockResolvedValue(undefined);
   });
 

@@ -39,30 +39,37 @@ export type GovernorActionRow = {
   updatedAt: string;
 };
 
-let tableEnsured = false;
+let tableEnsuredPromise: Promise<void> | null = null;
 
 export async function ensureGovernorTable(): Promise<void> {
-  if (tableEnsured) return;
-  await prisma.$executeRawUnsafe(`
-    CREATE TABLE IF NOT EXISTS "GovernorAction" (
-      "id"          TEXT        NOT NULL PRIMARY KEY,
-      "kind"        TEXT        NOT NULL,
-      "payload"     JSONB       NOT NULL,
-      "status"      TEXT        NOT NULL DEFAULT 'PENDING_SCORE',
-      "riskLevel"   TEXT,
-      "riskReason"  TEXT,
-      "approvedBy"  TEXT,
-      "executedAt"  TIMESTAMPTZ,
-      "deletedAt"   TIMESTAMPTZ,
-      "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-      "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-    )
-  `);
-  await prisma.$executeRawUnsafe(`
-    CREATE INDEX IF NOT EXISTS "GovernorAction_status_createdAt_idx"
-    ON "GovernorAction"("status", "createdAt")
-  `);
-  tableEnsured = true;
+  if (tableEnsuredPromise) return tableEnsuredPromise;
+  tableEnsuredPromise = (async () => {
+    await prisma.$executeRawUnsafe(`
+      CREATE TABLE IF NOT EXISTS "GovernorAction" (
+        "id"          TEXT        NOT NULL PRIMARY KEY,
+        "kind"        TEXT        NOT NULL,
+        "payload"     JSONB       NOT NULL,
+        "status"      TEXT        NOT NULL DEFAULT 'PENDING_SCORE',
+        "riskLevel"   TEXT,
+        "riskReason"  TEXT,
+        "approvedBy"  TEXT,
+        "executedAt"  TIMESTAMPTZ,
+        "deletedAt"   TIMESTAMPTZ,
+        "createdAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        "updatedAt"   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+    await prisma.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "GovernorAction_status_createdAt_idx"
+      ON "GovernorAction"("status", "createdAt")
+    `);
+  })();
+  return tableEnsuredPromise;
+}
+
+/** Test isolation helper — do not call in production code */
+export function resetTableEnsuredForTests(): void {
+  tableEnsuredPromise = null;
 }
 
 export async function enqueue(input: {
@@ -90,6 +97,7 @@ export async function listPending(
   statuses: GovernorStatus[] = ['PENDING_APPROVAL', 'PENDING_SCORE'],
   limit = 40
 ): Promise<GovernorAction[]> {
+  const safeLimit = Math.max(1, Math.min(Number.isInteger(limit) ? limit : 40, 200));
   await ensureGovernorTable();
   const placeholders = statuses.map((_, i) => `$${i + 1}`).join(', ');
   const rows = await prisma.$queryRawUnsafe<GovernorActionRow[]>(
@@ -98,7 +106,7 @@ export async function listPending(
       WHERE "status" IN (${placeholders})
         AND ("deletedAt" IS NULL OR "deletedAt" > NOW())
       ORDER BY "createdAt" DESC
-      LIMIT ${limit}
+      LIMIT ${safeLimit}
     `,
     ...statuses
   );

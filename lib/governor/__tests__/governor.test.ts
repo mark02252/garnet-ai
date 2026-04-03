@@ -33,7 +33,7 @@ describe('governor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetTableEnsuredForTests();
-    vi.mocked(prisma.$executeRawUnsafe).mockResolvedValue(undefined);
+    vi.mocked(prisma.$executeRawUnsafe).mockResolvedValue(0);
   });
 
   it('exports required functions', () => {

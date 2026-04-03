@@ -340,7 +340,7 @@ export default function AnalyticsPage() {
             <div class="metric-label">평균 참여율</div>
           </div>
           <div class="metric">
-            <div class="metric-value">${report.summary?.trend || '-'}</div>
+            <div class="metric-value">${report.summary?.trendDirection === 'UP' ? '▲ 상승' : report.summary?.trendDirection === 'DOWN' ? '▼ 하락' : '→ 보합'}</div>
             <div class="metric-label">추세</div>
           </div>
         </div>
@@ -369,9 +369,9 @@ export default function AnalyticsPage() {
         ${report.patterns ? `
           <h2>패턴 인사이트</h2>
           <ul>
-            ${report.patterns.bestTimeSlots?.length ? `<li>최적 시간: ${report.patterns.bestTimeSlots.join(', ')}</li>` : ''}
-            ${report.patterns.bestContentTypes?.length ? `<li>최적 유형: ${report.patterns.bestContentTypes.join(', ')}</li>` : ''}
-            ${report.patterns.insights?.length ? `<li>${report.patterns.insights.join('; ')}</li>` : ''}
+            ${report.patterns.bestPostingTimes?.length ? `<li>최적 시간: ${report.patterns.bestPostingTimes.join(', ')}</li>` : ''}
+            ${report.patterns.bestContentType ? `<li>최적 유형: ${report.patterns.bestContentType}</li>` : ''}
+            ${report.patterns.audienceInsight ? `<li>${report.patterns.audienceInsight}</li>` : ''}
           </ul>
         ` : ''}
 
@@ -379,8 +379,8 @@ export default function AnalyticsPage() {
           <h2>광고 예산 제안</h2>
           ${report.adSuggestions.map((a: ReportAdSuggestion) => `
             <div class="card">
-              <strong>${a.reason || ''}</strong>
-              <br><small>예산: ₩${(a.suggestedBudget || 0).toLocaleString()} · 예상 도달: ${(a.expectedReach || 0).toLocaleString()}</small>
+              <strong>${a.targetPostDescription || ''}</strong>
+              <br><small>예산: ${a.suggestedBudget || ''} · ${a.expectedEffect || ''}</small>
             </div>
           `).join('')}
         ` : ''}
@@ -872,7 +872,7 @@ export default function AnalyticsPage() {
               <div className="status-tile">
                 <p className="metric-label">추세</p>
                 <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">
-                  {report.summary.trend}
+                  {report.summary.trendDirection === 'UP' ? '▲ 상승' : report.summary.trendDirection === 'DOWN' ? '▼ 하락' : '→ 보합'}
                 </p>
               </div>
             </div>
@@ -883,17 +883,37 @@ export default function AnalyticsPage() {
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">Top 게시물</p>
                 <div className="space-y-2">
                   {report.topPosts.map((post, i) => (
-                    <div key={i} className="list-card">
+                    <div key={post.mediaId} className="list-card">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-[var(--text-strong)]">
                           {post.caption ? post.caption.slice(0, 60) + (post.caption.length > 60 ? '...' : '') : `게시물 #${i + 1}`}
                         </p>
                         <div className="flex items-center gap-2">
                           <span className="accent-pill">도달 {formatCompactNumber(post.reach)}</span>
-                          <span className="accent-pill">참여율 {post.engagementRate}%</span>
+                          <span className="accent-pill">참여 {formatCompactNumber(post.engagement)}</span>
                         </div>
                       </div>
                       <p className="text-xs text-[var(--text-muted)] mt-1">{post.whyGood}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 저성과 게시물 진단 */}
+            {report.lowPosts.length > 0 && (
+              <div>
+                <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">저성과 게시물 진단</p>
+                <div className="space-y-2">
+                  {report.lowPosts.map((post, i) => (
+                    <div key={post.mediaId} className="list-card border-l-2 border-[var(--status-warning)]">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-[var(--text-strong)]">
+                          {post.caption ? post.caption.slice(0, 60) + (post.caption.length > 60 ? '...' : '') : `게시물 #${i + 1}`}
+                        </p>
+                        <span className="accent-pill">도달 {formatCompactNumber(post.reach)}</span>
+                      </div>
+                      <p className="text-xs text-[var(--accent)] mt-1">💡 {post.improvementTip}</p>
                     </div>
                   ))}
                 </div>
@@ -932,10 +952,13 @@ export default function AnalyticsPage() {
                 <div className="space-y-2">
                   {report.adSuggestions.map((ad, i) => (
                     <div key={i} className="list-card">
-                      <p className="text-sm text-[var(--text-strong)]">{ad.reason}</p>
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm text-[var(--text-strong)]">{ad.targetPostDescription}</p>
+                        <span className="text-xs text-[var(--text-muted)]">{ad.objective}</span>
+                      </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="accent-pill">예산 ₩{formatCompactNumber(ad.suggestedBudget)}</span>
-                        <span className="accent-pill">예상 도달 {formatCompactNumber(ad.expectedReach)}</span>
+                        <span className="accent-pill">예산 {ad.suggestedBudget}</span>
+                        <span className="accent-pill">{ad.expectedEffect}</span>
                       </div>
                     </div>
                   ))}
@@ -947,25 +970,29 @@ export default function AnalyticsPage() {
             {report.patterns && (
               <div>
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">패턴 인사이트</p>
-                <div className="soft-panel">
-                  {report.patterns.bestTimeSlots.length > 0 && (
-                    <p className="text-sm text-[var(--text-base)] mb-2">
+                <div className="soft-panel space-y-2">
+                  {report.patterns.bestPostingTimes.length > 0 && (
+                    <p className="text-sm text-[var(--text-base)]">
                       <span className="font-medium">최적 시간대:</span>{' '}
-                      {report.patterns.bestTimeSlots.join(', ')}
+                      {report.patterns.bestPostingTimes.join(', ')}
                     </p>
                   )}
-                  {report.patterns.bestContentTypes.length > 0 && (
-                    <p className="text-sm text-[var(--text-base)] mb-2">
-                      <span className="font-medium">콘텐츠 유형:</span>{' '}
-                      {report.patterns.bestContentTypes.join(', ')}
+                  {report.patterns.bestContentType && (
+                    <p className="text-sm text-[var(--text-base)]">
+                      <span className="font-medium">최적 콘텐츠 유형:</span>{' '}
+                      {report.patterns.bestContentType}
                     </p>
                   )}
-                  {report.patterns.insights.length > 0 && (
-                    <ul className="text-sm text-[var(--text-muted)] space-y-1 mt-2">
-                      {report.patterns.insights.map((ins, i) => (
-                        <li key={i}>• {ins}</li>
-                      ))}
-                    </ul>
+                  {report.patterns.topHashtags.length > 0 && (
+                    <p className="text-sm text-[var(--text-base)]">
+                      <span className="font-medium">Top 해시태그:</span>{' '}
+                      {report.patterns.topHashtags.join(' ')}
+                    </p>
+                  )}
+                  {report.patterns.audienceInsight && (
+                    <p className="text-sm text-[var(--text-muted)] mt-1">
+                      {report.patterns.audienceInsight}
+                    </p>
                   )}
                 </div>
               </div>

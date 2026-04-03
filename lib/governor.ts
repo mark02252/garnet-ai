@@ -89,7 +89,9 @@ export async function enqueue(input: {
     JSON.stringify(input.payload)
   );
   const action = parseRow(rows[0]);
-  // fire-and-forget scorer — added in Task 9
+
+  // fire-and-forget 위험도 평가
+  void runScorer(action);
   return action;
 }
 
@@ -177,4 +179,24 @@ function parseRow(row: GovernorActionRow): GovernorAction {
     status: row.status as GovernorStatus,
     riskLevel: row.riskLevel as GovernorRiskLevel | null,
   };
+}
+
+async function runScorer(action: GovernorAction): Promise<void> {
+  // scoreRisk 자체는 절대 throw하지 않음 — LLM/파싱 오류 시 HIGH 폴백 반환
+  // 여기서 catch되는 예외는 updateStatus DB 갱신 실패뿐
+  try {
+    const { scoreRisk } = await import('@/lib/governor-scorer');
+    const scored = await scoreRisk(action);
+    const newStatus: GovernorStatus = scored.riskLevel === 'LOW' ? 'PENDING_EXEC' : 'PENDING_APPROVAL';
+    await updateStatus(action.id, {
+      status: newStatus,
+      riskLevel: scored.riskLevel,
+      riskReason: scored.reason,
+    });
+  } catch (err) {
+    // DB 갱신 실패 → FAILED 표시 (spec: "scorer DB 갱신 실패 → FAILED")
+    // 이 updateStatus도 실패하면 액션은 PENDING_SCORE에 묶임 — console.error로 관찰 가능하게 남김
+    console.error('[governor] runScorer DB update failed for', action.id, err);
+    try { await updateStatus(action.id, { status: 'FAILED' }); } catch { /* already logged above */ }
+  }
 }

@@ -310,7 +310,7 @@ export async function createSeminarSession(input: {
         "id", "title", "topic", "brand", "region", "goal",
         "status", "startsAt", "endsAt", "intervalMinutes", "maxRounds",
         "completedRounds", "nextRunAt", "runtimeConfig", "createdAt", "updatedAt"
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
     `,
     sessionId,
     input.title || null,
@@ -337,8 +337,8 @@ export async function listSeminarSessions(limit = 30) {
     `
       SELECT *
       FROM "SeminarSession"
-      ORDER BY datetime("createdAt") DESC
-      LIMIT ?
+      ORDER BY "createdAt" DESC
+      LIMIT $1
     `,
     Math.max(1, Math.min(limit, 200))
   );
@@ -351,7 +351,7 @@ export async function getSeminarSession(sessionId: string) {
     `
       SELECT *
       FROM "SeminarSession"
-      WHERE "id" = ?
+      WHERE "id" = $1
       LIMIT 1
     `,
     sessionId
@@ -366,7 +366,7 @@ export async function getSeminarRounds(sessionId: string) {
     `
       SELECT *
       FROM "SeminarRound"
-      WHERE "sessionId" = ?
+      WHERE "sessionId" = $1
       ORDER BY "roundNumber" DESC
     `,
     sessionId
@@ -390,7 +390,7 @@ export async function getSeminarFinalReport(sessionId: string) {
     `
       SELECT *
       FROM "SeminarFinalReport"
-      WHERE "sessionId" = ?
+      WHERE "sessionId" = $1
       LIMIT 1
     `,
     sessionId
@@ -412,7 +412,7 @@ export async function upsertSeminarFinalReport(
       `
         INSERT INTO "SeminarFinalReport" (
           "id", "sessionId", "content", "structured", "createdAt", "updatedAt"
-        ) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        ) VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       id,
       sessionId,
@@ -425,8 +425,8 @@ export async function upsertSeminarFinalReport(
   await prisma.$executeRawUnsafe(
     `
       UPDATE "SeminarFinalReport"
-      SET "content" = ?, "structured" = ?, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "sessionId" = ?
+      SET "content" = $1, "structured" = $2, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "sessionId" = $3
     `,
     content,
     structured ? JSON.stringify(structured) : null,
@@ -444,9 +444,9 @@ export async function claimDueSeminarSessions(now = new Date(), limit = 3) {
       FROM "SeminarSession"
       WHERE "status" IN ('RUNNING', 'PLANNED')
         AND "nextRunAt" IS NOT NULL
-        AND datetime("nextRunAt") <= datetime(?)
-      ORDER BY datetime("nextRunAt") ASC
-      LIMIT ?
+        AND "nextRunAt" <= $1::timestamptz
+      ORDER BY "nextRunAt" ASC
+      LIMIT $2
     `,
     nowIso,
     Math.max(1, Math.min(limit, 20))
@@ -458,12 +458,12 @@ export async function claimDueSeminarSessions(now = new Date(), limit = 3) {
       `
         UPDATE "SeminarSession"
         SET
-          "isProcessing" = 1,
-          "processingStartedAt" = ?,
+          "isProcessing" = true,
+          "processingStartedAt" = $1::timestamptz,
           "status" = CASE WHEN "status" = 'PLANNED' THEN 'RUNNING' ELSE "status" END,
           "updatedAt" = CURRENT_TIMESTAMP
-        WHERE "id" = ?
-          AND "isProcessing" = 0
+        WHERE "id" = $2
+          AND "isProcessing" = false
           AND "status" IN ('RUNNING', 'PLANNED')
       `,
       nowIso,
@@ -480,8 +480,8 @@ export async function releaseSeminarSessionProcessing(sessionId: string) {
   await prisma.$executeRawUnsafe(
     `
       UPDATE "SeminarSession"
-      SET "isProcessing" = 0, "processingStartedAt" = NULL, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ?
+      SET "isProcessing" = false, "processingStartedAt" = NULL, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = $1
     `,
     sessionId
   );
@@ -503,14 +503,14 @@ export async function touchSeminarSession(sessionId: string, patch: {
     `
       UPDATE "SeminarSession"
       SET
-        "status" = COALESCE(?, "status"),
-        "completedRounds" = COALESCE(?, "completedRounds"),
-        "nextRunAt" = CASE WHEN ? = 1 THEN ? ELSE "nextRunAt" END,
-        "lastRunAt" = COALESCE(?, "lastRunAt"),
-        "morningBriefing" = CASE WHEN ? = 1 THEN ? ELSE "morningBriefing" END,
-        "lastError" = CASE WHEN ? = 1 THEN ? ELSE "lastError" END,
+        "status" = COALESCE($1, "status"),
+        "completedRounds" = COALESCE($2::integer, "completedRounds"),
+        "nextRunAt" = CASE WHEN $3 = 1 THEN $4::timestamptz ELSE "nextRunAt" END,
+        "lastRunAt" = COALESCE($5::timestamptz, "lastRunAt"),
+        "morningBriefing" = CASE WHEN $6 = 1 THEN $7 ELSE "morningBriefing" END,
+        "lastError" = CASE WHEN $8 = 1 THEN $9 ELSE "lastError" END,
         "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ?
+      WHERE "id" = $10
     `,
     patch.status ?? null,
     patch.completedRounds ?? null,
@@ -533,10 +533,10 @@ export async function startSeminarSession(sessionId: string) {
       UPDATE "SeminarSession"
       SET
         "status" = 'RUNNING',
-        "nextRunAt" = ?,
+        "nextRunAt" = $1::timestamptz,
         "lastError" = NULL,
         "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ?
+      WHERE "id" = $2
     `,
     nowIso,
     sessionId
@@ -551,10 +551,10 @@ export async function stopSeminarSession(sessionId: string) {
       SET
         "status" = 'STOPPED',
         "nextRunAt" = NULL,
-        "isProcessing" = 0,
+        "isProcessing" = false,
         "processingStartedAt" = NULL,
         "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = ?
+      WHERE "id" = $1
     `,
     sessionId
   );
@@ -572,7 +572,7 @@ export async function beginSeminarRound(input: {
     `
       INSERT INTO "SeminarRound" (
         "id", "sessionId", "roundNumber", "scheduledAt", "startedAt", "status", "createdAt"
-      ) VALUES (?, ?, ?, ?, ?, 'RUNNING', CURRENT_TIMESTAMP)
+      ) VALUES ($1, $2, $3, $4, $5, 'RUNNING', CURRENT_TIMESTAMP)
     `,
     roundId,
     input.sessionId,
@@ -595,12 +595,12 @@ export async function completeSeminarRound(input: {
     `
       UPDATE "SeminarRound"
       SET
-        "status" = ?,
-        "runId" = ?,
-        "summary" = ?,
-        "error" = ?,
-        "finishedAt" = ?
-      WHERE "id" = ?
+        "status" = $1,
+        "runId" = $2,
+        "summary" = $3,
+        "error" = $4,
+        "finishedAt" = $5::timestamptz
+      WHERE "id" = $6
     `,
     input.status,
     input.runId || null,
@@ -618,12 +618,12 @@ export async function resetStaleSeminarLocks(staleMinutes = 20) {
     `
       UPDATE "SeminarSession"
       SET
-        "isProcessing" = 0,
+        "isProcessing" = false,
         "processingStartedAt" = NULL,
         "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "isProcessing" = 1
+      WHERE "isProcessing" = true
         AND "processingStartedAt" IS NOT NULL
-        AND datetime("processingStartedAt") < datetime(?)
+        AND "processingStartedAt" < $1::timestamptz
     `,
     staleAt
   );

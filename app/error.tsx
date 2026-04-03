@@ -24,30 +24,32 @@ export default function GlobalError({
   }
 
   return (
-    <div className="p-6">
-      <div className="mx-auto max-w-2xl rounded-2xl border border-[#ddcfc1] bg-white p-6 shadow-[0_10px_28px_rgba(58,39,35,0.10)]">
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#7a5646]">Recovery</p>
-        <h1 className="mt-2 text-2xl font-semibold">화면 오류가 발생했습니다</h1>
-        <p className="mt-2 text-sm text-[#5d4b43]">
+    <div className="flex min-h-screen items-center justify-center bg-[#050810] p-6"
+      style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='92'%3E%3Cpath d='M20,1 L39,11.5 L39,34.5 L20,45 L1,34.5 L1,11.5 Z' fill='none' stroke='%2300d4ff' stroke-opacity='0.05' stroke-width='0.5'/%3E%3C/svg%3E\")", backgroundSize: '80px 92px' }}
+    >
+      <div className="mx-auto w-full max-w-lg rounded-xl border border-[rgba(0,212,255,0.2)] bg-[rgba(0,12,28,0.92)] p-6 backdrop-blur-md">
+        <p className="text-[9px] font-semibold uppercase tracking-[2px] text-[#3a6080]">Recovery</p>
+        <h1 className="mt-2 text-lg font-semibold text-[#e8f4ff]">화면 오류가 발생했습니다</h1>
+        <p className="mt-2 text-sm text-[#6aabcc]">
           일시적인 Next 캐시 손상일 수 있습니다. 먼저 다시 시도하고, 계속되면 복구 명령을 실행하세요.
         </p>
 
         <div className="mt-4 flex flex-wrap gap-2">
-          <button type="button" onClick={reset} className="button-primary">
+          <button type="button" onClick={reset} className="rounded-md bg-[#00d4ff] px-4 py-1.5 text-sm font-semibold text-[#050810] hover:bg-[#00b8d9]">
             다시 시도
           </button>
-          <button type="button" onClick={onCopy} className="button-secondary">
+          <button type="button" onClick={onCopy} className="rounded-md border border-[rgba(0,212,255,0.3)] bg-transparent px-4 py-1.5 text-sm text-[#00d4ff] hover:bg-[rgba(0,212,255,0.08)]">
             복구 명령 복사
           </button>
         </div>
-        <p className="mt-2 text-xs text-[#6f5f56]">
-          터미널에서 실행: <code>{RECOVERY_COMMAND}</code>
+        <p className="mt-2 text-xs text-[#3a6080]">
+          터미널에서 실행: <code className="text-[#6aabcc]">{RECOVERY_COMMAND}</code>
           {copied ? ' (복사됨)' : ''}
         </p>
 
-        <details className="mt-4 rounded-lg border border-[#e5d9ce] bg-[#faf4ec] p-3">
-          <summary className="cursor-pointer text-xs font-semibold text-[#5b463d]">기술 정보</summary>
-          <pre className="mt-2 whitespace-pre-wrap text-xs text-[#4b3a33]">{error?.message || 'Unknown error'}</pre>
+        <details className="mt-4 rounded-lg border border-[rgba(0,212,255,0.12)] bg-[rgba(0,20,40,0.6)] p-3">
+          <summary className="cursor-pointer text-xs font-semibold text-[#3a6080]">기술 정보</summary>
+          <pre className="mt-2 whitespace-pre-wrap text-xs text-[#6aabcc]">{error?.message || 'Unknown error'}</pre>
         </details>
       </div>
     </div>

@@ -78,7 +78,7 @@ export async function upsertRunProgress(input: {
     `
       INSERT INTO "RunProgress"
       ("runId", "status", "stepKey", "stepLabel", "progressPct", "message", "startedAt", "updatedAt", "finishedAt")
-      VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, $7)
       ON CONFLICT("runId") DO UPDATE SET
         "status" = excluded."status",
         "stepKey" = excluded."stepKey",
@@ -113,7 +113,7 @@ export async function getRunProgress(runId: string): Promise<RunProgressRow | nu
         "updatedAt",
         "finishedAt"
       FROM "RunProgress"
-      WHERE "runId" = ?
+      WHERE "runId" = $1
       LIMIT 1
     `,
     runId

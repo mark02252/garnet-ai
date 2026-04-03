@@ -383,7 +383,18 @@ ${JSON.stringify(pages.slice(0, 10), null, 2)}
 4. 이상 징후 (급격한 트래픽 변동 등)
 5. 즉시 실행 가능한 개선 권고`;
 
-  const raw = await runLLM(systemPrompt, userPrompt, 0.3, 2000, runtime);
+  const raw = await runLLM(systemPrompt, userPrompt, 0.3, 4000, runtime);
+
+  // Extract string value for a given key from potentially-truncated JSON
+  const extractField = (text: string, key: string): string | null => {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
+    return match ? match[1] : null;
+  };
+  const extractArray = (text: string, key: string): string[] => {
+    const match = text.match(new RegExp(`"${key}"\\s*:\\s*\\[([^\\]]*)`));
+    if (!match) return [];
+    return [...match[1].matchAll(/"((?:[^"\\\\]|\\\\.)*)"/g)].map(m => m[1]);
+  };
 
   // Try multiple extraction strategies in order
   const extractJSON = (text: string): string | null => {
@@ -417,9 +428,18 @@ ${JSON.stringify(pages.slice(0, 10), null, 2)}
       anomalies: parsed.anomalies || [],
       generatedAt: new Date()
     };
-  } catch (err) {
-    // Log for debugging — remove after issue is resolved
-    console.error('[analyzeGA4WithAI] JSON parse failed:', err, '\nraw[:200]:', raw.slice(0, 200));
+  } catch {
+    // JSON is truncated — extract individual fields via regex
+    const summary = extractField(raw, 'summary');
+    if (summary) {
+      return {
+        summary,
+        highlights: extractArray(raw, 'highlights'),
+        recommendations: extractArray(raw, 'recommendations'),
+        anomalies: extractArray(raw, 'anomalies'),
+        generatedAt: new Date()
+      };
+    }
     return {
       summary: '분석 중 오류가 발생했습니다. 다시 시도해 주세요.',
       highlights: [],

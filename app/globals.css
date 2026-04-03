@@ -14,17 +14,17 @@
   --surface: rgba(0, 12, 28, 0.92);
   --surface-sub: rgba(0, 20, 40, 0.6);
   --surface-alt: rgba(0, 20, 40, 0.8);
-  --surface-border: rgba(0, 212, 255, 0.15);
-  --surface-border-strong: rgba(0, 212, 255, 0.3);
+  --surface-border: rgba(0, 212, 255, 0.22);
+  --surface-border-strong: rgba(0, 212, 255, 0.4);
   --surface-hover: rgba(0, 212, 255, 0.05);
   --surface-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
 
   /* Text */
   --text-strong: #e8f4ff;
   --text-base: #a8d8ff;
-  --text-muted: #3a6080;
-  --text-secondary: #6aabcc;
-  --text-disabled: #1e3a50;
+  --text-muted: #6090a8;
+  --text-secondary: #7abccc;
+  --text-disabled: #2a4a60;
 
   /* Accent */
   --accent: #00d4ff;

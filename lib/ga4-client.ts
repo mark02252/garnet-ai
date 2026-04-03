@@ -386,10 +386,18 @@ ${JSON.stringify(pages.slice(0, 10), null, 2)}
   const raw = await runLLM(systemPrompt, userPrompt, 0.3, 2000, runtime);
 
   try {
-    const start = raw.indexOf('{');
-    const end = raw.lastIndexOf('}');
-    if (start === -1 || end === -1) throw new Error('JSON not found');
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as {
+    // Strip markdown code fences if present
+    const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    let jsonStr: string;
+    if (codeBlock) {
+      jsonStr = codeBlock[1];
+    } else {
+      const start = raw.indexOf('{');
+      const end = raw.lastIndexOf('}');
+      if (start === -1 || end === -1) throw new Error('JSON not found');
+      jsonStr = raw.slice(start, end + 1);
+    }
+    const parsed = JSON.parse(jsonStr) as {
       summary?: string;
       highlights?: string[];
       recommendations?: string[];

@@ -385,18 +385,24 @@ ${JSON.stringify(pages.slice(0, 10), null, 2)}
 
   const raw = await runLLM(systemPrompt, userPrompt, 0.3, 2000, runtime);
 
+  // Try multiple extraction strategies in order
+  const extractJSON = (text: string): string | null => {
+    // 1. Code block with closing fence: ```json ... ```
+    const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (fenced) return fenced[1];
+    // 2. Code block without closing fence: ```json { ... }
+    const openFence = text.match(/```(?:json)?\s*(\{[\s\S]*\})/);
+    if (openFence) return openFence[1];
+    // 3. Raw JSON object anywhere in text
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start !== -1 && end > start) return text.slice(start, end + 1);
+    return null;
+  };
+
   try {
-    // Strip markdown code fences if present
-    const codeBlock = raw.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-    let jsonStr: string;
-    if (codeBlock) {
-      jsonStr = codeBlock[1];
-    } else {
-      const start = raw.indexOf('{');
-      const end = raw.lastIndexOf('}');
-      if (start === -1 || end === -1) throw new Error('JSON not found');
-      jsonStr = raw.slice(start, end + 1);
-    }
+    const jsonStr = extractJSON(raw);
+    if (!jsonStr) throw new Error('JSON not found');
     const parsed = JSON.parse(jsonStr) as {
       summary?: string;
       highlights?: string[];
@@ -411,9 +417,11 @@ ${JSON.stringify(pages.slice(0, 10), null, 2)}
       anomalies: parsed.anomalies || [],
       generatedAt: new Date()
     };
-  } catch {
+  } catch (err) {
+    // Log for debugging — remove after issue is resolved
+    console.error('[analyzeGA4WithAI] JSON parse failed:', err, '\nraw[:200]:', raw.slice(0, 200));
     return {
-      summary: raw.slice(0, 300),
+      summary: '분석 중 오류가 발생했습니다. 다시 시도해 주세요.',
       highlights: [],
       recommendations: [],
       anomalies: [],

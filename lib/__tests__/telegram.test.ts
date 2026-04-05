@@ -177,6 +177,12 @@ describe('answerCallbackQuery', () => {
 });
 
 describe('editMessageText', () => {
+  it('does not throw on network error', async () => {
+    vi.mocked(fetch).mockRejectedValueOnce(new Error('network down'));
+    const { editMessageText } = await import('@/lib/telegram');
+    await expect(editMessageText(42, 'text')).resolves.not.toThrow();
+  });
+
   it('calls editMessageText API with TELEGRAM_CHAT_ID', async () => {
     vi.mocked(fetch).mockResolvedValueOnce(
       new Response(JSON.stringify({ ok: true }), { status: 200 })

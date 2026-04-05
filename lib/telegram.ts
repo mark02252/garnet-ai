@@ -107,7 +107,7 @@ export async function editMessageText(
   // 스펙 에러 테이블: "editMessageText 오류 — console.error만, 예외 전파 안 함"
   // decide가 이미 성공한 후 호출되므로 실패해도 사용자 액션에 영향 없음
   try {
-    await fetch(apiUrl('editMessageText'), {
+    const res = await fetch(apiUrl('editMessageText'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -116,6 +116,10 @@ export async function editMessageText(
         text,
       }),
     });
+    const json = (await res.json()) as { ok: boolean; description?: string };
+    if (!json.ok) {
+      console.error('[telegram] editMessageText API error', json.description);
+    }
   } catch (err) {
     console.error('[telegram] editMessageText fetch failed', err);
   }

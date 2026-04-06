@@ -155,6 +155,19 @@ const COLLECTION_JOBS: ScheduledJobConfig[] = [
     handler: runMaintenanceJob
   },
   {
+    id: 'tech-radar-collect',
+    name: 'Tech Radar 수집',
+    description: 'GitHub Trending에서 기술/마케팅 도구 후보를 수집하고 Gemini로 분류합니다.',
+    cron: '0 9 * * *',
+    category: 'collect',
+    enabled: true,
+    handler: async () => {
+      const { collectGithubTrending } = await import('@/lib/tech-radar/github-collector')
+      const result = await collectGithubTrending()
+      return { ok: true, message: `tech-radar 수집 완료: ${result.added}개 추가, ${result.skipped}개 건너뜀` }
+    },
+  },
+  {
     id: 'quota-reset',
     name: 'API 쿼터 리셋',
     description: '매일 자정 API 사용량 카운터를 리셋합니다.',

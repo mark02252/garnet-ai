@@ -16,9 +16,14 @@ vi.mock('@/lib/governor-executor', () => ({
   execute: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('@/lib/telegram', () => ({
+  sendApprovalRequest: vi.fn().mockResolvedValue(undefined),
+}));
+
 import { enqueue, listPending, markExecuted, markFailed, markRejected, ensureGovernorTable, listByStatus, updateStatus, getById, resetTableEnsuredForTests, decideAction } from '@/lib/governor';
 import { prisma } from '@/lib/prisma';
 import { execute } from '@/lib/governor-executor';
+import { sendApprovalRequest } from '@/lib/telegram';
 
 const MOCK_ROW = {
   id: 'test-id',
@@ -117,6 +122,34 @@ describe('governor', () => {
         expect.stringContaining('user')
       );
       expect(execute).toHaveBeenCalled();
+    });
+  });
+
+  describe('runScorer → Telegram wiring', () => {
+    it('calls sendApprovalRequest for PENDING_APPROVAL actions (MEDIUM/HIGH)', async () => {
+      // scoreRisk returns MEDIUM → status becomes PENDING_APPROVAL
+      const { scoreRisk } = await import('@/lib/governor-scorer');
+      vi.mocked(scoreRisk).mockResolvedValueOnce({ riskLevel: 'MEDIUM', reason: '예약 발행' });
+      vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([MOCK_ROW]);
+
+      await enqueue({ kind: 'SNS_PUBLISH', payload: {} });
+
+      // fire-and-forget — wait one tick for async to complete
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(sendApprovalRequest).toHaveBeenCalled();
+    });
+
+    it('does NOT call sendApprovalRequest for LOW risk (PENDING_EXEC)', async () => {
+      const { scoreRisk } = await import('@/lib/governor-scorer');
+      vi.mocked(scoreRisk).mockResolvedValueOnce({ riskLevel: 'LOW', reason: '내부 초안' });
+      vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([MOCK_ROW]);
+
+      await enqueue({ kind: 'RUN_REPORT', payload: {} });
+
+      await new Promise((r) => setTimeout(r, 0));
+
+      expect(sendApprovalRequest).not.toHaveBeenCalled();
     });
   });
 });

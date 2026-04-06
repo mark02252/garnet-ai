@@ -216,9 +216,26 @@ async function runScorer(action: GovernorAction): Promise<void> {
       riskLevel: scored.riskLevel,
       riskReason: scored.reason,
     });
+
+    // MEDIUM/HIGH → 텔레그램 승인 요청 (fire-and-forget)
+    // IIFE가 필요한 이유: lib/telegram.ts가 GovernorAction 타입을 lib/governor.ts에서 import하므로
+    // 파일 최상위에서 import하면 순환 의존성이 발생한다. dynamic import로 런타임에 로딩해야 한다.
+    if (newStatus === 'PENDING_APPROVAL') {
+      const updatedAction = {
+        ...action,
+        status: newStatus,
+        riskLevel: scored.riskLevel,
+        riskReason: scored.reason,
+      };
+      void (async () => {
+        const { sendApprovalRequest } = await import('@/lib/telegram');
+        await sendApprovalRequest(updatedAction);
+      })().catch((err) => {
+        console.error('[governor] 텔레그램 승인 요청 발송 실패', action.id, err);
+      });
+    }
   } catch (err) {
-    // DB 갱신 실패 → FAILED 표시 (spec: "scorer DB 갱신 실패 → FAILED")
-    // 이 updateStatus도 실패하면 액션은 PENDING_SCORE에 묶임 — console.error로 관찰 가능하게 남김
+    // DB 갱신 실패 → FAILED 표시
     console.error('[governor] runScorer DB update failed for', action.id, err);
     try { await updateStatus(action.id, { status: 'FAILED' }); } catch { /* already logged above */ }
   }

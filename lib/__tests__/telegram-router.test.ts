@@ -16,10 +16,10 @@ vi.mock('@/lib/llm', () => ({
   runLLM: vi.fn().mockResolvedValue('AI 응답'),
 }));
 
-// GA4 모듈은 아직 구현 전 — virtual: true로 선언
+// GA4 모듈은 아직 구현 전 — 모듈 선언
 vi.mock('@/lib/analytics/ga4', () => ({
   getTodaySummary: vi.fn().mockResolvedValue('오늘 방문자 100명, 세션 150건, 전환율 3.2%'),
-}), { virtual: true });
+}));
 
 vi.mock('@/lib/intel/digest-builder', () => ({
   buildDailyDigest: vi.fn().mockResolvedValue('브리핑 내용'),

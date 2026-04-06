@@ -135,7 +135,8 @@ async function handleBriefingCommand(): Promise<void> {
 async function handleCopilot(text: string): Promise<void> {
   try {
     const { runLLM } = await import('@/lib/llm');
-    const response = await runLLM(text);
+    const systemPrompt = '당신은 Garnet 비즈니스 인텔리전스 시스템의 AI 코파일럿입니다. 간결하고 실용적으로 답변해주세요.';
+    const response = await runLLM(systemPrompt, text);
     await sendMessage(response);
   } catch (err) {
     console.error('[telegram] copilot failed', err);

@@ -163,6 +163,29 @@ export async function markRejected(id: string): Promise<void> {
   await updateStatus(id, { status: 'REJECTED', deletedAt });
 }
 
+export async function decideAction(
+  id: string,
+  decision: 'APPROVED' | 'REJECTED'
+): Promise<void> {
+  const action = await getById(id);
+  if (!action) throw new Error(`GovernorAction not found: ${id}`);
+  if (['EXECUTED', 'REJECTED', 'FAILED'].includes(action.status)) {
+    throw new Error(`Action ${id} is already in terminal status: ${action.status}`);
+  }
+
+  if (decision === 'REJECTED') {
+    await markRejected(id);
+    return;
+  }
+
+  // APPROVED: status는 변경하지 않고 approvedBy만 기록 후 즉시 execute() 호출
+  // execute() 내부에서 markExecuted() 또는 markFailed()가 최종 status를 결정한다
+  // (PENDING_EXEC 경유 없이 직행하므로 governor-flush와 중복 실행 불가)
+  await updateStatus(id, { status: action.status, approvedBy: 'user' });
+  const { execute } = await import('@/lib/governor-executor');
+  await execute({ ...action, approvedBy: 'user' });
+}
+
 export async function getById(id: string): Promise<GovernorAction | null> {
   await ensureGovernorTable();
   const rows = await prisma.$queryRawUnsafe<GovernorActionRow[]>(

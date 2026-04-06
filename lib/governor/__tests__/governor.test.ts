@@ -12,8 +12,13 @@ vi.mock('@/lib/governor-scorer', () => ({
   scoreRisk: vi.fn().mockResolvedValue({ riskLevel: 'LOW', reason: 'test' }),
 }));
 
-import { enqueue, listPending, markExecuted, markFailed, markRejected, ensureGovernorTable, listByStatus, updateStatus, getById, resetTableEnsuredForTests } from '@/lib/governor';
+vi.mock('@/lib/governor-executor', () => ({
+  execute: vi.fn().mockResolvedValue(undefined),
+}));
+
+import { enqueue, listPending, markExecuted, markFailed, markRejected, ensureGovernorTable, listByStatus, updateStatus, getById, resetTableEnsuredForTests, decideAction } from '@/lib/governor';
 import { prisma } from '@/lib/prisma';
+import { execute } from '@/lib/governor-executor';
 
 const MOCK_ROW = {
   id: 'test-id',
@@ -64,5 +69,47 @@ describe('governor', () => {
       expect.anything(),
       expect.stringContaining('boom'),
     );
+  });
+
+  describe('decideAction', () => {
+    it('exports decideAction function', () => {
+      expect(typeof decideAction).toBe('function');
+    });
+
+    it('throws when action not found', async () => {
+      vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([]);
+      await expect(decideAction('no-such-id', 'APPROVED')).rejects.toThrow('not found');
+    });
+
+    it('throws when action is already in terminal status', async () => {
+      vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([
+        { ...MOCK_ROW, status: 'EXECUTED' },
+      ]);
+      await expect(decideAction('test-id', 'APPROVED')).rejects.toThrow('terminal');
+    });
+
+    it('calls markRejected (not execute) on REJECTED decision', async () => {
+      vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([
+        { ...MOCK_ROW, status: 'PENDING_APPROVAL' },
+      ]);
+      await decideAction('test-id', 'REJECTED');
+      // execute must NOT be called for rejected actions
+      expect(execute).not.toHaveBeenCalled();
+      // markRejected is updateStatus with REJECTED — verify via prisma mock
+      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE'),
+        expect.anything(),
+        'REJECTED',
+        expect.anything()
+      );
+    });
+
+    it('calls execute on APPROVED decision', async () => {
+      vi.mocked(prisma.$queryRawUnsafe).mockResolvedValueOnce([
+        { ...MOCK_ROW, status: 'PENDING_APPROVAL' },
+      ]);
+      await decideAction('test-id', 'APPROVED');
+      expect(execute).toHaveBeenCalled();
+    });
   });
 });

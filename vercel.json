@@ -1,5 +1,15 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "prisma generate && next build",
-  "framework": "nextjs"
+  "framework": "nextjs",
+  "crons": [
+    {
+      "path": "/api/cron/daily-briefing",
+      "schedule": "15 7 * * *"
+    },
+    {
+      "path": "/api/cron/ga4-analysis",
+      "schedule": "0 8 * * *"
+    }
+  ]
 }

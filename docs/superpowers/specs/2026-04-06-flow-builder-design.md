@@ -54,7 +54,7 @@ type AgentNode = {
 }
 // agentKey 사용 규칙:
 // - 팔레트에서 프리셋 에이전트를 캔버스에 드롭할 때 UI가 agent-config.ts에서 프로필을 조회하여 systemPrompt를 자동 생성
-// - systemPrompt 생성 방법: `${profile.roleSummary}\n\n지침:\n${profile.instructions.join('\n')}\n\n금지:\n${profile.antiPatterns.join('\n')}`
+// - systemPrompt 생성 방법: `${profile.roleSummary ?? ''}\n\n지침:\n${(profile.instructions ?? []).join('\n')}\n\n금지:\n${(profile.antiPatterns ?? []).join('\n')}`
 // - profile 조회: Object.values(DEFAULT_DOMAIN_AGENT_POOL).flat().find(p => p.id === agentKey)
 // - 이후 실행 엔진은 agentKey를 무시하고 node.data.systemPrompt만 사용
 

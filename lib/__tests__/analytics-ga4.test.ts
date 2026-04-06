@@ -6,9 +6,11 @@ vi.mock('@/lib/ga4-client', () => ({
 }));
 
 import { getTodaySummary } from '@/lib/analytics/ga4';
+import type { GA4DailyTraffic } from '@/lib/ga4-client';
 import { isGA4Configured, fetchDailyTraffic } from '@/lib/ga4-client';
 
-const MOCK_ROW = {
+const MOCK_ROW: GA4DailyTraffic = {
+  date: '2026-04-06',
   activeUsers: 1234,
   sessions: 2345,
   screenPageViews: 5000,

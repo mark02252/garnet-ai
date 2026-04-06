@@ -166,7 +166,7 @@ function RadarChart({
           stroke={STATUS_COLORS[ring.status]}
           strokeWidth="1"
           strokeOpacity="0.25"
-          strokeDasharray={ring.status === 'hold' ? '6 4' : ring.status === 'assessing' ? '4 3' : 'none'}
+          strokeDasharray={ring.status === 'hold' ? '6 4' : ring.status === 'assessing' ? '4 3' : '3 2'}
         />
       ))}
 
@@ -236,10 +236,10 @@ function RadarChart({
               cy={pos.y}
               r={isHovered ? 7 : 5}
               fill={color}
-              fillOpacity={isHovered ? 1 : 0.85}
-              stroke={isHovered ? '#fff' : color}
-              strokeWidth={isHovered ? 1.5 : 0.5}
-              strokeOpacity="0.5"
+              fillOpacity={isHovered ? 1 : 0.9}
+              stroke="#fff"
+              strokeWidth={isHovered ? 2 : 1}
+              strokeOpacity={isHovered ? 0.9 : 0.5}
               style={{ cursor: 'pointer', transition: 'r 0.15s' }}
               onMouseEnter={() => onHover(item.id)}
               onMouseLeave={() => onHover(null)}
@@ -325,6 +325,24 @@ function ListItem({
   onDelete: (id: string) => void
 }) {
   const color = STATUS_COLORS[item.status]
+  const [copied, setCopied] = useState(false)
+
+  function handleCopy() {
+    const lines = [
+      `다음 GitHub 레포지토리를 검토해줘:`,
+      ``,
+      `레포: ${item.name}`,
+      item.url ? `URL: ${item.url}` : null,
+      item.description ? `설명: ${item.description}` : null,
+      item.notes ? `AI 분류 근거: ${item.notes}` : null,
+      `카테고리: ${CATEGORY_LABELS[item.category]} / 상태: ${STATUS_LABELS[item.status]}`,
+    ].filter(Boolean).join('\n')
+
+    navigator.clipboard.writeText(lines).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }
 
   return (
     <div
@@ -411,6 +429,25 @@ function ListItem({
           )}
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {item.url && (
+            <button
+              onClick={handleCopy}
+              title="클로드에 검토 요청 복사"
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                color: copied ? '#22d3ee' : 'var(--text-muted)',
+                fontSize: 12,
+                padding: '2px 6px',
+                borderRadius: 4,
+                lineHeight: 1,
+                transition: 'color 0.2s',
+              }}
+            >
+              {copied ? '✓ 복사됨' : '📋'}
+            </button>
+          )}
           <select
             value={item.status}
             disabled={saving}

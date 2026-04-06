@@ -160,7 +160,15 @@ function PillBar<T extends string>({
   );
 }
 
-function IntelCard({ item }: { item: IntelItem }) {
+function IntelCard({
+  item,
+  saved,
+  onSave,
+}: {
+  item: IntelItem;
+  saved: boolean;
+  onSave: (item: IntelItem) => void;
+}) {
   const urg      = URGENCY_MAP[item.urgency] ?? URGENCY_MAP.NORMAL;
   const platColor = PLATFORM_COLORS[item.platform] ?? '#6b7280';
   const platLabel = PLATFORM_LABELS[item.platform] ?? item.platform;
@@ -281,9 +289,9 @@ function IntelCard({ item }: { item: IntelItem }) {
         </div>
       )}
 
-      {/* Footer: 원문 보기 */}
-      {item.url && (
-        <div style={{ marginTop: 2 }}>
+      {/* Footer: 원문 보기 + 리서치 메모리 저장 */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 2 }}>
+        {item.url && (
           <a
             href={item.url}
             target="_blank"
@@ -300,8 +308,16 @@ function IntelCard({ item }: { item: IntelItem }) {
           >
             <span style={{ fontSize: 13 }}>🔗</span> 원문 보기
           </a>
-        </div>
-      )}
+        )}
+        <button
+          onClick={() => onSave(item)}
+          disabled={saved}
+          className="text-xs px-2 py-1 text-zinc-500 hover:text-cyan-400 disabled:text-green-500 transition-colors"
+          style={{ background: 'none', border: 'none', cursor: saved ? 'default' : 'pointer', padding: '2px 6px' }}
+        >
+          {saved ? '✓ 저장됨' : '+ 리서치 메모리'}
+        </button>
+      </div>
     </div>
   );
 }
@@ -383,6 +399,22 @@ export default function IntelPage() {
   const [loading, setLoading]       = useState(true);
   const [fetchedAt, setFetchedAt]   = useState<Date | null>(null);
   const [hasSearchKey, setHasSearchKey] = useState<boolean | null>(null);
+  const [savedIds, setSavedIds]     = useState<Set<string>>(new Set());
+
+  async function saveToResearch(item: IntelItem) {
+    await fetch('/api/research', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: item.title,
+        url: item.url || undefined,
+        type: 'external',
+        tags: (() => { try { return JSON.parse(item.tags || '[]') } catch { return [] } })(),
+        source: item.platform || undefined,
+      }),
+    });
+    setSavedIds((prev) => new Set([...prev, item.id]));
+  }
 
   // 최초 1회: 검색 API 키 설정 여부 확인
   useEffect(() => {
@@ -560,7 +592,7 @@ export default function IntelPage() {
           {/* Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {displayItems.map((item) => (
-              <IntelCard key={item.id} item={item} />
+              <IntelCard key={item.id} item={item} saved={savedIds.has(item.id)} onSave={saveToResearch} />
             ))}
           </div>
         </div>

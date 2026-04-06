@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { isGA4Configured, fetchDailyTraffic } from '@/lib/ga4-client';
 import { computeForecast, detectAnomalies } from '@/lib/analytics/forecast';
 
-export async function GET(): Promise<Response> {
+export async function GET(_req: Request): Promise<Response> {
   if (!isGA4Configured()) {
     return NextResponse.json({ configured: false });
   }

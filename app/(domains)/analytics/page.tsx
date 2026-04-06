@@ -20,6 +20,7 @@ import {
   LabelList,
   ReferenceLine,
 } from 'recharts';
+import type { TooltipProps } from 'recharts';
 import type { ForecastPoint, AnomalyPoint } from '@/lib/analytics/forecast';
 import { computeForecast, detectAnomalies } from '@/lib/analytics/forecast';
 
@@ -450,6 +451,9 @@ function CustomAnomalyDot({ cx, cy, payload }: DotProps) {
   );
 }
 
+// recharts TooltipProps is the <Tooltip> component props (not content callback props).
+// Content callback receives active/payload/label separately; typed inline here.
+// TooltipProps is imported for potential future reference (e.g. extending Tooltip config).
 function ForecastTooltip({
   active,
   payload,

@@ -5,11 +5,11 @@
   "crons": [
     {
       "path": "/api/cron/daily-briefing",
-      "schedule": "15 7 * * *"
+      "schedule": "15 22 * * *"
     },
     {
       "path": "/api/cron/ga4-analysis",
-      "schedule": "0 8 * * *"
+      "schedule": "0 23 * * *"
     }
   ]
 }

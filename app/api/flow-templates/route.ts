@@ -8,10 +8,18 @@ const createSchema = z.object({
 })
 
 export async function GET() {
-  const templates = await prisma.flowTemplate.findMany({
-    orderBy: { updatedAt: 'desc' },
-  })
-  return NextResponse.json({ templates })
+  try {
+    const templates = await prisma.flowTemplate.findMany({
+      orderBy: { updatedAt: 'desc' },
+    })
+    return NextResponse.json({ templates })
+  } catch (error) {
+    console.error('[flow-templates] GET error:', error)
+    return NextResponse.json(
+      { error: '템플릿 목록을 불러오지 못했습니다.', templates: [] },
+      { status: 500 }
+    )
+  }
 }
 
 export async function POST(req: Request) {

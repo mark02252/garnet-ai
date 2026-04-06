@@ -19,8 +19,12 @@ export default function FlowListPage() {
 
   useEffect(() => {
     fetch('/api/flow-templates')
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`API error: ${r.status}`)
+        return r.json()
+      })
       .then(d => setTemplates(d.templates ?? []))
+      .catch(() => setTemplates([]))
       .finally(() => setLoading(false))
   }, [])
 

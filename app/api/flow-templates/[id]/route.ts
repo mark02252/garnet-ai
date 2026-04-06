@@ -19,10 +19,18 @@ export async function GET(
   _req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await params
-  const template = await prisma.flowTemplate.findUnique({ where: { id } })
-  if (!template) return NextResponse.json({ error: '템플릿을 찾을 수 없습니다.' }, { status: 404 })
-  return NextResponse.json(template)
+  try {
+    const { id } = await params
+    const template = await prisma.flowTemplate.findUnique({ where: { id } })
+    if (!template) return NextResponse.json({ error: '템플릿을 찾을 수 없습니다.' }, { status: 404 })
+    return NextResponse.json(template)
+  } catch (error) {
+    console.error('[flow-templates] GET by id error:', error)
+    return NextResponse.json(
+      { error: '템플릿을 불러오지 못했습니다.' },
+      { status: 500 }
+    )
+  }
 }
 
 export async function PATCH(

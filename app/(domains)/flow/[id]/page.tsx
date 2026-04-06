@@ -30,14 +30,23 @@ export default function FlowEditorPage() {
   const [runModalOpen, setRunModalOpen] = useState(false)
   const { runId: completedRunId, isRunning } = useFlowRunStore(s => ({ runId: s.runId, isRunning: s.isRunning }))
 
+  const [loadError, setLoadError] = useState<string | null>(null)
+
   useEffect(() => {
     fetch(`/api/flow-templates/${id}`)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) throw new Error(`API error: ${r.status}`)
+        return r.json()
+      })
       .then((t: Template) => {
         setTemplate(t)
         setName(t.name)
         setNodes(JSON.parse(t.nodes))
         setEdges(JSON.parse(t.edges))
+      })
+      .catch((err) => {
+        console.error('[flow-editor] load error:', err)
+        setLoadError(err instanceof Error ? err.message : '플로우를 불러올 수 없습니다.')
       })
   }, [id])
 
@@ -63,6 +72,10 @@ export default function FlowEditorPage() {
   const updateNode = useCallback((nodeId: string, data: Partial<FlowNode['data']>) => {
     setNodes(ns => ns.map(n => n.id === nodeId ? { ...n, data: { ...n.data, ...data } as FlowNode['data'] } : n) as FlowNode[])
   }, [])
+
+  if (loadError) {
+    return <div className="flex h-full items-center justify-center text-sm text-red-400">{loadError}</div>
+  }
 
   if (!template) {
     return <div className="flex h-full items-center justify-center text-sm text-[var(--text-muted)]">불러오는 중…</div>

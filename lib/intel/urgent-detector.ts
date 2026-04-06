@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma';
 import { sendSlackMessage } from '@/lib/integrations/slack';
+import { isTelegramConfigured } from '@/lib/telegram';
 
 export async function detectAndAlertUrgent(): Promise<number> {
   const urgentItems = await prisma.marketingIntel.findMany({
@@ -26,7 +27,7 @@ export async function detectAndAlertUrgent(): Promise<number> {
     data: { digestId: digest.id }
   });
 
-  if (process.env.SLACK_WEBHOOK_URL) {
+  if (isTelegramConfigured()) {
     const message = urgentItems
       .map((item) => `*[${item.platform}]* ${item.title}\n${item.snippet.slice(0, 200)}\n${item.url}`)
       .join('\n\n');

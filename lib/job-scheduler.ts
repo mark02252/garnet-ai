@@ -3,6 +3,7 @@ import { runLLM } from '@/lib/llm';
 import { computeRecommendations } from '@/lib/recommendations';
 import { sendSlackMessage, buildDailyBriefing, buildRecommendationAlert } from '@/lib/integrations/slack';
 import { fetchDailyTraffic, fetchChannelBreakdown, analyzeGA4WithAI, isGA4Configured } from '@/lib/ga4-client';
+import { isTelegramConfigured } from '@/lib/telegram';
 import type { RuntimeConfig } from '@/lib/types';
 
 export type ScheduledJob = {
@@ -55,7 +56,7 @@ ${recommendations.slice(0, 3).map((r) => `  - [${r.priority}] ${r.title}: ${r.re
   );
 
   // Slack 발송 (설정된 경우)
-  if (process.env.SLACK_WEBHOOK_URL) {
+  if (isTelegramConfigured()) {
     await sendSlackMessage({
       text: `*[Garnet 일간 브리핑]*\n${summary}`
     });
@@ -86,7 +87,7 @@ export async function runWeeklyKpiReviewJob(runtime?: RuntimeConfig): Promise<Jo
     runtime
   );
 
-  if (process.env.SLACK_WEBHOOK_URL) {
+  if (isTelegramConfigured()) {
     await sendSlackMessage({ text: `*[Garnet 주간 KPI 리뷰]*\n${review}` });
   }
 
@@ -126,7 +127,7 @@ export async function runUrgentRecommendationsJob(): Promise<JobResult> {
     return { ok: true, message: '긴급 추천 사항 없음' };
   }
 
-  if (process.env.SLACK_WEBHOOK_URL) {
+  if (isTelegramConfigured()) {
     for (const rec of urgent.slice(0, 3)) {
       await sendSlackMessage(buildRecommendationAlert(rec.title, rec.reason, rec.priority));
     }

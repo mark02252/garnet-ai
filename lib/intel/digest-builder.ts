@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma';
 import { runLLM } from '@/lib/llm';
 import { sendSlackMessage } from '@/lib/integrations/slack';
+import { isTelegramConfigured } from '@/lib/telegram';
 import type { RuntimeConfig } from '@/lib/types';
 import type { JobRunResult } from '@/lib/scheduler/types';
 
@@ -51,7 +52,7 @@ export async function buildDailyDigest(runtime?: RuntimeConfig): Promise<JobRunR
     data: { digestId: digest.id }
   });
 
-  if (process.env.SLACK_WEBHOOK_URL) {
+  if (isTelegramConfigured()) {
     await sendSlackMessage({
       text: `*[Garnet 데일리 마케팅 인텔]*\n\n*${parsed.headline}*\n\n수집: ${items.length}건\n${analysis.slice(0, 800)}`
     });

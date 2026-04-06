@@ -13,6 +13,8 @@ type Props = {
 export default function RunModal({ templateId, defaultTopic, onClose }: Props) {
   const [topic, setTopic] = useState(defaultTopic)
   const [brand, setBrand] = useState('')
+  const [region, setRegion] = useState('')
+  const [goal, setGoal] = useState('')
   const [running, setRunning] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { startRun, setNodeStatus, setNodeOutput, finishRun, resetRun } = useFlowRunStore()
@@ -27,7 +29,7 @@ export default function RunModal({ templateId, defaultTopic, onClose }: Props) {
       const res = await fetch(`/api/flow-templates/${templateId}/run`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic: topic.trim(), brand: brand || undefined }),
+        body: JSON.stringify({ topic: topic.trim(), brand: brand || undefined, region: region || undefined, goal: goal || undefined }),
       })
 
       if (!res.ok || !res.body) {
@@ -100,6 +102,24 @@ export default function RunModal({ templateId, defaultTopic, onClose }: Props) {
               value={brand}
               onChange={e => setBrand(e.target.value)}
               placeholder="예: 쿠팡, 당근마켓"
+              className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-base)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-[var(--text-muted)]">지역 (선택)</label>
+            <input
+              value={region}
+              onChange={e => setRegion(e.target.value)}
+              placeholder="예: 서울, 한국"
+              className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-base)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-xs text-[var(--text-muted)]">목표 (선택)</label>
+            <input
+              value={goal}
+              onChange={e => setGoal(e.target.value)}
+              placeholder="예: 신규 고객 유치"
               className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-base)] px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
             />
           </div>

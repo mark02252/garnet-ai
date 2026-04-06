@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { validateFlow } from '@/lib/flow/graph'
-import type { FlowNode, FlowEdge } from '@/lib/flow/types'
+import type { FlowNode } from '@/lib/flow/types'
 
 const createSchema = z.object({
   name: z.string().min(1).max(200).default('새 플로우'),

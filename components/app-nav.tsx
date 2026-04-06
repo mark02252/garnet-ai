@@ -221,6 +221,17 @@ function VideoStudioIcon() {
   )
 }
 
+function FlowBuilderIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="5" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="19" cy="6" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="19" cy="18" r="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M7.5 12h4M13.5 7.2l-2 3.3M13.5 16.8l-2-3.3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 type NavGroup = {
   label: string;
   items: NavItem[];
@@ -244,6 +255,7 @@ const navGroups: NavGroup[] = [
     label: '제작',
     items: [
       { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
+      { href: '/flow', label: '플로우 빌더', icon: <FlowBuilderIcon /> },
       { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
       { href: '/video', label: '영상 스튜디오', icon: <VideoStudioIcon /> },
     ],

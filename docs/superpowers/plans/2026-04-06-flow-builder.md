@@ -1721,7 +1721,6 @@ export default function NodeConfigPanel({ node, onUpdate }: Props) {
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { useFlowRunStore } from '@/lib/flow/run-store'
 import type { FlowRunEvent } from '@/lib/flow/types'
 
@@ -1732,7 +1731,6 @@ type Props = {
 }
 
 export default function RunModal({ templateId, defaultTopic, onClose }: Props) {
-  const router = useRouter()
   const [topic, setTopic] = useState(defaultTopic)
   const [brand, setBrand] = useState('')
   const [running, setRunning] = useState(false)
@@ -1789,7 +1787,7 @@ export default function RunModal({ templateId, defaultTopic, onClose }: Props) {
             } else if (event.type === 'flow-complete') {
               finishRun()  // sets isRunning=false, runId stored in Zustand — editor page shows "결과 보기" link
             } else if (event.type === 'flow-error') {
-              finishRun()
+              resetRun()  // clear runId so editor doesn't show "결과 보기" for a failed run
             }
           } catch { /* ignore malformed line */ }
         }
@@ -1906,7 +1904,7 @@ git commit -m "feat(flow): add NodePalette, NodeConfigPanel, RunModal + nav entr
 - [ ] Connect StartNode → AgentNode → EndNode
 - [ ] Click Save — confirm no 400 error
 - [ ] Click Run — enter topic — confirm SSE events update node border colors on canvas
-- [ ] After `flow-complete` — confirm redirect to `/seminar/[runId]`
+- [ ] After `flow-complete` — confirm bottom bar appears with "결과 보기 →" link to `/seminar/[runId]` (no auto-redirect)
 
 ```bash
 git log --oneline -10

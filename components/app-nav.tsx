@@ -203,6 +203,15 @@ function BookOpenIcon() {
   )
 }
 
+function RadarIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="2" />
+      <path d="M16.24 7.76a6 6 0 0 1 0 8.49m-8.48-.01a6 6 0 0 1 0-8.49m11.31-2.82a10 10 0 0 1 0 14.14m-14.14 0a10 10 0 0 1 0-14.14" />
+    </svg>
+  )
+}
+
 function VideoStudioIcon() {
   return (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
@@ -265,6 +274,7 @@ const navGroups: NavGroup[] = [
       { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
       { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
       { href: '/research', label: '리서치 메모리', icon: <BookOpenIcon /> },
+      { href: '/tech-radar', label: '테크 레이더', icon: <RadarIcon /> },
       { href: '/notifications', label: '알림 인박스', icon: <NotificationIcon /> },
     ],
   },

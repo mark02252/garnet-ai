@@ -164,10 +164,14 @@ function IntelCard({
   item,
   saved,
   onSave,
+  radarSaved,
+  onRadarSave,
 }: {
   item: IntelItem;
   saved: boolean;
   onSave: (item: IntelItem) => void;
+  radarSaved: boolean;
+  onRadarSave: (item: IntelItem) => void;
 }) {
   const urg      = URGENCY_MAP[item.urgency] ?? URGENCY_MAP.NORMAL;
   const platColor = PLATFORM_COLORS[item.platform] ?? '#6b7280';
@@ -317,6 +321,14 @@ function IntelCard({
         >
           {saved ? '✓ 저장됨' : '+ 리서치 메모리'}
         </button>
+        <button
+          onClick={() => onRadarSave(item)}
+          disabled={radarSaved}
+          className="text-xs px-2 py-1 text-zinc-500 hover:text-blue-400 disabled:text-blue-500 transition-colors"
+          style={{ background: 'none', border: 'none', cursor: radarSaved ? 'default' : 'pointer', padding: '2px 6px' }}
+        >
+          {radarSaved ? '✓ 레이더 추가됨' : '+ 테크 레이더'}
+        </button>
       </div>
     </div>
   );
@@ -400,6 +412,16 @@ export default function IntelPage() {
   const [fetchedAt, setFetchedAt]   = useState<Date | null>(null);
   const [hasSearchKey, setHasSearchKey] = useState<boolean | null>(null);
   const [savedIds, setSavedIds]     = useState<Set<string>>(new Set());
+  const [radarSavedIds, setRadarSavedIds] = useState<Set<string>>(new Set())
+  const [radarModal, setRadarModal]       = useState<{
+    open: boolean
+    itemId: string
+    name: string
+    url: string
+    description: string
+    category: 'marketing' | 'tech'
+    status: 'adopted' | 'assessing' | 'hold'
+  } | null>(null)
 
   async function saveToResearch(item: IntelItem) {
     await fetch('/api/research', {
@@ -414,6 +436,37 @@ export default function IntelPage() {
       }),
     });
     setSavedIds((prev) => new Set([...prev, item.id]));
+  }
+
+  function openRadarModal(item: IntelItem) {
+    setRadarModal({
+      open: true,
+      itemId: item.id,
+      name: item.title,
+      url: item.url || '',
+      description: item.snippet || '',
+      category: 'tech',
+      status: 'assessing',
+    })
+  }
+
+  async function saveToRadar() {
+    if (!radarModal) return
+    await fetch('/api/tech-radar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: radarModal.name,
+        category: radarModal.category,
+        status: radarModal.status,
+        description: radarModal.description || undefined,
+        url: radarModal.url || undefined,
+        source: 'intel',
+        tags: [],
+      }),
+    })
+    setRadarSavedIds((prev) => new Set([...prev, radarModal.itemId]))
+    setRadarModal(null)
   }
 
   // 최초 1회: 검색 API 키 설정 여부 확인
@@ -592,8 +645,132 @@ export default function IntelPage() {
           {/* Cards */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {displayItems.map((item) => (
-              <IntelCard key={item.id} item={item} saved={savedIds.has(item.id)} onSave={saveToResearch} />
+              <IntelCard key={item.id} item={item} saved={savedIds.has(item.id)} onSave={saveToResearch} radarSaved={radarSavedIds.has(item.id)} onRadarSave={openRadarModal} />
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tech Radar 추가 모달 */}
+      {radarModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
+          }}
+          onClick={() => setRadarModal(null)}
+        >
+          <div
+            style={{
+              background: 'var(--surface-raised)',
+              border: '1px solid var(--surface-border)',
+              borderRadius: 14,
+              padding: 24,
+              width: '100%',
+              maxWidth: 420,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 16,
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h3 style={{ margin: 0, fontSize: 16, fontWeight: 700, color: 'var(--text-strong)' }}>
+                Tech Radar에 추가
+              </h3>
+              <button
+                onClick={() => setRadarModal(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 18 }}
+              >
+                ×
+              </button>
+            </div>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+              <strong style={{ color: 'var(--text-strong)' }}>{radarModal.name}</strong>
+            </p>
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>카테고리</label>
+                <select
+                  value={radarModal.category}
+                  onChange={(e) =>
+                    setRadarModal((m) => m ? { ...m, category: e.target.value as 'marketing' | 'tech' } : null)
+                  }
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: '1px solid var(--surface-border)',
+                    background: 'var(--surface-sub)',
+                    color: 'var(--text-strong)',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                >
+                  <option value="marketing">마케팅 도구</option>
+                  <option value="tech">기술 스택</option>
+                </select>
+              </div>
+              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-muted)' }}>상태</label>
+                <select
+                  value={radarModal.status}
+                  onChange={(e) =>
+                    setRadarModal((m) => m ? { ...m, status: e.target.value as 'adopted' | 'assessing' | 'hold' } : null)
+                  }
+                  style={{
+                    padding: '8px 10px',
+                    borderRadius: 8,
+                    border: '1px solid var(--surface-border)',
+                    background: 'var(--surface-sub)',
+                    color: 'var(--text-strong)',
+                    fontSize: 13,
+                    outline: 'none',
+                  }}
+                >
+                  <option value="adopted">도입</option>
+                  <option value="assessing">검토 중</option>
+                  <option value="hold">보류</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => setRadarModal(null)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  border: '1px solid var(--surface-border)',
+                  background: 'none',
+                  color: 'var(--text-muted)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                취소
+              </button>
+              <button
+                onClick={saveToRadar}
+                style={{
+                  padding: '8px 20px',
+                  borderRadius: 8,
+                  border: 'none',
+                  background: 'var(--accent)',
+                  color: '#fff',
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                추가
+              </button>
+            </div>
           </div>
         </div>
       )}

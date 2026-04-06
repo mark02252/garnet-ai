@@ -67,8 +67,8 @@ export function computeForecast(
 
   for (let i = 0; i < forecastDays; i++) {
     const value = Math.round(baseline + slope * (i + 1));
-    const lower = Math.max(0, value - 1.5 * stdDev);
-    const upper = value + 1.5 * stdDev;
+    const lower = Math.round(Math.max(0, value - 1.5 * stdDev));
+    const upper = Math.round(value + 1.5 * stdDev);
 
     const d = new Date(lastDate);
     d.setDate(d.getDate() + i + 1);
@@ -91,6 +91,7 @@ export function detectAnomalies(
 ): AnomalyPoint[] {
   const n = values.length;
   if (n === 0) return [];
+  if (dates.length !== values.length) return [];
 
   const mean = values.reduce((s, v) => s + v, 0) / n;
   const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / n;

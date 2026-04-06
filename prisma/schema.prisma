@@ -699,3 +699,14 @@ model TechRadarItem {
   @@index([status])
   @@index([status, category])
 }
+
+model FlowTemplate {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  nodes       String    // JSON: FlowNode[]
+  edges       String    // JSON: FlowEdge[]
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}

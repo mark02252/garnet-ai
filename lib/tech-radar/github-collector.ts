@@ -37,7 +37,7 @@ async function fetchTrending(lang: string): Promise<TrendingRepo[]> {
     // Repo name: owner/repo
     const nameMatch = block.match(/href="\/([^"]+\/[^"]+)"[^>]*>\s*[\s\S]*?<\/a>/)
     const fullName = nameMatch?.[1]?.trim()
-    if (!fullName || fullName.includes('/pulls') || fullName.includes('/issues')) continue
+    if (!fullName || fullName.startsWith('sponsors/') || fullName.includes('/pulls') || fullName.includes('/issues')) continue
 
     // Description
     const descMatch = block.match(/<p[^>]*class="[^"]*col-9[^"]*"[^>]*>\s*([\s\S]*?)\s*<\/p>/)
@@ -65,19 +65,29 @@ async function fetchTrending(lang: string): Promise<TrendingRepo[]> {
   return repos
 }
 
-async function classifyRepo(repo: TrendingRepo): Promise<'marketing' | 'tech' | 'irrelevant'> {
+interface ClassifyResult {
+  category: 'marketing' | 'tech' | 'irrelevant'
+  reason: string
+}
+
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+
+async function classifyRepo(repo: TrendingRepo): Promise<ClassifyResult> {
   try {
     const result = await runLLM(
-      '너는 GitHub 레포지토리 분류기다. 반드시 marketing, tech, irrelevant 중 하나만 답해라. 설명 없이 단어만.',
+      `너는 GitHub 레포지토리 분류기다. 반드시 JSON으로만 답해라: {"category":"marketing"|"tech"|"irrelevant","reason":"한국어로 20자 이내 분류 근거"}`,
       `레포: ${repo.name}\n설명: ${repo.description || '없음'}\n\n마케팅 자동화/SNS/콘텐츠/분석 도구면 "marketing", 프레임워크/라이브러리/AI/인프라면 "tech", 그 외면 "irrelevant"`,
       0.1,
-      10
+      60
     )
-    const label = result.trim().toLowerCase()
-    if (label === 'marketing' || label === 'tech') return label
-    return 'irrelevant'
+    const json = JSON.parse(result.trim().replace(/^```json\n?/, '').replace(/\n?```$/, ''))
+    const category = json.category
+    if (category === 'marketing' || category === 'tech' || category === 'irrelevant') {
+      return { category, reason: `[${MODEL}] ${json.reason || ''}` }
+    }
+    return { category: 'irrelevant', reason: '' }
   } catch {
-    return 'irrelevant'
+    return { category: 'irrelevant', reason: '' }
   }
 }
 
@@ -106,7 +116,7 @@ export async function collectGithubTrending(): Promise<{ added: number; skipped:
         continue
       }
 
-      const category = await classifyRepo(repo)
+      const { category, reason } = await classifyRepo(repo)
       if (category === 'irrelevant') {
         skipped++
         continue
@@ -120,6 +130,7 @@ export async function collectGithubTrending(): Promise<{ added: number; skipped:
           description: repo.description || null,
           url: repo.url,
           source: 'github',
+          notes: reason || null,
           tags: JSON.stringify([lang]),
         },
       })

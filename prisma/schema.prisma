@@ -690,6 +690,7 @@ model TechRadarItem {
   description String?
   url         String?
   source      String?
+  notes       String?                 // AI 분류 근거 또는 수동 메모
   tags        String   @default("[]")
   addedAt     DateTime @default(now())
   updatedAt   DateTime @updatedAt

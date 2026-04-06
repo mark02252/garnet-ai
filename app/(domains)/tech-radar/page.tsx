@@ -12,6 +12,7 @@ type TechRadarItem = {
   description: string | null
   url: string | null
   source: string | null
+  notes: string | null
   tags: string[]
   addedAt: string
 }
@@ -451,6 +452,11 @@ function ListItem({
       {item.description && (
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: 0, lineHeight: 1.5 }}>
           {item.description.length > 160 ? `${item.description.slice(0, 160)}…` : item.description}
+        </p>
+      )}
+      {item.notes && (
+        <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, fontStyle: 'italic', opacity: 0.7 }}>
+          💡 {item.notes}
         </p>
       )}
       {item.tags.length > 0 && (

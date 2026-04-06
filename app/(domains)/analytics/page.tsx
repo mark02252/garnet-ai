@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import {
   AreaChart,
   Area,
+  ComposedChart,
   LineChart,
   Line,
   BarChart,
@@ -17,7 +18,10 @@ import {
   Legend,
   ResponsiveContainer,
   LabelList,
+  ReferenceLine,
 } from 'recharts';
+import type { ForecastPoint, AnomalyPoint } from '@/lib/analytics/forecast';
+import { computeForecast, detectAnomalies } from '@/lib/analytics/forecast';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -79,6 +83,21 @@ type AiInsight = {
   recommendations: string[];
   anomalies: string[];
   generatedAt: string;
+};
+
+type ChartPoint = {
+  date: string;
+  activeUsers: number | null;
+  forecastValue: number | null;
+  bandBase: number | null;
+  bandWidth: number | null;
+  isAnomaly: boolean;
+};
+
+type ForecastData = {
+  forecast: ForecastPoint[];
+  anomalies: AnomalyPoint[];
+  historical: { date: string; activeUsers: number }[];
 };
 
 type HourlyPattern = {
@@ -299,6 +318,19 @@ function getDeviceColor(cat: string): string {
   return '#6aabcc';
 }
 
+function buildDemoForecast(): ForecastData {
+  const demoTraffic = generateDemoTraffic(30);
+  const dates = demoTraffic.map(
+    (d) => `${d.date.slice(0, 4)}-${d.date.slice(4, 6)}-${d.date.slice(6, 8)}`
+  );
+  const values = demoTraffic.map((d) => d.activeUsers);
+  return {
+    historical: dates.map((date, i) => ({ date, activeUsers: values[i] })),
+    forecast: computeForecast(dates, values, 7),
+    anomalies: detectAnomalies(dates, values),
+  };
+}
+
 // ── Sparkline Component ────────────────────────────────────────────────────
 
 function Sparkline({
@@ -403,6 +435,56 @@ function ChartTooltip({
   );
 }
 
+// ── Forecast Components ────────────────────────────────────────────────────
+
+type DotProps = {
+  cx?: number;
+  cy?: number;
+  payload?: ChartPoint;
+};
+
+function CustomAnomalyDot({ cx, cy, payload }: DotProps) {
+  if (!payload?.isAnomaly || cx == null || cy == null) return null;
+  return (
+    <circle cx={cx} cy={cy} r={5} fill="#ff4444" stroke="#ff0000" strokeWidth={2} />
+  );
+}
+
+function ForecastTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload: ChartPoint }>;
+  label?: string;
+}) {
+  if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload as ChartPoint | undefined;
+  return (
+    <div
+      style={{
+        background: '#0d1a2a',
+        border: '1px solid #3a6080',
+        padding: '8px',
+        fontSize: '12px',
+        borderRadius: 6,
+      }}
+    >
+      <p style={{ color: '#a8d8ff', marginBottom: 4 }}>{label}</p>
+      {point?.activeUsers != null && (
+        <p style={{ color: '#e8f4ff' }}>방문자: {point.activeUsers.toLocaleString('ko-KR')}명</p>
+      )}
+      {point?.forecastValue != null && (
+        <p style={{ color: '#00d4ff' }}>예측: {point.forecastValue.toLocaleString('ko-KR')}명</p>
+      )}
+      {point?.isAnomaly && (
+        <p style={{ color: '#ff4444' }}>⚠️ 이상 트래픽 감지</p>
+      )}
+    </div>
+  );
+}
+
 // ── Main Page ──────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -421,6 +503,7 @@ export default function AnalyticsPage() {
   const [analyzing, setAnalyzing] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('30daysAgo');
+  const [forecastData, setForecastData] = useState<ForecastData | null>(null);
 
   const fetchRealtime = useCallback(async () => {
     try {
@@ -509,12 +592,27 @@ export default function AnalyticsPage() {
     }
   }, [dateRange, loadDemoData]);
 
+  const fetchForecastData = useCallback(async () => {
+    try {
+      const res = await fetch('/api/ga4/forecast');
+      const data = await res.json();
+      if (!data.configured || !data.forecast) {
+        setForecastData(buildDemoForecast());
+        return;
+      }
+      setForecastData(data as ForecastData);
+    } catch {
+      setForecastData(buildDemoForecast());
+    }
+  }, []);
+
   useEffect(() => {
     fetchAllData();
+    fetchForecastData();
     fetchRealtime();
     const interval = setInterval(fetchRealtime, 60_000);
     return () => clearInterval(interval);
-  }, [fetchAllData, fetchRealtime]);
+  }, [fetchAllData, fetchForecastData, fetchRealtime]);
 
   async function runAiAnalysis() {
     if (isDemo) {
@@ -558,6 +656,31 @@ export default function AnalyticsPage() {
     '활성 사용자': d.activeUsers,
     '세션': d.sessions,
   }));
+
+  const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+
+  const chartData: ChartPoint[] = forecastData
+    ? (() => {
+        const anomalyDates = new Set(forecastData.anomalies.map((a) => a.date));
+        const historicalPoints: ChartPoint[] = forecastData.historical.map((h) => ({
+          date: h.date,
+          activeUsers: h.activeUsers,
+          forecastValue: null,
+          bandBase: null,
+          bandWidth: null,
+          isAnomaly: anomalyDates.has(h.date),
+        }));
+        const forecastPoints: ChartPoint[] = forecastData.forecast.map((f) => ({
+          date: f.date,
+          activeUsers: null,
+          forecastValue: f.value,
+          bandBase: f.lower,
+          bandWidth: f.upper - f.lower,
+          isAnomaly: false,
+        }));
+        return [...historicalPoints, ...forecastPoints];
+      })()
+    : [];
 
   const engagementChartData = engagement.map(d => ({
     date: fmtDate(d.date),
@@ -889,51 +1012,112 @@ export default function AnalyticsPage() {
               </div>
             </div>
             <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={trafficChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.01} />
-                  </linearGradient>
-                  <linearGradient id="gradSessions" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6aabcc" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="#6aabcc" stopOpacity={0.01} />
-                  </linearGradient>
-                </defs>
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 11, fill: '#b0b8c1' }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={Math.max(1, Math.floor(trafficChartData.length / 8) - 1)}
-                />
-                <YAxis
-                  tick={{ fontSize: 11, fill: '#b0b8c1' }}
-                  axisLine={false}
-                  tickLine={false}
-                  tickFormatter={(v) => v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}
-                  width={36}
-                />
-                <Tooltip content={<ChartTooltip />} />
-                <Area
-                  type="monotone"
-                  dataKey="활성 사용자"
-                  stroke="#00d4ff"
-                  strokeWidth={2}
-                  fill="url(#gradUsers)"
-                  dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: '#00d4ff' }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="세션"
-                  stroke="#6aabcc"
-                  strokeWidth={2}
-                  fill="url(#gradSessions)"
-                  dot={false}
-                  activeDot={{ r: 4, strokeWidth: 0, fill: '#6aabcc' }}
-                />
-              </AreaChart>
+              {chartData.length > 0 ? (
+                <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v: string) =>
+                      `${parseInt(v.slice(5, 7))}/${parseInt(v.slice(8, 10))}`
+                    }
+                    interval={Math.max(1, Math.floor(chartData.length / 8) - 1)}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
+                    width={36}
+                  />
+                  <Tooltip content={<ForecastTooltip />} />
+                  <ReferenceLine
+                    x={todayStr}
+                    stroke="#3a6080"
+                    strokeDasharray="3 3"
+                    label={{ value: '오늘', fill: '#6aabcc', fontSize: 11 }}
+                  />
+
+                  {/* 신뢰 구간 밴드 (stackId 기법) */}
+                  <Area
+                    stackId="band"
+                    dataKey="bandBase"
+                    stroke="none"
+                    fill="transparent"
+                    fillOpacity={0}
+                    legendType="none"
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                  <Area
+                    stackId="band"
+                    dataKey="bandWidth"
+                    stroke="none"
+                    fill="#00d4ff"
+                    fillOpacity={0.1}
+                    legendType="none"
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+
+                  {/* 과거 실제 트래픽 */}
+                  <Area
+                    dataKey="activeUsers"
+                    stroke="#00d4ff"
+                    fill="#00d4ff"
+                    fillOpacity={0.15}
+                    strokeWidth={2}
+                    dot={<CustomAnomalyDot />}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+
+                  {/* 예측 점선 */}
+                  <Line
+                    dataKey="forecastValue"
+                    stroke="#00d4ff"
+                    strokeDasharray="5 5"
+                    strokeWidth={2}
+                    dot={false}
+                    connectNulls={false}
+                    isAnimationActive={false}
+                  />
+                </ComposedChart>
+              ) : (
+                <AreaChart data={trafficChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.01} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    axisLine={false}
+                    tickLine={false}
+                    interval={Math.max(1, Math.floor(trafficChartData.length / 8) - 1)}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    axisLine={false}
+                    tickLine={false}
+                    tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
+                    width={36}
+                  />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Area
+                    type="monotone"
+                    dataKey="활성 사용자"
+                    stroke="#00d4ff"
+                    strokeWidth={2}
+                    fill="url(#gradUsers)"
+                    dot={false}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: '#00d4ff' }}
+                  />
+                </AreaChart>
+              )}
             </ResponsiveContainer>
           </div>
 
@@ -1399,6 +1583,64 @@ export default function AnalyticsPage() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════
+              Section: 7일 트래픽 예측 요약
+          ════════════════════════════════════════════════════════ */}
+          {forecastData && forecastData.forecast.length > 0 && (
+            <div className="panel" style={{ marginBottom: 20 }}>
+              <div style={{ marginBottom: 16 }}>
+                <p
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    color: '#00d4ff',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    marginBottom: 2,
+                  }}
+                >
+                  Forecast
+                </p>
+                <h2 className="section-title">📈 7일 트래픽 예측</h2>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: 12,
+                }}
+              >
+                <div className="metric-card">
+                  <p className="metric-label">예측 평균 방문자</p>
+                  <p className="metric-value" style={{ color: '#00d4ff' }}>
+                    {Math.round(
+                      forecastData.forecast.reduce((s, f) => s + f.value, 0) /
+                        forecastData.forecast.length
+                    ).toLocaleString('ko-KR')}
+                    명/일
+                  </p>
+                </div>
+                <div className="metric-card">
+                  <p className="metric-label">예측 범위</p>
+                  <p className="metric-value" style={{ color: '#6aabcc', fontSize: '1.1rem' }}>
+                    {Math.min(...forecastData.forecast.map((f) => f.lower)).toLocaleString('ko-KR')}
+                    ~
+                    {Math.max(...forecastData.forecast.map((f) => f.upper)).toLocaleString('ko-KR')}
+                    명/일
+                  </p>
+                </div>
+                {forecastData.anomalies.length > 0 && (
+                  <div className="metric-card" style={{ borderTop: '3px solid #ff4444' }}>
+                    <p className="metric-label">이상 트래픽 감지</p>
+                    <p className="metric-value" style={{ color: '#ff4444' }}>
+                      {forecastData.anomalies.length}건
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
           )}

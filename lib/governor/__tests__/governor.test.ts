@@ -109,6 +109,13 @@ describe('governor', () => {
         { ...MOCK_ROW, status: 'PENDING_APPROVAL' },
       ]);
       await decideAction('test-id', 'APPROVED');
+      // updateStatus가 먼저 호출되어 approvedBy가 기록되어야 함
+      expect(prisma.$executeRawUnsafe).toHaveBeenCalledWith(
+        expect.stringContaining('UPDATE'),
+        expect.anything(),
+        expect.anything(),
+        expect.stringContaining('user')
+      );
       expect(execute).toHaveBeenCalled();
     });
   });

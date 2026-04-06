@@ -73,9 +73,9 @@ export async function* executeFlow(
             const start = getStartNode(nodes)
             const hits = await runWebSearchWithRuntime(
               context.get(start.id)!,
-              start.data.brand,
-              start.data.region,
-              start.data.goal,
+              runInput.brand ?? start.data.brand,
+              runInput.region ?? start.data.region,
+              runInput.goal ?? start.data.goal,
             )
             output = hits.map(h => `${h.title}\n${h.snippet}`).join('\n\n')
           } else if (node.type === 'agent') {

@@ -58,6 +58,10 @@ export async function sendMessage(
 }
 
 export async function sendApprovalRequest(action: GovernorAction): Promise<void> {
+  if (action.riskLevel !== 'HIGH' && action.riskLevel !== 'MEDIUM') {
+    // sendApprovalRequest는 MEDIUM/HIGH 액션에만 호출된다
+    throw new Error(`sendApprovalRequest called with unexpected riskLevel: ${action.riskLevel}`);
+  }
   const riskEmoji = action.riskLevel === 'HIGH' ? '🔴' : '🟡';
   const riskLabel = action.riskLevel === 'HIGH' ? '고위험' : '중위험';
   // slice(0, 200) per spec — prevents oversized messages
@@ -70,7 +74,7 @@ export async function sendApprovalRequest(action: GovernorAction): Promise<void>
     payloadPreview,
   ].join('\n');
 
-  await sendMessage(text, {
+  const result = await sendMessage(text, {
     replyMarkup: {
       inline_keyboard: [
         [
@@ -80,6 +84,9 @@ export async function sendApprovalRequest(action: GovernorAction): Promise<void>
       ],
     },
   });
+  if (!result.ok) {
+    throw new Error(`sendApprovalRequest failed: ${result.error ?? 'unknown'}`);
+  }
 }
 
 export async function answerCallbackQuery(

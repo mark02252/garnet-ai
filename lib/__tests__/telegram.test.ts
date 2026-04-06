@@ -150,8 +150,29 @@ describe('sendApprovalRequest', () => {
     });
     const body = JSON.parse(vi.mocked(fetch).mock.calls[0][1]?.body as string);
     // The payload preview portion must be ≤200 chars
-    const payloadLine = body.text.split('\n').find((l: string) => l.includes('"data"'));
-    expect(payloadLine.length).toBeLessThanOrEqual(200);
+    const lines = body.text.split('\n');
+    const payloadPreviewLine = lines[4]; // index 4 is the payloadPreview line
+    expect(payloadPreviewLine.length).toBeLessThanOrEqual(200);
+  });
+
+  it('throws when sendMessage fails', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(JSON.stringify({ ok: false, description: 'Too many requests' }), { status: 200 })
+    );
+    const { sendApprovalRequest } = await import('@/lib/telegram');
+    await expect(sendApprovalRequest({
+      id: 'action-err',
+      kind: 'SNS_PUBLISH',
+      payload: {},
+      status: 'PENDING_APPROVAL',
+      riskLevel: 'HIGH',
+      riskReason: null,
+      approvedBy: null,
+      executedAt: null,
+      deletedAt: null,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })).rejects.toThrow('sendApprovalRequest failed');
   });
 });
 

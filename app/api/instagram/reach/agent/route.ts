@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { prisma } from '@/lib/prisma';
 import { getInstagramAgentSecret, runInstagramReachAgent } from '@/lib/instagram-reach-agent';
 import { ensureInstagramReachTables } from '@/lib/instagram-reach-storage';
+import { loadMetaConnectionFromFile } from '@/lib/meta-connection-file-store';
 
 const postBodySchema = z
   .object({
@@ -60,10 +61,22 @@ export async function POST(req: Request) {
     }
 
     const input = postBodySchema.parse(payload);
+
+    // Token resolution: body → file store → env vars (handled inside runInstagramReachAgent)
+    let accessToken = input?.accessToken;
+    let instagramBusinessAccountId = input?.instagramBusinessAccountId;
+    if (!accessToken || !instagramBusinessAccountId) {
+      const fileData = await loadMetaConnectionFromFile();
+      if (fileData) {
+        if (!accessToken) accessToken = fileData.accessToken || undefined;
+        if (!instagramBusinessAccountId) instagramBusinessAccountId = fileData.instagramBusinessAccountId || undefined;
+      }
+    }
+
     const result = await runInstagramReachAgent({
       lookbackDays: input?.lookbackDays,
-      accessToken: input?.accessToken,
-      instagramBusinessAccountId: input?.instagramBusinessAccountId,
+      accessToken,
+      instagramBusinessAccountId,
       graphApiVersion: input?.graphApiVersion,
       connectionMode: input?.connectionMode
     });

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { fetchInstagramInsights } from '@/lib/instagram-insights'
+import { loadMetaConnectionFromFile } from '@/lib/meta-connection-file-store'
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,11 +12,17 @@ export async function POST(req: NextRequest) {
     const persona = await prisma.snsPersona.findUnique({ where: { id: personaId } })
     if (!persona) return NextResponse.json({ error: '페르소나 없음' }, { status: 404 })
 
-    // Token resolution: body → env vars
-    // Note: On Vercel, the file-based fallback is not available.
-    // The client always sends accessToken and businessAccountId from localStorage.
+    // Token resolution: body → file store → env vars
     let accessToken: string = body.accessToken || ''
     let businessAccountId: string = body.businessAccountId || ''
+
+    if (!accessToken || !businessAccountId) {
+      const fileData = await loadMetaConnectionFromFile()
+      if (fileData) {
+        if (!accessToken) accessToken = fileData.accessToken
+        if (!businessAccountId) businessAccountId = fileData.instagramBusinessAccountId
+      }
+    }
 
     if (!accessToken) accessToken = process.env.INSTAGRAM_ACCESS_TOKEN || ''
     if (!businessAccountId) businessAccountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID || ''

@@ -112,30 +112,28 @@ export default function DashboardPage() {
     try {
       const { accountId, accessToken, personaId } = connectionRef.current
       // Instagram 도달 동기화 + SNS 분석 동기화 병렬 실행
-      if (accountId && accessToken) {
-        await Promise.all([
-          fetch('/api/instagram/reach/agent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              lookbackDays: 30,
-              accessToken,
-              instagramBusinessAccountId: accountId,
-              graphApiVersion: 'v25.0',
-              connectionMode: 'instagram_login',
-            }),
+      // 토큰이 없어도 서버에서 파일스토어 폴백으로 처리
+      await Promise.all([
+        fetch('/api/instagram/reach/agent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            lookbackDays: 30,
+            ...(accessToken && accountId ? { accessToken, instagramBusinessAccountId: accountId } : {}),
+            graphApiVersion: 'v25.0',
+            connectionMode: 'instagram_login',
           }),
-          fetch('/api/sns/analytics/sync', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              accessToken,
-              businessAccountId: accountId,
-              personaId,
-            }),
+        }),
+        ...(personaId ? [fetch('/api/sns/analytics/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            accessToken,
+            businessAccountId: accountId,
+            personaId,
           }),
-        ])
-      }
+        })] : []),
+      ])
       // 3. 대시보드 다시 로드
       setLoading(true)
       await loadDashboard(days)

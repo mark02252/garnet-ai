@@ -6,9 +6,11 @@ export async function GET() {
     return NextResponse.json({ error: 'META_APP_ID not configured' }, { status: 500 });
   }
 
-  // Meta 앱에 등록된 리디렉션 URI (https 필수)
+  // Meta 앱에 등록된 리디렉션 URI
+  // localhost는 http 유지 (https 서버 없음), 배포 환경만 https 강제
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const redirectUri = baseUrl.replace('http://', 'https://') + '/meta/connect';
+  const isLocalhost = /localhost|127\.0\.0\.1/.test(baseUrl);
+  const redirectUri = (isLocalhost ? baseUrl : baseUrl.replace('http://', 'https://')) + '/meta/connect';
 
   const scopes = 'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights';
 

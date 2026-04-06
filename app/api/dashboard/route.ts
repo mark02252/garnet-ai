@@ -30,107 +30,95 @@ export async function POST(req: NextRequest) {
   const since = new Date()
   since.setDate(since.getDate() - days)
 
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const endOfDay = new Date(today)
+  endOfDay.setHours(23, 59, 59, 999)
+  const weekEnd = new Date(today)
+  weekEnd.setDate(weekEnd.getDate() + 7)
+
   try {
-    const kpiGoals = await prisma.kpiGoal.findMany({
-      take: 4,
-      orderBy: { updatedAt: 'desc' },
-    })
-
     const accountId = body.accountId || ''
-    let reachDaily: Array<{ date: string; reach: number }> = []
+    const personaId = body.personaId || ''
 
-    if (accountId) {
-      const rows = await prisma.instagramReachDaily.findMany({
-        where: { accountId, metricDate: { gte: since } },
-        orderBy: { metricDate: 'asc' },
-      })
-      reachDaily = rows.map((r) => ({
-        date: r.metricDate.toISOString().slice(0, 10),
+    // DB 쿼리 모두 병렬 실행
+    const [kpiGoals, reachDailyRows, snapshotRows, todayScheduled, weekScheduled, upcomingPosts, lastReachSync, lastAnalyticsSync] = await Promise.all([
+      prisma.kpiGoal.findMany({ take: 4, orderBy: { updatedAt: 'desc' } }),
+      accountId
+        ? prisma.instagramReachDaily.findMany({ where: { accountId, metricDate: { gte: since } }, orderBy: { metricDate: 'asc' } })
+        : Promise.resolve([]),
+      personaId
+        ? prisma.snsAnalyticsSnapshot.findMany({ where: { personaId, date: { gte: since } }, orderBy: { date: 'asc' } })
+        : Promise.resolve([]),
+      prisma.snsScheduledPost.count({ where: { scheduledAt: { gte: today, lte: endOfDay }, status: 'PENDING' } }),
+      prisma.snsScheduledPost.count({ where: { scheduledAt: { gte: today, lte: weekEnd }, status: 'PENDING' } }),
+      prisma.snsScheduledPost.findMany({
+        where: { scheduledAt: { gte: today }, status: 'PENDING' },
+        orderBy: { scheduledAt: 'asc' },
+        take: 5,
+        include: { draft: { select: { title: true, type: true } } },
+      }),
+      prisma.instagramReachDaily.findFirst({ orderBy: { fetchedAt: 'desc' }, select: { fetchedAt: true } }),
+      prisma.snsAnalyticsSnapshot.findFirst({ orderBy: { createdAt: 'desc' }, select: { createdAt: true } }),
+    ])
+
+    let reachDaily: Array<{ date: string; reach: number }> = reachDailyRows.map((r) => ({
+      date: r.metricDate.toISOString().slice(0, 10),
+      reach: r.reach,
+    }))
+
+    const followerTrend: Array<{ date: string; followers: number }> = snapshotRows.map((r) => ({
+      date: r.date.toISOString().slice(0, 10),
+      followers: r.followers,
+    }))
+
+    if (reachDaily.length === 0 && snapshotRows.length > 0) {
+      reachDaily = snapshotRows.map((r) => ({
+        date: r.date.toISOString().slice(0, 10),
         reach: r.reach,
       }))
     }
 
-    const personaId = body.personaId || ''
-    let followerTrend: Array<{ date: string; followers: number }> = []
-
-    if (personaId) {
-      const rows = await prisma.snsAnalyticsSnapshot.findMany({
-        where: { personaId, date: { gte: since } },
-        orderBy: { date: 'asc' },
-      })
-      followerTrend = rows.map((r) => ({
-        date: r.date.toISOString().slice(0, 10),
-        followers: r.followers,
-      }))
-      if (reachDaily.length === 0) {
-        reachDaily = rows.map((r) => ({
-          date: r.date.toISOString().slice(0, 10),
-          reach: r.reach,
-        }))
-      }
-    }
+    // topPosts + currentFollowers 병렬 실행
+    const accessToken = body.accessToken || ''
+    const [topPostsResult, currentFollowersResult] = await Promise.allSettled([
+      accountId && accessToken
+        ? fetchInstagramMediaInsights(accessToken, accountId)
+        : Promise.resolve([]),
+      accountId && accessToken
+        ? fetchInstagramFollowerCount(accessToken, accountId)
+        : Promise.resolve(0),
+    ])
 
     let topPosts: Array<{
       id: string; timestamp: string; reach: number;
       caption?: string; media_type?: string; permalink?: string;
     }> = []
 
-    if (accountId) {
-      try {
-        const accessToken = body.accessToken || ''
-        if (accessToken) {
-          const allInsights = await fetchInstagramMediaInsights(accessToken, accountId)
-          // 기간 필터 적용: 선택한 기간 내 게시물만
-          const filtered = allInsights.filter(p => {
-            if (!p.timestamp) return true
-            return new Date(p.timestamp) >= since
-          })
-          topPosts = (filtered.length > 0 ? filtered : allInsights)
-            .sort((a, b) => {
-              const scoreA = a.reach > 0 ? a.reach : (a.like_count + a.comments_count) * 100
-              const scoreB = b.reach > 0 ? b.reach : (b.like_count + b.comments_count) * 100
-              return scoreB - scoreA
-            })
-            .slice(0, 10)
-            .map((p) => ({
-              id: p.id, timestamp: p.timestamp,
-              reach: p.reach > 0 ? p.reach : p.like_count + p.comments_count,
-              caption: p.caption, media_type: p.media_type, permalink: p.permalink,
-              like_count: p.like_count, comments_count: p.comments_count,
-            }))
-        }
-      } catch { /* Instagram API error — don't affect other data */ }
+    if (topPostsResult.status === 'fulfilled' && Array.isArray(topPostsResult.value)) {
+      const allInsights = topPostsResult.value
+      const filtered = allInsights.filter(p => {
+        if (!p.timestamp) return true
+        return new Date(p.timestamp) >= since
+      })
+      topPosts = (filtered.length > 0 ? filtered : allInsights)
+        .sort((a, b) => {
+          const scoreA = a.reach > 0 ? a.reach : (a.like_count + a.comments_count) * 100
+          const scoreB = b.reach > 0 ? b.reach : (b.like_count + b.comments_count) * 100
+          return scoreB - scoreA
+        })
+        .slice(0, 10)
+        .map((p) => ({
+          id: p.id, timestamp: p.timestamp,
+          reach: p.reach > 0 ? p.reach : p.like_count + p.comments_count,
+          caption: p.caption, media_type: p.media_type, permalink: p.permalink,
+          like_count: p.like_count, comments_count: p.comments_count,
+        }))
     }
 
-    // 현재 팔로워 수 (실시간)
-    let currentFollowers = 0
-    if (accountId && body.accessToken) {
-      try {
-        currentFollowers = await fetchInstagramFollowerCount(body.accessToken, accountId)
-      } catch { /* ignore */ }
-    }
-
-    // --- 오늘의 할 일: 예약 게시물 카운트 + 목록 ---
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const endOfDay = new Date(today)
-    endOfDay.setHours(23, 59, 59, 999)
-    const weekEnd = new Date(today)
-    weekEnd.setDate(weekEnd.getDate() + 7)
-
-    const todayScheduled = await prisma.snsScheduledPost.count({
-      where: { scheduledAt: { gte: today, lte: endOfDay }, status: 'PENDING' },
-    })
-    const weekScheduled = await prisma.snsScheduledPost.count({
-      where: { scheduledAt: { gte: today, lte: weekEnd }, status: 'PENDING' },
-    })
-
-    const upcomingPosts = await prisma.snsScheduledPost.findMany({
-      where: { scheduledAt: { gte: today }, status: 'PENDING' },
-      orderBy: { scheduledAt: 'asc' },
-      take: 5,
-      include: { draft: { select: { title: true, type: true } } },
-    })
+    const currentFollowers = currentFollowersResult.status === 'fulfilled'
+      ? (currentFollowersResult.value as number)
+      : 0
 
     const serializedUpcoming = upcomingPosts.map((p) => ({
       id: p.id,
@@ -174,14 +162,6 @@ export async function POST(req: NextRequest) {
       void sendSlackMessage(buildPerformanceAlert(alert.message, alert.type))
     }
 
-    const lastReachSync = await prisma.instagramReachDaily.findFirst({
-      orderBy: { fetchedAt: 'desc' },
-      select: { fetchedAt: true },
-    })
-    const lastAnalyticsSync = await prisma.snsAnalyticsSnapshot.findFirst({
-      orderBy: { createdAt: 'desc' },
-      select: { createdAt: true },
-    })
     const lastSyncAt = [lastReachSync?.fetchedAt, lastAnalyticsSync?.createdAt]
       .filter(Boolean)
       .sort((a, b) => (b as Date).getTime() - (a as Date).getTime())[0] || null

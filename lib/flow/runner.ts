@@ -9,6 +9,7 @@ const MODEL_RUNTIME: Record<AgentNode['data']['model'], Partial<RuntimeConfig>> 
   gemini:  { llmProvider: 'gemini' },
   gpt:     { llmProvider: 'openai' },
   groq:    { llmProvider: 'groq' },
+  gemma4:  { llmProvider: 'gemma4' },
 }
 
 /**

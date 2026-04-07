@@ -8,6 +8,7 @@ const MODEL_COLOR: Record<AgentNode['data']['model'], string> = {
   gemini: 'bg-blue-500',
   gpt: 'bg-green-500',
   groq: 'bg-orange-500',
+  gemma4: 'bg-red-500',
 }
 
 const STATUS_BORDER: Record<NodeStatus, string> = {

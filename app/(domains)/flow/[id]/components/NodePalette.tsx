@@ -31,7 +31,7 @@ export default function NodePalette({ onAddNode }: Props) {
       type: 'agent',
       id: `agent-${Date.now()}`,
       position: { x: 300, y: 150 + Math.random() * 100 },
-      data: { role, agentKey, model: 'claude', systemPrompt },
+      data: { role, agentKey, model: 'gemma4', systemPrompt },
     }
     onAddNode(node)
   }

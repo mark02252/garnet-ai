@@ -17,7 +17,7 @@ export type AgentNode = {
   data: {
     role: string
     agentKey?: string
-    model: 'claude' | 'gemini' | 'gpt' | 'groq'
+    model: 'claude' | 'gemini' | 'gpt' | 'groq' | 'gemma4'
     systemPrompt: string
   }
 }

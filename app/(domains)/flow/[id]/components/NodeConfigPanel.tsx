@@ -7,7 +7,7 @@ type Props = {
   onUpdate: (nodeId: string, data: Partial<FlowNode['data']>) => void
 }
 
-const MODEL_OPTIONS: AgentNode['data']['model'][] = ['claude', 'gemini', 'gpt', 'groq']
+const MODEL_OPTIONS: AgentNode['data']['model'][] = ['gemma4', 'claude', 'gemini', 'gpt', 'groq']
 
 export default function NodeConfigPanel({ node, onUpdate }: Props) {
   if (!node) {

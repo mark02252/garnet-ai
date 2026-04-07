@@ -15,11 +15,11 @@ import type { DomainAgentProfile, MeetingExecutionOptions, RunInput, RuntimeConf
 import { MeetingRole as MR } from '@prisma/client';
 
 const ROLE_MODEL_HINTS: Partial<Record<MeetingRole, RuntimeConfig['llmProvider']>> = {
-  [MR.PM]: 'openai',
-  [MR.STRATEGIST]: 'openai',
-  [MR.CONTENT_DIRECTOR]: 'claude',
-  [MR.PERFORMANCE_MARKETER]: 'gemini',
-  [MR.OPERATIONS_MANAGER]: 'groq'
+  [MR.PM]: 'gemma4',
+  [MR.STRATEGIST]: 'gemma4',
+  [MR.CONTENT_DIRECTOR]: 'gemma4',
+  [MR.PERFORMANCE_MARKETER]: 'gemma4',
+  [MR.OPERATIONS_MANAGER]: 'gemma4'
 };
 
 type JsonDeliverable = {

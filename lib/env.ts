@@ -1,5 +1,5 @@
 export function getLLMProvider() {
-  return (process.env.LLM_PROVIDER || 'openai').toLowerCase();
+  return (process.env.LLM_PROVIDER || 'gemma4').toLowerCase();
 }
 
 export function getMissingEnvKeys() {
@@ -15,6 +15,8 @@ export function getMissingEnvKeys() {
     if (!process.env.ANTHROPIC_API_KEY) missing.push('ANTHROPIC_API_KEY');
   } else if (provider === 'openclaw') {
     // OpenClaw는 로컬 로그인 기반이므로 별도 API 키가 필수는 아님.
+  } else if (provider === 'gemma4') {
+    if (!process.env.GEMINI_API_KEY) missing.push('GEMINI_API_KEY');
   } else if (provider === 'gemini') {
     if (!process.env.GEMINI_API_KEY) missing.push('GEMINI_API_KEY');
     if (!process.env.GEMINI_MODEL) missing.push('GEMINI_MODEL');

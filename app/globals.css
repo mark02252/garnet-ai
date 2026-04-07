@@ -107,6 +107,59 @@ body {
   overflow-x: hidden;
 }
 
+/* Collapsible sidebar */
+.app-sidebar {
+  transition: width 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+.app-sidebar[data-collapsed='true'] {
+  width: 60px;
+}
+.app-sidebar[data-collapsed='false'] {
+  width: 200px;
+}
+.sidebar-label {
+  transition: opacity 150ms, transform 150ms;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.app-sidebar[data-collapsed='true'] .sidebar-label {
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+}
+.app-sidebar[data-collapsed='true']:hover {
+  width: 200px;
+  z-index: 30;
+  position: fixed;
+  box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+}
+.app-sidebar[data-collapsed='true']:hover .sidebar-label {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Mobile sidebar */
+@media (max-width: 1023px) {
+  .app-sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+    width: 200px !important;
+  }
+  .app-sidebar[data-mobile-open='true'] {
+    transform: translateX(0);
+  }
+  .sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 39;
+  }
+}
+
 .app-topbar {
   position: sticky;
   top: 0;

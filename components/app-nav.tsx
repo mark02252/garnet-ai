@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { type ReactNode } from 'react';
+import { useSidebarStore } from '@/lib/sidebar-store';
 
 type NavItem = {
   href: string;
@@ -316,17 +317,40 @@ function NavButton({ item, active }: { item: NavItem; active: boolean }) {
       {active && (
         <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-[var(--accent)] shadow-[0_0_6px_var(--accent-glow)]" />
       )}
-      <span className="shrink-0">{item.icon}</span>
-      <span className="truncate text-[13px] font-medium">{item.label}</span>
+      <span className="shrink-0" title={item.label}>{item.icon}</span>
+      <span className="sidebar-label truncate text-[13px] font-medium">{item.label}</span>
     </Link>
+  );
+}
+
+function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transform: collapsed ? 'rotate(180deg)' : undefined, transition: 'transform 200ms' }}
+    >
+      <path d="M15 18l-6-6 6-6" />
+    </svg>
   );
 }
 
 export function AppNav() {
   const pathname = usePathname();
+  const { collapsed, mobileOpen, toggle } = useSidebarStore();
 
   return (
-    <aside className="app-sidebar">
+    <aside
+      className="app-sidebar"
+      data-collapsed={collapsed}
+      data-mobile-open={mobileOpen}
+    >
       {/* Logo */}
       <Link
         href="/operations"
@@ -336,7 +360,7 @@ export function AppNav() {
         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--accent-soft)] border border-[var(--surface-border)] text-[12px] font-bold text-[var(--accent)]">
           ◈
         </span>
-        <span className="text-[13px] font-bold text-[var(--text-base)] tracking-[2px]">GARNET</span>
+        <span className="sidebar-label text-[13px] font-bold text-[var(--text-base)] tracking-[2px]">GARNET</span>
       </Link>
 
       {/* Grouped nav */}
@@ -344,7 +368,7 @@ export function AppNav() {
         {navGroups.map((group) => (
           <div key={group.label}>
             <p className="mb-1 px-2.5 text-[8px] font-semibold uppercase tracking-[2px] text-[var(--text-muted)]">
-              {group.label}
+              <span className="sidebar-label">{group.label}</span>
             </p>
             <div className="flex flex-col gap-0.5">
               {group.items.map((item) => (
@@ -361,6 +385,14 @@ export function AppNav() {
         {bottomItems.map((item) => (
           <NavButton key={item.href} item={item} active={isActivePath(pathname, item.href)} />
         ))}
+        <button
+          onClick={toggle}
+          title={collapsed ? '사이드바 펼치기' : '사이드바 접기'}
+          className="hidden lg:flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2.5 text-[var(--text-muted)] hover:bg-[var(--surface-sub)] hover:text-[var(--text-base)] transition-colors"
+        >
+          <span className="shrink-0"><CollapseIcon collapsed={collapsed} /></span>
+          <span className="sidebar-label truncate text-[13px] font-medium">접기</span>
+        </button>
       </div>
     </aside>
   );

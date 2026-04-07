@@ -36,8 +36,12 @@ export default function FlowListPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: '새 플로우' }),
       })
+      if (!res.ok) throw new Error(`API error: ${res.status}`)
       const data = await res.json()
+      if (!data?.id) throw new Error('응답에 id가 없습니다')
       router.push(`/flow/${data.id}`)
+    } catch (err) {
+      console.error('플로우 생성 실패:', err)
     } finally {
       setCreating(false)
     }

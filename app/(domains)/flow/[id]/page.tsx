@@ -28,7 +28,8 @@ export default function FlowEditorPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [runModalOpen, setRunModalOpen] = useState(false)
-  const { runId: completedRunId, isRunning } = useFlowRunStore(s => ({ runId: s.runId, isRunning: s.isRunning }))
+  const completedRunId = useFlowRunStore(s => s.runId)
+  const isRunning = useFlowRunStore(s => s.isRunning)
 
   const [loadError, setLoadError] = useState<string | null>(null)
 

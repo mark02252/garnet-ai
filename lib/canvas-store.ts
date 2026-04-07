@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { FlowNode, FlowEdge } from '@/lib/flow/types'
 
 // ── Data types for each panel kind ────────────────────────────────────────────
 export type GA4SummaryData    = { metric: string; value: number; wow: number }
@@ -6,6 +7,14 @@ export type SeminarStatusData = { sessionId: string; round: number; maxRounds: n
 export type IntelBriefData    = { trendCount: number; summary: string }
 export type VideoStatusData   = { jobId: string; progress: number; url?: string }
 export type ApprovalData      = { items: Array<{ id: string; label: string; type: string }> }
+export type FlowPreviewData   = {
+  nodes: FlowNode[]
+  edges: FlowEdge[]
+  summary: string
+  reasoning?: string
+  status: 'preview' | 'running' | 'complete' | 'error'
+  runId?: string
+}
 
 // ── Discriminated union ───────────────────────────────────────────────────────
 export type PanelData =
@@ -15,6 +24,7 @@ export type PanelData =
   | { type: 'video';    data: VideoStatusData }
   | { type: 'approval'; data: ApprovalData }
   | { type: 'generic';  data: { markdown: string } }
+  | { type: 'flow-preview'; data: FlowPreviewData }
 
 export type CanvasPanelStatus = 'loading' | 'active' | 'completed' | 'error'
 

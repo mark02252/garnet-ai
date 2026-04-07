@@ -5,6 +5,8 @@ import type { FlowNode } from '@/lib/flow/types'
 
 const createSchema = z.object({
   name: z.string().min(1).max(200).default('새 플로우'),
+  nodes: z.string().optional(),
+  edges: z.string().optional(),
 })
 
 export async function GET() {
@@ -32,8 +34,8 @@ export async function POST(req: Request) {
     const template = await prisma.flowTemplate.create({
       data: {
         name: body.name,
-        nodes: JSON.stringify(defaultNodes),
-        edges: JSON.stringify([]),
+        nodes: body.nodes ?? JSON.stringify(defaultNodes),
+        edges: body.edges ?? JSON.stringify([]),
       },
     })
     return NextResponse.json(template, { status: 201 })

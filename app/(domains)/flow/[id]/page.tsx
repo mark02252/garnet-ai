@@ -30,6 +30,7 @@ export default function FlowEditorPage() {
   const [runModalOpen, setRunModalOpen] = useState(false)
   const completedRunId = useFlowRunStore(s => s.runId)
   const isRunning = useFlowRunStore(s => s.isRunning)
+  const nodeStatuses = useFlowRunStore(s => s.nodeStatuses)
 
   const [loadError, setLoadError] = useState<string | null>(null)
 
@@ -105,6 +106,33 @@ export default function FlowEditorPage() {
           ▶ 실행
         </button>
       </div>
+
+      {/* Run status bar */}
+      {isRunning && (() => {
+        const statuses = Object.values(nodeStatuses)
+        const total = nodes.filter(n => n.type === 'agent' || n.type === 'tool').length
+        const done = statuses.filter(s => s === 'done').length
+        const errors = statuses.filter(s => s === 'error').length
+        const running = statuses.filter(s => s === 'running').length
+        const pct = total > 0 ? Math.round(((done + errors) / total) * 100) : 0
+        return (
+          <div className="flex items-center gap-3 border-b border-[var(--surface-border)] bg-[var(--surface-base)] px-4 py-2">
+            <span className="animate-spin text-[var(--accent)] text-xs">⟳</span>
+            <div className="flex-1">
+              <div className="flex items-center justify-between text-xs text-[var(--text-muted)] mb-1">
+                <span>실행 중 — {done}/{total} 노드 완료{running > 0 ? ` · ${running}개 처리 중` : ''}{errors > 0 ? ` · ${errors}개 오류` : ''}</span>
+                <span>{pct}%</span>
+              </div>
+              <div className="h-1 rounded-full bg-[var(--surface-border)] overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Body: palette | canvas | config */}
       <div className="flex flex-1 overflow-hidden">

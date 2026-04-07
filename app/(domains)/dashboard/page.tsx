@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
 import { LoadingSpinner } from '@/components/loading-spinner'
+import { Skeleton, SkeletonCard } from '@/components/skeleton'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ReachChart } from '@/components/dashboard/reach-chart'
 import { FollowerChart } from '@/components/dashboard/follower-chart'
@@ -165,16 +166,34 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="p-6">
-        <LoadingSpinner text="대시보드를 불러오는 중..." />
+      <div className="p-6 space-y-6 max-w-[1200px] mx-auto">
+        <div className="space-y-3">
+          <Skeleton className="h-6 w-48" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <SkeletonCard key={i} />
+          ))}
+        </div>
+        <SkeletonCard />
+        <div className="grid gap-6 lg:grid-cols-2">
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
       </div>
     )
   }
 
   if (error || !data) {
     return (
-      <div className="p-6">
-        <p className="text-sm text-rose-700">{error || '데이터를 불러오지 못했습니다.'}</p>
+      <div className="p-6 space-y-3">
+        <div className="error-note">
+          <strong>오류:</strong> {error || '데이터를 불러오지 못했습니다.'}
+        </div>
+        <button onClick={() => loadDashboard(days)} className="button-secondary text-sm">
+          다시 시도
+        </button>
       </div>
     )
   }

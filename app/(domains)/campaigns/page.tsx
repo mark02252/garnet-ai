@@ -43,7 +43,7 @@ export default async function CampaignsPage() {
           </div>
 
           <div className="soft-card">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">오늘 포인트</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">오늘 포인트</p>
             <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">
               승인 대기 항목과 최신 보고서 연결 상태만 먼저 확인해도 충분합니다.
             </p>
@@ -108,7 +108,7 @@ export default async function CampaignsPage() {
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusTone(room.status)}`}>
+                          <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${statusTone(room.status)}`}>
                             {room.statusLabel}
                           </span>
                           <span className="pill-option">{room.brand}</span>
@@ -119,7 +119,7 @@ export default async function CampaignsPage() {
                         <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--text-base)]">{room.summary}</p>
                       </div>
                       <div className="soft-panel text-right">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Latest Update</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--text-muted)]">Latest Update</p>
                         <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">{room.latestActivityLabel}</p>
                       </div>
                     </div>

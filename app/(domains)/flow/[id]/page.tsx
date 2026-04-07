@@ -31,6 +31,7 @@ export default function FlowEditorPage() {
   const [name, setName] = useState('')
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const [runModalOpen, setRunModalOpen] = useState(false)
   const completedRunId = useFlowRunStore(s => s.runId)
   const isRunning = useFlowRunStore(s => s.isRunning)
@@ -59,6 +60,7 @@ export default function FlowEditorPage() {
 
   const save = useCallback(async (overrideNodes?: FlowNode[], overrideEdges?: FlowEdge[]) => {
     setSaving(true)
+    setSaveStatus('saving')
     try {
       await fetch(`/api/flow-templates/${id}`, {
         method: 'PATCH',
@@ -69,6 +71,8 @@ export default function FlowEditorPage() {
           edges: JSON.stringify(overrideEdges ?? edges),
         }),
       })
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
     } finally {
       setSaving(false)
     }
@@ -81,7 +85,12 @@ export default function FlowEditorPage() {
   }, [])
 
   if (loadError) {
-    return <div className="flex h-full items-center justify-center text-sm text-red-400">{loadError}</div>
+    return (
+      <div className="flex h-full items-center justify-center flex-col gap-3">
+        <p className="text-sm text-[var(--status-failed)]">{loadError}</p>
+        <a href="/flow" className="button-secondary text-sm">← 플로우 목록으로</a>
+      </div>
+    )
   }
 
   if (!template) {
@@ -100,9 +109,9 @@ export default function FlowEditorPage() {
         <button
           onClick={() => save()}
           disabled={saving}
-          className="rounded-lg border border-[var(--surface-border)] px-3 py-1.5 text-xs text-[var(--text-secondary)] hover:border-[var(--accent)] disabled:opacity-50"
+          className="rounded-lg border border-[var(--surface-border)] px-3 py-1.5 text-sm text-[var(--text-secondary)] hover:border-[var(--accent)] disabled:opacity-50"
         >
-          {saving ? '저장 중…' : '저장'}
+          {saveStatus === 'saving' ? '저장 중...' : saveStatus === 'saved' ? '✓ 저장됨' : '저장'}
         </button>
         <button
           onClick={() => setRunModalOpen(true)}

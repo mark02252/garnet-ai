@@ -1,6 +1,9 @@
 import { parseIntent } from '@/lib/agent-intent';
 import { fetchGA4Data, fetchSeminarData, fetchIntelData, fetchVideoData, fetchApprovalData } from '@/lib/agent-panel-data';
 import { runLLM } from '@/lib/llm';
+import { generateFlowBlueprint } from '@/lib/flow/architect'
+import { matchFlowTemplate } from '@/lib/flow/template-matcher'
+import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -66,6 +69,60 @@ async function processCommand(text: string, controller: ReadableStreamDefaultCon
       position: { x: 80, y: 80 }, size: { width: 480, height: 340 },
       data: { markdown: reply }
     });
+    send(controller, 'done', {});
+    return;
+  }
+
+  // Flow: create
+  if (action.type === 'flow-create') {
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '에이전트 파이프라인을 설계하는 중...', status: 'running' } });
+    try {
+      const blueprint = await generateFlowBlueprint(action.projectDescription);
+      const agentCount = blueprint.nodes.filter(n => n.type === 'agent').length;
+      send(controller, 'step', { entryId: serverEntryId, step: { text: `에이전트 ${agentCount}개로 구성된 플로우를 설계했습니다.`, status: 'done' } });
+      send(controller, 'flow-preview', {
+        nodes: blueprint.nodes,
+        edges: blueprint.edges,
+        summary: blueprint.summary,
+        reasoning: blueprint.reasoning,
+      });
+    } catch (err) {
+      send(controller, 'step', { entryId: serverEntryId, step: { text: err instanceof Error ? err.message : '플로우 설계 실패', status: 'error' } });
+    }
+    send(controller, 'done', {});
+    return;
+  }
+
+  // Flow: run
+  if (action.type === 'flow-run') {
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '플로우를 찾는 중...', status: 'running' } });
+    const templates = await prisma.flowTemplate.findMany({
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+      select: { id: true, name: true, nodes: true },
+    });
+    const match = await matchFlowTemplate(action.userInput, templates);
+    if (!match) {
+      send(controller, 'step', { entryId: serverEntryId, step: { text: '매칭되는 플로우가 없습니다. 새로 만들까요?', status: 'done' } });
+      send(controller, 'panel', {
+        type: 'generic', title: '플로우 없음', status: 'active',
+        position: { x: 80, y: 80 }, size: { width: 400, height: 200 },
+        data: { markdown: `매칭되는 플로우가 없습니다.\n\n"플로우 만들어줘"로 새로 생성할 수 있습니다.` }
+      });
+      send(controller, 'done', {});
+      return;
+    }
+    send(controller, 'step', { entryId: serverEntryId, step: { text: `'${match.templateName}' 플로우를 찾았습니다.`, status: 'done' } });
+    send(controller, 'navigate', { url: `/flow/${match.templateId}` });
+    send(controller, 'done', {});
+    return;
+  }
+
+  // Flow: list
+  if (action.type === 'flow-list') {
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '플로우 목록 로드 중...', status: 'running' } });
+    send(controller, 'step', { entryId: serverEntryId, step: { text: '완료', status: 'done' } });
+    send(controller, 'navigate', { url: '/flow' });
     send(controller, 'done', {});
     return;
   }

@@ -23,7 +23,15 @@ export async function GET(
     const { id } = await params
     const template = await prisma.flowTemplate.findUnique({ where: { id } })
     if (!template) return NextResponse.json({ error: '템플릿을 찾을 수 없습니다.' }, { status: 404 })
-    return NextResponse.json(template)
+
+    const recentRuns = await prisma.run.findMany({
+      where: { flowTemplateId: id },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+      select: { id: true, topic: true, createdAt: true },
+    })
+
+    return NextResponse.json({ ...template, recentRuns })
   } catch (error) {
     console.error('[flow-templates] GET by id error:', error)
     return NextResponse.json(

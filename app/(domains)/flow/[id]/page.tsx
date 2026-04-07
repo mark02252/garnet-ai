@@ -12,16 +12,20 @@ const NodePalette = dynamic(() => import('./components/NodePalette'), { ssr: fal
 const NodeConfigPanel = dynamic(() => import('./components/NodeConfigPanel'), { ssr: false })
 const RunModal = dynamic(() => import('./components/RunModal'), { ssr: false })
 
+type RecentRun = { id: string; topic: string; createdAt: string }
+
 type Template = {
   id: string
   name: string
   nodes: string
   edges: string
+  recentRuns?: RecentRun[]
 }
 
 export default function FlowEditorPage() {
   const { id } = useParams<{ id: string }>()
   const [template, setTemplate] = useState<Template | null>(null)
+  const [recentRuns, setRecentRuns] = useState<RecentRun[]>([])
   const [nodes, setNodes] = useState<FlowNode[]>([])
   const [edges, setEdges] = useState<FlowEdge[]>([])
   const [name, setName] = useState('')
@@ -45,6 +49,7 @@ export default function FlowEditorPage() {
         setName(t.name)
         setNodes(JSON.parse(t.nodes))
         setEdges(JSON.parse(t.edges))
+        setRecentRuns(t.recentRuns ?? [])
       })
       .catch((err) => {
         console.error('[flow-editor] load error:', err)
@@ -154,6 +159,7 @@ export default function FlowEditorPage() {
         <NodeConfigPanel
           node={selectedNode}
           onUpdate={updateNode}
+          recentRuns={recentRuns}
         />
       </div>
 

@@ -23,22 +23,24 @@ enum DeliverableType {
 }
 
 model Run {
-  id           String       @id @default(uuid())
-  topic        String
-  brand        String?
-  region       String?
-  goal         String?
-  createdAt    DateTime     @default(now())
-  webSources   WebSource[]
-  meetingTurns MeetingTurn[]
-  attachments  RunAttachment[]
-  deliverable  Deliverable?
-  memoryLog    MemoryLog?
+  id              String       @id @default(uuid())
+  topic           String
+  brand           String?
+  region          String?
+  goal            String?
+  flowTemplateId  String?
+  createdAt       DateTime     @default(now())
+  webSources      WebSource[]
+  meetingTurns    MeetingTurn[]
+  attachments     RunAttachment[]
+  deliverable     Deliverable?
+  memoryLog       MemoryLog?
   learningArchives LearningArchive[]
-  runProgress  RunProgress?
+  runProgress     RunProgress?
 
   @@index([createdAt])
   @@index([topic])
+  @@index([flowTemplateId, createdAt])
   @@index([brand])
 }
 

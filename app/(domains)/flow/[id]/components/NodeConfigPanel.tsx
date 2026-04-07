@@ -2,18 +2,45 @@
 
 import type { FlowNode, AgentNode } from '@/lib/flow/types'
 
+type RecentRun = { id: string; topic: string; createdAt: string }
+
 type Props = {
   node: FlowNode | null
   onUpdate: (nodeId: string, data: Partial<FlowNode['data']>) => void
+  recentRuns?: RecentRun[]
 }
 
 const MODEL_OPTIONS: AgentNode['data']['model'][] = ['gemma4', 'claude', 'gemini', 'gpt', 'groq']
 
-export default function NodeConfigPanel({ node, onUpdate }: Props) {
+function formatRunDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+
+export default function NodeConfigPanel({ node, onUpdate, recentRuns = [] }: Props) {
   if (!node) {
     return (
-      <div className="flex w-56 items-center justify-center border-l border-[var(--surface-border)] bg-[var(--surface-base)] text-xs text-[var(--text-muted)]">
-        노드를 선택하세요
+      <div className="flex w-56 flex-col border-l border-[var(--surface-border)] bg-[var(--surface-base)] overflow-y-auto">
+        {recentRuns.length > 0 ? (
+          <div className="p-3">
+            <p className="mb-2 text-[9px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">최근 실행</p>
+            <div className="flex flex-col gap-1.5">
+              {recentRuns.map(run => (
+                <a
+                  key={run.id}
+                  href={`/runs/${run.id}/report`}
+                  className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-raised)] px-2.5 py-2 hover:border-[var(--accent)] transition-colors block"
+                >
+                  <p className="text-xs text-[var(--text-primary)] truncate">{run.topic}</p>
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">{formatRunDate(run.createdAt)}</p>
+                </a>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-1 items-center justify-center text-xs text-[var(--text-muted)]">
+            노드를 선택하세요
+          </div>
+        )}
       </div>
     )
   }

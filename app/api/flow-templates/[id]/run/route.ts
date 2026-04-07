@@ -52,6 +52,7 @@ export async function POST(
               brand: runInput.brand ?? null,
               region: runInput.region ?? null,
               goal: runInput.goal ?? null,
+              flowTemplateId: templateId,
             },
           })
 

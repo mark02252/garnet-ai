@@ -247,7 +247,7 @@ const navGroups: NavGroup[] = [
   {
     label: '캠페인',
     items: [
-      { href: '/', label: '캠페인 스튜디오', icon: <StudioIcon /> },
+      { href: '/shell', label: '에이전트 셸', icon: <StudioIcon /> },
       { href: '/campaigns', label: '캠페인 룸', icon: <CampaignIcon /> },
     ],
   },

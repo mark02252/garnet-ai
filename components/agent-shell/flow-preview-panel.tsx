@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { kahnSort } from '@/lib/flow/graph'
 import { useFlowRunStore } from '@/lib/flow/run-store'
-import type { FlowNode, FlowEdge, NodeStatus } from '@/lib/flow/types'
+import type { FlowNode, FlowEdge, FlowRunEvent, NodeStatus } from '@/lib/flow/types'
 import type { FlowPreviewData } from '@/lib/canvas-store'
 
 type Props = {
@@ -140,6 +140,9 @@ export default function FlowPreviewPanel({ data, onClose }: Props) {
 
   async function handleExecute() {
     setSaving(true)
+    const { startRun, setNodeStatus, setNodeOutput, finishRun, resetRun } = useFlowRunStore.getState()
+    resetRun()
+
     try {
       // Save template
       const res = await fetch('/api/flow-templates', {
@@ -152,8 +155,48 @@ export default function FlowPreviewPanel({ data, onClose }: Props) {
         }),
       })
       const template = await res.json()
-      // Navigate to editor and trigger run
-      router.push(`/flow/${template.id}`)
+      if (!template?.id) return
+
+      // Extract topic from StartNode
+      const startNode = data.nodes.find(n => n.type === 'start')
+      const topic = (startNode?.data as { topic?: string })?.topic || data.summary || '자동 실행'
+
+      // Start SSE run directly — no RunModal needed
+      const runRes = await fetch(`/api/flow-templates/${template.id}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ topic }),
+      })
+
+      if (!runRes.ok || !runRes.body) return
+
+      const reader = runRes.body.getReader()
+      const decoder = new TextDecoder()
+      let buffer = ''
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+
+        const lines = buffer.split('\n')
+        buffer = lines.pop() ?? ''
+
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue
+          try {
+            const event: FlowRunEvent = JSON.parse(line.slice(6))
+            if (event.type === 'run-start') startRun(event.runId)
+            else if (event.type === 'node-start') setNodeStatus(event.nodeId, 'running')
+            else if (event.type === 'node-done') { setNodeStatus(event.nodeId, 'done'); setNodeOutput(event.nodeId, event.output) }
+            else if (event.type === 'node-error') setNodeStatus(event.nodeId, 'error')
+            else if (event.type === 'flow-complete') finishRun()
+            else if (event.type === 'flow-error') resetRun()
+          } catch { /* skip */ }
+        }
+      }
+    } catch (err) {
+      console.error('Flow execution error:', err)
     } finally {
       setSaving(false)
     }

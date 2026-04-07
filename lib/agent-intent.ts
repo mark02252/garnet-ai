@@ -4,7 +4,7 @@ export type IntentAction =
   | { type: 'panel';    panelType: 'ga4' | 'seminar' | 'intel' | 'video' | 'approval' | 'generic'; title: string }
   | { type: 'navigate'; url: string }
   | { type: 'text';     content: string }
-  | { type: 'flow-create';   projectDescription: string }
+  | { type: 'flow-create';   projectDescription: string; autoRun?: boolean }
   | { type: 'flow-run';      userInput: string }
   | { type: 'flow-list' }
   | { type: 'flow-converse';  question: string };

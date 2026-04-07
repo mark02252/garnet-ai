@@ -42,7 +42,7 @@ function parseArchitectResponse(raw: string): ArchitectResponse | null {
   }
 }
 
-function buildGraph(response: ArchitectResponse): { nodes: FlowNode[]; edges: FlowEdge[] } {
+function buildGraph(response: ArchitectResponse, projectDescription: string): { nodes: FlowNode[]; edges: FlowEdge[] } {
   const nodes: FlowNode[] = []
   const edges: FlowEdge[] = []
 
@@ -50,7 +50,7 @@ function buildGraph(response: ArchitectResponse): { nodes: FlowNode[]; edges: Fl
   const startNode: StartNode = {
     type: 'start', id: 'start-1',
     position: { x: 0, y: 0 },
-    data: { topic: '' }
+    data: { topic: projectDescription }
   }
   nodes.push(startNode)
 
@@ -185,7 +185,7 @@ export async function generateFlowBlueprint(
       continue
     }
 
-    const { nodes, edges } = buildGraph(parsed)
+    const { nodes, edges } = buildGraph(parsed, projectDescription)
     const repairedEdges = repairGraph(nodes, edges)
     const validationError = validateFlow(nodes, repairedEdges)
 

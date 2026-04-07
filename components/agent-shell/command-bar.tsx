@@ -238,5 +238,19 @@ function handleSSEEvent(
       router.push(d.url);
       break;
     }
+    case 'flow-preview': {
+      const d = event.data as { nodes: unknown[]; edges: unknown[]; summary: string; reasoning?: string };
+      const pos = getNextPanelPosition(panels, 800);
+      const panelId = spawnPanel({
+        type: 'flow-preview' as never,
+        title: '\ud50c\ub85c\uc6b0 \ubbf8\ub9ac\ubcf4\uae30',
+        status: 'active',
+        position: pos,
+        size: { width: 520, height: 400 },
+        data: { nodes: d.nodes, edges: d.edges, summary: d.summary, reasoning: d.reasoning, status: 'preview' } as never,
+      });
+      setEntryStatus(entryId, 'done', panelId);
+      break;
+    }
   }
 }

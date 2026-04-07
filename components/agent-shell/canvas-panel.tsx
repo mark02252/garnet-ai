@@ -8,6 +8,7 @@ import { SeminarStatusPanel } from '@/components/panels/seminar-status-panel';
 import { IntelBriefPanel } from '@/components/panels/intel-brief-panel';
 import { VideoStatusPanel } from '@/components/panels/video-status-panel';
 import { ApprovalPanel } from '@/components/panels/approval-panel';
+import FlowPreviewPanel from './flow-preview-panel';
 
 const panelVariants = {
   hidden:  { opacity: 0, scale: 0.92, y: 8 },
@@ -148,6 +149,7 @@ function TypedPanelContent({ panel }: { panel: CanvasPanelType }) {
     case 'intel':    return <IntelBriefPanel data={panel.data} />;
     case 'video':    return <VideoStatusPanel data={panel.data} />;
     case 'approval': return <ApprovalPanel data={panel.data} />;
+    case 'flow-preview': return <FlowPreviewPanel data={panel.data} onClose={() => useCanvasStore.getState().removePanel(panel.id)} />;
     default:         return null;
   }
 }

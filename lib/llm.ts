@@ -418,12 +418,15 @@ async function callGeminiCompatibleApi(
   temperature: number,
   maxTokens: number
 ): Promise<string> {
+  // Gemma4: prepend <|think|> token to enable thinking separation (thought parts get filtered out)
+  const effectiveSystemPrompt = provider === 'gemma4' ? `<|think|>\n${systemPrompt}` : systemPrompt;
+
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
+      systemInstruction: { parts: [{ text: effectiveSystemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       generationConfig: { temperature, maxOutputTokens: maxTokens }
     })
@@ -435,10 +438,11 @@ async function callGeminiCompatibleApi(
   }
 
   const data = (await response.json()) as {
-    candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
   };
   const text = (data.candidates || [])
     .flatMap((candidate) => candidate.content?.parts || [])
+    .filter((part) => !part.thought)  // Filter out thinking parts for Gemma4
     .map((part) => part.text || '')
     .join('\n')
     .trim();
@@ -869,12 +873,14 @@ async function* streamGeminiCompatibleApi(
   temperature: number,
   maxTokens: number
 ): AsyncGenerator<string> {
+  const effectiveSystemPrompt = provider === 'gemma4' ? `<|think|>\n${systemPrompt}` : systemPrompt;
+
   const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
+      systemInstruction: { parts: [{ text: effectiveSystemPrompt }] },
       contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
       generationConfig: { temperature, maxOutputTokens: maxTokens }
     })
@@ -905,10 +911,11 @@ async function* streamGeminiCompatibleApi(
       if (!jsonStr || jsonStr === '[DONE]') continue;
       try {
         const parsed = JSON.parse(jsonStr) as {
-          candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+          candidates?: Array<{ content?: { parts?: Array<{ text?: string; thought?: boolean }> } }>;
         };
-        const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) yield text;
+        // Filter out thinking parts for Gemma4
+        const part = parsed.candidates?.[0]?.content?.parts?.find(p => !p.thought);
+        if (part?.text) yield part.text;
       } catch { /* skip */ }
     }
   }

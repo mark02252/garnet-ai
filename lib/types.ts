@@ -90,7 +90,7 @@ export type RunInput = {
 
 export type RuntimeConfig = {
   runProfile?: 'manual' | 'free';
-  llmProvider?: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude';
+  llmProvider?: 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude' | 'gemma4';
   openaiApiKey?: string;
   openaiModel?: string;
   geminiApiKey?: string;
@@ -101,6 +101,7 @@ export type RuntimeConfig = {
   localModel?: string;
   localApiKey?: string;
   openclawAgent?: string;
+  gemma4Model?: string;
   anthropicApiKey?: string;
   anthropicModel?: string;
   searchApiKey?: string;

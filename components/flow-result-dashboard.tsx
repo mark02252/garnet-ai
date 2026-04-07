@@ -6,6 +6,7 @@ type FlowResultProps = {
   region?: string | null
   goal?: string | null
   createdAt: Date | string
+  formattedDate?: string
   rawOutputs: Record<string, string>
   nodeNames?: Record<string, string>
 }
@@ -116,12 +117,8 @@ function SimpleMarkdown({ text }: { text: string }) {
   return <>{elements}</>
 }
 
-export function FlowResultDashboard({ topic, brand, region, goal, createdAt, rawOutputs, nodeNames }: FlowResultProps) {
+export function FlowResultDashboard({ topic, brand, region, goal, formattedDate, rawOutputs, nodeNames }: FlowResultProps) {
   const entries = Object.entries(rawOutputs)
-  const dateStr = new Date(createdAt).toLocaleDateString('ko-KR', {
-    year: 'numeric', month: 'long', day: 'numeric',
-    hour: '2-digit', minute: '2-digit'
-  })
 
   return (
     <div className="space-y-6">
@@ -132,7 +129,7 @@ export function FlowResultDashboard({ topic, brand, region, goal, createdAt, raw
         <p className="mt-1 text-xs text-[var(--text-muted)]">
           {[brand, region, goal].filter(Boolean).join(' · ')}
           {brand || region || goal ? ' · ' : ''}
-          {dateStr}
+          {formattedDate}
         </p>
       </div>
 

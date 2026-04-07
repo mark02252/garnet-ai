@@ -54,7 +54,7 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
           brand={run.brand}
           region={run.region}
           goal={run.goal}
-          createdAt={run.createdAt}
+          formattedDate={run.createdAt.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           rawOutputs={flowOutputs}
           nodeNames={flowNodeNames}
         />

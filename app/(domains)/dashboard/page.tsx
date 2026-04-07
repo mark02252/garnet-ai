@@ -369,7 +369,7 @@ export default function DashboardPage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {data.kpiGoals.map((kpi, i) => {
             const pct = kpi.targetValue > 0 ? Math.round((kpi.currentValue / kpi.targetValue) * 100) : 0
-            const borderColors = ['#00d4ff', '#0066ff', '#ffaa00', '#00ff88']
+            const borderColors = ['#00BFA6', '#0066ff', '#ffaa00', '#00ff88']
             const borderColor = borderColors[i % borderColors.length]
             return (
               <div key={kpi.id} className="metric-card" style={{ borderTop: `4px solid ${borderColor}` }}>
@@ -416,7 +416,7 @@ export default function DashboardPage() {
               <p className="metric-value">{totalComments.toLocaleString()}</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">상위 게시물 기준</p>
             </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #00d4ff' }}>
+            <div className="metric-card" style={{ borderTop: '4px solid #00BFA6' }}>
               <p className="metric-label">게시 빈도</p>
               <p className="metric-value">이번 달 {postCount}개</p>
               <p className="mt-1 text-xs text-[var(--text-muted)]">분석된 게시물 수</p>
@@ -437,7 +437,7 @@ export default function DashboardPage() {
           IMAGE: '이미지', VIDEO: '비디오', CAROUSEL_ALBUM: '캐러셀', UNKNOWN: '기타',
         }
         const typeColors: Record<string, string> = {
-          IMAGE: '#00d4ff', VIDEO: '#0066ff', CAROUSEL_ALBUM: '#ffaa00', UNKNOWN: '#3a6080',
+          IMAGE: '#00BFA6', VIDEO: '#0066ff', CAROUSEL_ALBUM: '#ffaa00', UNKNOWN: '#3a6080',
         }
         return (
           <div className="soft-card">

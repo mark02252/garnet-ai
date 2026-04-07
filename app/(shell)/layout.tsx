@@ -32,7 +32,7 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
       >
         <span style={{ fontSize: 32 }}>◈</span>
         <p>Agent Shell은 데스크탑(1024px+)에서 사용하세요.</p>
-        <a href="/operations" style={{ color: '#00d4ff', textDecoration: 'none' }}>
+        <a href="/operations" style={{ color: '#00BFA6', textDecoration: 'none' }}>
           → 기존 화면으로 이동
         </a>
       </div>

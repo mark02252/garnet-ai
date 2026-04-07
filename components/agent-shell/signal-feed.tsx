@@ -119,7 +119,7 @@ export function SignalFeed() {
             zIndex: 50,
             background: 'rgba(0,12,28,0.92)',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(0,212,255,0.2)',
+            border: '1px solid rgba(0,191,166,0.2)',
             borderRadius: 8,
             overflow: 'hidden',
             display: 'flex',
@@ -137,7 +137,7 @@ export function SignalFeed() {
               alignItems: 'center',
               justifyContent: 'space-between',
               padding: '0 12px',
-              borderBottom: '1px solid rgba(0,212,255,0.1)',
+              borderBottom: '1px solid rgba(0,191,166,0.1)',
             }}
           >
             {/* Header scan-line — 36px height, 6s loop */}
@@ -148,7 +148,7 @@ export function SignalFeed() {
                 left: 0,
                 right: 0,
                 height: 2,
-                background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent)',
+                background: 'linear-gradient(90deg, transparent, rgba(0,191,166,0.4), transparent)',
                 pointerEvents: 'none',
                 '--scan-height': '36px',
                 '--scan-duration': '6s',

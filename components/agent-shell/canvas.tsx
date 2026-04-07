@@ -27,7 +27,7 @@ function ArcReactorIdle() {
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            border: '1px solid rgba(0,212,255,0.15)',
+            border: '1px solid rgba(0,191,166,0.15)',
           }}
         />
         {/* Middle ring */}
@@ -36,8 +36,8 @@ function ArcReactorIdle() {
             position: 'absolute',
             inset: 16,
             borderRadius: '50%',
-            border: '1px solid rgba(0,212,255,0.3)',
-            boxShadow: '0 0 12px rgba(0,212,255,0.2)',
+            border: '1px solid rgba(0,191,166,0.3)',
+            boxShadow: '0 0 12px rgba(0,191,166,0.2)',
           }}
         />
         {/* Inner ring */}
@@ -46,8 +46,8 @@ function ArcReactorIdle() {
             position: 'absolute',
             inset: 32,
             borderRadius: '50%',
-            border: '1px solid rgba(0,212,255,0.5)',
-            boxShadow: '0 0 8px rgba(0,212,255,0.4), inset 0 0 8px rgba(0,212,255,0.2)',
+            border: '1px solid rgba(0,191,166,0.5)',
+            boxShadow: '0 0 8px rgba(0,191,166,0.4), inset 0 0 8px rgba(0,191,166,0.2)',
           }}
         />
         {/* Center dot */}
@@ -60,8 +60,8 @@ function ArcReactorIdle() {
             width: 8,
             height: 8,
             borderRadius: '50%',
-            background: '#00d4ff',
-            boxShadow: '0 0 12px #00d4ff',
+            background: '#00BFA6',
+            boxShadow: '0 0 12px #00BFA6',
           }}
         />
       </div>
@@ -119,7 +119,7 @@ export function Canvas() {
             cy="50%"
             r="42%"
             fill="none"
-            stroke="rgba(0,212,255,0.06)"
+            stroke="rgba(0,191,166,0.06)"
             strokeWidth="1"
           />
         </g>
@@ -129,7 +129,7 @@ export function Canvas() {
             cy="50%"
             r="27%"
             fill="none"
-            stroke="rgba(0,212,255,0.04)"
+            stroke="rgba(0,191,166,0.04)"
             strokeWidth="0.5"
           />
         </g>

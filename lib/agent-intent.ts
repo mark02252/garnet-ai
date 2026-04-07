@@ -3,7 +3,11 @@
 export type IntentAction =
   | { type: 'panel';    panelType: 'ga4' | 'seminar' | 'intel' | 'video' | 'approval' | 'generic'; title: string }
   | { type: 'navigate'; url: string }
-  | { type: 'text';     content: string };
+  | { type: 'text';     content: string }
+  | { type: 'flow-create';   projectDescription: string }
+  | { type: 'flow-run';      userInput: string }
+  | { type: 'flow-list' }
+  | { type: 'flow-converse';  question: string };
 
 export interface ParsedIntent {
   action: IntentAction;
@@ -29,11 +33,24 @@ const INTENT_SYSTEM_PROMPT = `
 
 3. text — 패널이나 네비게이션 없이 텍스트 답변만 할 때
 
+4. flow-create — 플로우를 새로 만들거나 에이전트 팀을 구성해야 할 때
+   projectDescription: 프로젝트 설명 텍스트
+
+5. flow-run — 기존 플로우를 실행해야 할 때
+   userInput: 사용자 입력 원문
+
+6. flow-list — 저장된 플로우 목록을 보여줘야 할 때
+
+7. flow-converse — 플로우 생성을 위해 추가 정보가 필요할 때
+   question: 사용자에게 물어볼 질문
+
 응답 형식 (JSON only):
 {
   "action": { "type": "panel", "panelType": "ga4", "title": "GA4 트래픽 현황" },
   "reasoning": "사용자가 트래픽 현황을 요청했습니다"
 }
+또는:
+{ "action": { "type": "flow-create", "projectDescription": "카페 창업 마케팅" }, "reasoning": "플로우 생성 요청" }
 `;
 
 export async function parseIntent(command: string): Promise<ParsedIntent> {
@@ -93,6 +110,18 @@ function safeParseIntent(raw: string): ParsedIntent | null {
     if (t === 'text') {
       return { action: { type: 'text', content: obj.action.content ?? '' }, reasoning: obj.reasoning ?? '' };
     }
+    if (t === 'flow-create') {
+      return { action: { type: 'flow-create', projectDescription: (obj.action as Record<string, string>).projectDescription ?? '' }, reasoning: obj.reasoning ?? '' }
+    }
+    if (t === 'flow-run') {
+      return { action: { type: 'flow-run', userInput: (obj.action as Record<string, string>).userInput ?? '' }, reasoning: obj.reasoning ?? '' }
+    }
+    if (t === 'flow-list') {
+      return { action: { type: 'flow-list' }, reasoning: obj.reasoning ?? '' }
+    }
+    if (t === 'flow-converse') {
+      return { action: { type: 'flow-converse', question: (obj.action as Record<string, string>).question ?? '' }, reasoning: obj.reasoning ?? '' }
+    }
     return null;
   } catch { return null; }
 }
@@ -108,5 +137,8 @@ function keywordFallback(command: string): ParsedIntent {
   if (/트렌드|인텔|intel/.test(lower)) return { action: { type: 'panel', panelType: 'intel',    title: '마케팅 인텔리전스' }, reasoning: '인텔 키워드' };
   if (/영상|비디오|video/.test(lower)) return { action: { type: 'panel', panelType: 'video',    title: '영상 생성 현황' },   reasoning: '영상 키워드' };
   if (/승인|결재|approval/.test(lower)) return { action: { type: 'panel', panelType: 'approval', title: '승인 대기 항목' },  reasoning: '승인 키워드' };
+  if (/플로우.*(만들|생성|구성|설계)|에이전트.*팀/.test(lower)) return { action: { type: 'flow-create', projectDescription: command }, reasoning: '플로우 생성 키워드' };
+  if (/플로우.*(실행|돌려|돌리|시작|run)/.test(lower)) return { action: { type: 'flow-run', userInput: command }, reasoning: '플로우 실행 키워드' };
+  if (/플로우.*(목록|리스트|저장|보여|list)/.test(lower)) return { action: { type: 'flow-list' }, reasoning: '플로우 목록 키워드' };
   return { action: { type: 'panel', panelType: 'generic', title: '응답' }, reasoning: '기본 generic' };
 }

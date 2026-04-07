@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { PageTransition } from '@/components/page-transition';
 import { CopyButton } from '@/components/copy-button';
 import { SeminarReportDashboard } from '@/components/seminar-report-dashboard';
 import type { StructuredSeminarFinalReport } from '@/lib/report-visuals';
@@ -419,6 +420,7 @@ export default function SeminarPage() {
   }
 
   return (
+    <PageTransition>
     <div className="space-y-5">
       <section className="dashboard-hero">
         <p className="dashboard-eyebrow">Seminar</p>
@@ -809,5 +811,6 @@ export default function SeminarPage() {
         </section>
       )}
     </div>
+    </PageTransition>
   );
 }

@@ -13,8 +13,8 @@ type Props = {
 }
 
 const STATUS_COLOR: Record<NodeStatus | 'idle', string> = {
-  idle: '#4a6a7a',
-  running: '#00d4ff',
+  idle: '#4a7a8a',
+  running: '#22d3ee',
   done: '#22c55e',
   error: '#ef4444',
 }
@@ -250,7 +250,7 @@ export default function FlowPreviewPanel({ data, onClose }: Props) {
             disabled={saving}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 6,
-              background: '#00d4ff', color: '#000', border: 'none',
+              background: 'var(--accent)', color: '#00201a', border: 'none',
               fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.5 : 1,
             }}
           >
@@ -284,7 +284,7 @@ export default function FlowPreviewPanel({ data, onClose }: Props) {
         <div style={{ padding: '0 8px' }}>
           <a
             href={`/runs/${completedRunId}/report`}
-            style={{ fontSize: 11, color: '#00d4ff', textDecoration: 'underline' }}
+            style={{ fontSize: 11, color: '#00BFA6', textDecoration: 'underline' }}
           >
             결과 보기 →
           </a>

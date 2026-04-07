@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PageTransition } from '@/components/page-transition';
 import { ApprovalActionList } from '@/components/approval-action-list';
 import { PageSectionTabs } from '@/components/page-section-tabs';
 import { CreateCampaignRoomDialog } from '@/components/create-campaign-room-dialog';
@@ -22,6 +23,7 @@ export default async function CampaignsPage() {
       : 0;
 
   return (
+    <PageTransition>
     <div className="space-y-5">
       {/* ── Hero ── */}
       <section className="dashboard-hero">
@@ -241,5 +243,6 @@ export default async function CampaignsPage() {
         </aside>
       </div>
     </div>
+    </PageTransition>
   );
 }

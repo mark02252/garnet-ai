@@ -69,7 +69,7 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
             left: 0,
             right: 0,
             height: 2,
-            background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.8), transparent)',
+            background: 'linear-gradient(90deg, transparent, rgba(0,191,166,0.8), transparent)',
             pointerEvents: 'none',
             zIndex: 11,
           }}
@@ -84,7 +84,7 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
           {/* Panel header */}
           <div
             className="flex items-center justify-between px-3 py-2 cursor-move"
-            style={{ borderBottom: '1px solid rgba(0,212,255,0.1)', flexShrink: 0 }}
+            style={{ borderBottom: '1px solid rgba(0,191,166,0.1)', flexShrink: 0 }}
           >
             <div className="flex items-center gap-2">
               {(panel.status === 'loading' || panel.status === 'active') && (

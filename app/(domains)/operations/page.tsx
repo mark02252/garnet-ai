@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PageTransition } from '@/components/page-transition';
 import { ApprovalActionList } from '@/components/approval-action-list';
 import { CollapsibleSection } from '@/components/collapsible-section';
 import { NotionPublishButton } from '@/components/notion-publish-button';
@@ -397,6 +398,7 @@ export default async function OperationsPage() {
     .join('\n');
 
   return (
+    <PageTransition>
     <div className="space-y-5">
       {/* ── Hero ── */}
       <section className="dashboard-hero">
@@ -771,5 +773,6 @@ export default async function OperationsPage() {
         <RecommendationsPanel />
       </section>
     </div>
+    </PageTransition>
   );
 }

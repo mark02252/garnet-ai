@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { PageTransition } from '@/components/page-transition'
 
 type FlowTemplateListItem = {
   id: string
@@ -57,6 +58,7 @@ export default function FlowListPage() {
   }
 
   return (
+    <PageTransition>
     <div className="flex flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <div>
@@ -105,5 +107,6 @@ export default function FlowListPage() {
         </div>
       )}
     </div>
+    </PageTransition>
   )
 }

@@ -7,7 +7,7 @@ import type { RuntimeConfig } from '@/lib/types';
 
 const execFileAsync = promisify(execFile);
 
-type LlmProvider = 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude';
+type LlmProvider = 'openai' | 'gemini' | 'groq' | 'local' | 'openclaw' | 'claude' | 'gemma4';
 type RunProfile = 'manual' | 'free';
 type ErrorCode =
   | 'MISSING_CONFIG'
@@ -40,6 +40,7 @@ const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
 const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 const OPENCLAW_DEFAULT_AGENT = 'main';
 const CLAUDE_DEFAULT_MODEL = 'claude-sonnet-4-5-20250514';
+const GEMMA4_DEFAULT_MODEL = 'gemma-4-31b-it';
 const MAX_RAW_ERROR_LEN = 600;
 
 function hasValue(value?: string | null) {
@@ -55,12 +56,12 @@ function pickValue(...values: Array<string | undefined>) {
 
 function normalizeProvider(raw?: string): LlmProvider {
   const value = (raw || '').trim().toLowerCase();
-  if (value === 'gemini' || value === 'groq' || value === 'local' || value === 'openclaw' || value === 'claude') return value;
+  if (value === 'gemini' || value === 'groq' || value === 'local' || value === 'openclaw' || value === 'claude' || value === 'gemma4') return value;
   return 'openai';
 }
 
 function resolveProvider(runtime?: RuntimeConfig): LlmProvider {
-  return normalizeProvider(runtime?.llmProvider || process.env.LLM_PROVIDER || 'openai');
+  return normalizeProvider(runtime?.llmProvider || process.env.LLM_PROVIDER || 'gemma4');
 }
 
 function resolveRunProfile(runtime?: RuntimeConfig): RunProfile {
@@ -74,6 +75,7 @@ function providerLabel(provider: LlmProvider) {
   if (provider === 'groq') return 'Groq';
   if (provider === 'local') return '로컬 LLM';
   if (provider === 'claude') return 'Claude';
+  if (provider === 'gemma4') return 'Gemma 4';
   return 'OpenClaw';
 }
 
@@ -220,21 +222,26 @@ function mapOpenAIError(error: unknown): ProviderError {
   return new ProviderError('openai', 'UNKNOWN', `OpenAI 오류: ${compact(message || '실행 실패')}`, message);
 }
 
-function mapGeminiHttpError(status: number, rawText: string): ProviderError {
+function mapGeminiCompatibleHttpError(provider: 'gemini' | 'gemma4', status: number, rawText: string): ProviderError {
   const lower = rawText.toLowerCase();
+  const label = providerLabel(provider);
   if (status === 401 || status === 403) {
-    return new ProviderError('gemini', 'AUTH', 'Gemini API 키 인증에 실패했습니다.', rawText);
+    return new ProviderError(provider, 'AUTH', `${label} API 키 인증에 실패했습니다.`, rawText);
   }
   if (status === 429 || isGeminiQuota(rawText)) {
-    return new ProviderError('gemini', 'QUOTA', 'Gemini 할당량이 초과되었습니다.', rawText);
+    return new ProviderError(provider, 'QUOTA', `${label} 할당량이 초과되었습니다.`, rawText);
   }
   if (status === 404 || lower.includes('not found')) {
-    return new ProviderError('gemini', 'MODEL', 'Gemini 모델명을 찾지 못했습니다.', rawText);
+    return new ProviderError(provider, 'MODEL', `${label} 모델명을 찾지 못했습니다.`, rawText);
   }
   if (status >= 500) {
-    return new ProviderError('gemini', 'UNAVAILABLE', 'Gemini 서버 응답이 불안정합니다.', rawText);
+    return new ProviderError(provider, 'UNAVAILABLE', `${label} 서버 응답이 불안정합니다.`, rawText);
   }
-  return new ProviderError('gemini', 'UNKNOWN', `Gemini 오류(${status}): ${compact(rawText || '실행 실패')}`, rawText);
+  return new ProviderError(provider, 'UNKNOWN', `${label} 오류(${status}): ${compact(rawText || '실행 실패')}`, rawText);
+}
+
+function mapGeminiHttpError(status: number, rawText: string): ProviderError {
+  return mapGeminiCompatibleHttpError('gemini', status, rawText);
 }
 
 function mapGroqHttpError(status: number, rawText: string): ProviderError {
@@ -303,16 +310,23 @@ function hasConfig(provider: LlmProvider, runtime?: RuntimeConfig) {
   if (provider === 'claude') {
     return hasValue(pickValue(runtime?.anthropicApiKey, process.env.ANTHROPIC_API_KEY));
   }
+  if (provider === 'gemma4') {
+    return (
+      hasValue(pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY)) &&
+      hasValue(pickValue(runtime?.gemma4Model, process.env.GEMMA4_MODEL, GEMMA4_DEFAULT_MODEL))
+    );
+  }
   return true;
 }
 
 function getPrimaryFallbackOrder(primary: LlmProvider) {
-  if (primary === 'openclaw') return ['gemini', 'groq', 'claude', 'openai', 'local'] as LlmProvider[];
-  if (primary === 'gemini') return ['groq', 'claude', 'openclaw', 'openai', 'local'] as LlmProvider[];
-  if (primary === 'groq') return ['gemini', 'claude', 'openai', 'openclaw', 'local'] as LlmProvider[];
-  if (primary === 'openai') return ['claude', 'groq', 'gemini', 'openclaw', 'local'] as LlmProvider[];
-  if (primary === 'claude') return ['openai', 'gemini', 'groq', 'openclaw', 'local'] as LlmProvider[];
-  return ['openclaw', 'groq', 'gemini', 'claude', 'openai'] as LlmProvider[];
+  if (primary === 'gemma4') return ['groq', 'gemini', 'openclaw', 'claude', 'openai', 'local'] as LlmProvider[];
+  if (primary === 'openclaw') return ['gemma4', 'gemini', 'groq', 'claude', 'openai', 'local'] as LlmProvider[];
+  if (primary === 'gemini') return ['groq', 'gemma4', 'claude', 'openclaw', 'openai', 'local'] as LlmProvider[];
+  if (primary === 'groq') return ['gemma4', 'gemini', 'claude', 'openai', 'openclaw', 'local'] as LlmProvider[];
+  if (primary === 'openai') return ['gemma4', 'claude', 'groq', 'gemini', 'openclaw', 'local'] as LlmProvider[];
+  if (primary === 'claude') return ['gemma4', 'openai', 'gemini', 'groq', 'openclaw', 'local'] as LlmProvider[];
+  return ['gemma4', 'openclaw', 'groq', 'gemini', 'claude', 'openai'] as LlmProvider[];
 }
 
 function parseFallbackOrderFromEnv(primary: LlmProvider) {
@@ -330,7 +344,7 @@ function parseFreeFallbackOrderFromEnv(primary: LlmProvider) {
     .map((v) => normalizeProvider(v))
     .filter((provider, idx, list) => list.indexOf(provider) === idx && provider !== primary);
   if (values.length) return values.slice(0, 4);
-  return ['openclaw', 'groq', 'gemini', 'local', 'openai']
+  return ['gemma4', 'openclaw', 'groq', 'gemini', 'local', 'openai']
     .filter((provider) => provider !== primary)
     .slice(0, 4) as LlmProvider[];
 }
@@ -395,48 +409,29 @@ async function runOpenAI(
   }
 }
 
-async function runGemini(
+async function callGeminiCompatibleApi(
+  provider: 'gemini' | 'gemma4',
+  apiKey: string,
+  model: string,
   systemPrompt: string,
   userPrompt: string,
   temperature: number,
-  maxTokens: number,
-  runtime?: RuntimeConfig
-) {
-  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
-  const model = pickValue(runtime?.geminiModel, process.env.GEMINI_MODEL, GEMINI_DEFAULT_MODEL);
-  if (!apiKey) {
-    throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini API 키가 없습니다.');
-  }
-  if (!model) {
-    throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini 모델명이 없습니다.');
-  }
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model
-  )}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  maxTokens: number
+): Promise<string> {
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      systemInstruction: {
-        parts: [{ text: systemPrompt }]
-      },
-      contents: [
-        {
-          role: 'user',
-          parts: [{ text: userPrompt }]
-        }
-      ],
-      generationConfig: {
-        temperature,
-        maxOutputTokens: maxTokens
-      }
+      systemInstruction: { parts: [{ text: systemPrompt }] },
+      contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+      generationConfig: { temperature, maxOutputTokens: maxTokens }
     })
   });
 
   if (!response.ok) {
     const rawText = await response.text();
-    throw mapGeminiHttpError(response.status, rawText);
+    throw mapGeminiCompatibleHttpError(provider, response.status, rawText);
   }
 
   const data = (await response.json()) as {
@@ -448,9 +443,28 @@ async function runGemini(
     .join('\n')
     .trim();
   if (!text) {
-    throw new ProviderError('gemini', 'UNKNOWN', 'Gemini 응답이 비어 있습니다.');
+    throw new ProviderError(provider, 'UNKNOWN', `${providerLabel(provider)} 응답이 비어 있습니다.`);
   }
   return text;
+}
+
+async function runGemini(
+  systemPrompt: string, userPrompt: string, temperature: number, maxTokens: number, runtime?: RuntimeConfig
+) {
+  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
+  const model = pickValue(runtime?.geminiModel, process.env.GEMINI_MODEL, GEMINI_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini API 키가 없습니다.');
+  if (!model) throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini 모델명이 없습니다.');
+  return callGeminiCompatibleApi('gemini', apiKey, model, systemPrompt, userPrompt, temperature, maxTokens);
+}
+
+async function runGemma4(
+  systemPrompt: string, userPrompt: string, temperature: number, maxTokens: number, runtime?: RuntimeConfig
+) {
+  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
+  const model = pickValue(runtime?.gemma4Model, process.env.GEMMA4_MODEL, GEMMA4_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('gemma4', 'MISSING_CONFIG', 'Gemma 4 API 키(GEMINI_API_KEY)가 없습니다.');
+  return callGeminiCompatibleApi('gemma4', apiKey, model, systemPrompt, userPrompt, temperature, maxTokens);
 }
 
 async function runGroq(
@@ -708,6 +722,7 @@ async function runByProvider(
   if (provider === 'groq') return runGroq(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'claude') return runClaude(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'local') return runLocal(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  if (provider === 'gemma4') return runGemma4(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   return runOpenClaw(systemPrompt, userPrompt, temperature, maxTokens, runtime);
 }
 
@@ -719,7 +734,7 @@ function shouldTryFallback(primary: LlmProvider, error: ProviderError) {
   if (error.code === 'COOLDOWN') return true;
   if (error.code === 'UNAVAILABLE') return true;
   if (error.code === 'TIMEOUT' || error.code === 'NETWORK') return true;
-  if ((primary === 'gemini' || primary === 'groq') && error.code === 'CONTEXT') return true;
+  if ((primary === 'gemini' || primary === 'groq' || primary === 'gemma4') && error.code === 'CONTEXT') return true;
   return false;
 }
 
@@ -756,14 +771,14 @@ function formatFinalError(primaryError: ProviderError, fallbackErrors: ProviderE
 }
 
 function isGeminiQuotaError(error: ProviderError) {
-  return error.provider === 'gemini' && (error.code === 'QUOTA' || error.code === 'RATE_LIMIT');
+  return (error.provider === 'gemini' || error.provider === 'gemma4') && (error.code === 'QUOTA' || error.code === 'RATE_LIMIT');
 }
 
 function buildFallbackProviders(primary: LlmProvider, runtime?: RuntimeConfig, primaryError?: ProviderError) {
   const runProfile = resolveRunProfile(runtime);
   let order = runProfile === 'free' ? parseFreeFallbackOrderFromEnv(primary) : parseFallbackOrderFromEnv(primary);
 
-  if (primary === 'gemini' && primaryError && isGeminiQuotaError(primaryError) && !shouldUseOpenClawFallbackOnGeminiQuota()) {
+  if ((primary === 'gemini' || primary === 'gemma4') && primaryError && isGeminiQuotaError(primaryError) && !shouldUseOpenClawFallbackOnGeminiQuota()) {
     order = order.filter((provider) => provider !== 'openclaw');
   }
 
@@ -845,21 +860,16 @@ async function* streamOpenAI(
   }
 }
 
-async function* streamGemini(
+async function* streamGeminiCompatibleApi(
+  provider: 'gemini' | 'gemma4',
+  apiKey: string,
+  model: string,
   systemPrompt: string,
   userPrompt: string,
   temperature: number,
-  maxTokens: number,
-  runtime?: RuntimeConfig
+  maxTokens: number
 ): AsyncGenerator<string> {
-  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
-  const model = pickValue(runtime?.geminiModel, process.env.GEMINI_MODEL, GEMINI_DEFAULT_MODEL);
-  if (!apiKey) throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini API 키가 없습니다.');
-
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    model
-  )}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
-
+  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:streamGenerateContent?alt=sse&key=${encodeURIComponent(apiKey)}`;
   const response = await fetch(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -872,11 +882,11 @@ async function* streamGemini(
 
   if (!response.ok) {
     const rawText = await response.text();
-    throw mapGeminiHttpError(response.status, rawText);
+    throw mapGeminiCompatibleHttpError(provider, response.status, rawText);
   }
 
   const reader = response.body?.getReader();
-  if (!reader) throw new ProviderError('gemini', 'UNKNOWN', 'Gemini 스트림을 열 수 없습니다.');
+  if (!reader) throw new ProviderError(provider, 'UNKNOWN', `${providerLabel(provider)} 스트림을 열 수 없습니다.`);
 
   const decoder = new TextDecoder();
   let buffer = '';
@@ -899,9 +909,27 @@ async function* streamGemini(
         };
         const text = parsed.candidates?.[0]?.content?.parts?.[0]?.text;
         if (text) yield text;
-      } catch { /* skip malformed json */ }
+      } catch { /* skip */ }
     }
   }
+}
+
+async function* streamGemini(
+  systemPrompt: string, userPrompt: string, temperature: number, maxTokens: number, runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
+  const model = pickValue(runtime?.geminiModel, process.env.GEMINI_MODEL, GEMINI_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini API 키가 없습니다.');
+  yield* streamGeminiCompatibleApi('gemini', apiKey, model, systemPrompt, userPrompt, temperature, maxTokens);
+}
+
+async function* streamGemma4(
+  systemPrompt: string, userPrompt: string, temperature: number, maxTokens: number, runtime?: RuntimeConfig
+): AsyncGenerator<string> {
+  const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY);
+  const model = pickValue(runtime?.gemma4Model, process.env.GEMMA4_MODEL, GEMMA4_DEFAULT_MODEL);
+  if (!apiKey) throw new ProviderError('gemma4', 'MISSING_CONFIG', 'Gemma 4 API 키(GEMINI_API_KEY)가 없습니다.');
+  yield* streamGeminiCompatibleApi('gemma4', apiKey, model, systemPrompt, userPrompt, temperature, maxTokens);
 }
 
 async function* streamClaude(
@@ -1007,6 +1035,7 @@ function streamByProvider(
   if (provider === 'gemini') return streamGemini(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'claude') return streamClaude(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   if (provider === 'groq') return streamGroq(systemPrompt, userPrompt, temperature, maxTokens, runtime);
+  if (provider === 'gemma4') return streamGemma4(systemPrompt, userPrompt, temperature, maxTokens, runtime);
   // local / openclaw: fallback to non-streaming
   throw new ProviderError(provider, 'UNAVAILABLE', `${providerLabel(provider)}은(는) 스트리밍을 지원하지 않습니다.`);
 }

@@ -82,6 +82,11 @@ export async function POST(
                   documentType: 'CAMPAIGN_PLAN',
                   title: `Flow 실행 결과: ${runInput.topic}`,
                   rawOutputs: nodeOutputs,
+                  nodeNames: Object.fromEntries(
+                    nodes
+                      .filter(n => n.type === 'agent' || n.type === 'tool')
+                      .map(n => [n.id, n.type === 'agent' ? (n.data as { role: string }).role : '웹 검색'])
+                  ),
                 }),
               },
             })

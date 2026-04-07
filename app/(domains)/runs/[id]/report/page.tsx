@@ -30,10 +30,12 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
 
   const rawContent = run.deliverable?.content;
   let flowOutputs: Record<string, string> | null = null;
+  let flowNodeNames: Record<string, string> | undefined;
   try {
     const parsed = rawContent ? JSON.parse(rawContent) : null;
     if (parsed?.rawOutputs && typeof parsed.rawOutputs === 'object') {
       flowOutputs = parsed.rawOutputs;
+      flowNodeNames = parsed.nodeNames;
     }
   } catch { /* not flow result */ }
 
@@ -54,6 +56,7 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
           goal={run.goal}
           createdAt={run.createdAt}
           rawOutputs={flowOutputs}
+          nodeNames={flowNodeNames}
         />
       ) : (
         <StructuredDeliverableDashboard

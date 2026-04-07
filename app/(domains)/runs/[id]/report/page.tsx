@@ -5,6 +5,7 @@ import { parseStructuredDeliverable } from '@/lib/deliverable';
 import { buildWebIntelligenceSummary } from '@/lib/web-report';
 import { PrintButton } from '@/components/print-button';
 import { StructuredDeliverableDashboard } from '@/components/structured-deliverable-dashboard';
+import { FlowResultDashboard } from '@/components/flow-result-dashboard';
 
 export default async function RunReportPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -27,6 +28,15 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
   );
   const pmTurn = run.meetingTurns.find((t) => t.role === 'PM');
 
+  const rawContent = run.deliverable?.content;
+  let flowOutputs: Record<string, string> | null = null;
+  try {
+    const parsed = rawContent ? JSON.parse(rawContent) : null;
+    if (parsed?.rawOutputs && typeof parsed.rawOutputs === 'object') {
+      flowOutputs = parsed.rawOutputs;
+    }
+  } catch { /* not flow result */ }
+
   return (
     <div className="mx-auto w-full max-w-[1180px] space-y-5 print:max-w-none print:space-y-3">
       <div className="no-print flex items-center justify-between gap-3">
@@ -36,17 +46,28 @@ export default async function RunReportPage({ params }: { params: Promise<{ id: 
         <PrintButton suggestedName={`run-${id}-report.pdf`} />
       </div>
 
-      <StructuredDeliverableDashboard
-        topic={run.topic}
-        brand={run.brand}
-        region={run.region}
-        goal={run.goal}
-        createdAt={run.createdAt}
-        structured={structured}
-        webSummary={webSummary}
-        pmDecision={pmTurn?.content}
-        rawContent={run.deliverable?.content}
-      />
+      {flowOutputs ? (
+        <FlowResultDashboard
+          topic={run.topic}
+          brand={run.brand}
+          region={run.region}
+          goal={run.goal}
+          createdAt={run.createdAt}
+          rawOutputs={flowOutputs}
+        />
+      ) : (
+        <StructuredDeliverableDashboard
+          topic={run.topic}
+          brand={run.brand}
+          region={run.region}
+          goal={run.goal}
+          createdAt={run.createdAt}
+          structured={structured}
+          webSummary={webSummary}
+          pmDecision={pmTurn?.content}
+          rawContent={run.deliverable?.content}
+        />
+      )}
     </div>
   );
 }

@@ -37,7 +37,7 @@ export default function NodePalette({ onAddNode }: Props) {
   }
 
   function addCustomAgent() {
-    addAgent('커스텀 에이전트', '당신의 역할을 여기에 입력하세요.')
+    addAgent('커스텀 에이전트', '당신의 역할을 여기에 입력하세요.\n\n반드시 한국어로 응답하세요.')
   }
 
   function addWebSearch() {

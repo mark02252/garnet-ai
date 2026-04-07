@@ -82,7 +82,10 @@ export async function* executeFlow(
           } else if (node.type === 'agent') {
             const prompt = buildUserPrompt(node, upstreamNodes, context, runInput.topic)
             const runtime = MODEL_RUNTIME[node.data.model]  // Partial<RuntimeConfig> — all fields optional, safe to pass
-            output = await runLLM(node.data.systemPrompt, prompt, 0.7, 2400, runtime as RuntimeConfig)
+            const systemPrompt = node.data.systemPrompt.includes('한국어')
+              ? node.data.systemPrompt
+              : `${node.data.systemPrompt}\n\n반드시 한국어로 응답하세요.`
+            output = await runLLM(systemPrompt, prompt, 0.7, 2400, runtime as RuntimeConfig)
           } else {
             return
           }

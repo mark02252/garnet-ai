@@ -134,7 +134,7 @@ export default function FlowEditorPage() {
         <div className="flex items-center justify-between border-t border-[var(--surface-border)] bg-[var(--surface-base)] px-4 py-2">
           <span className="text-xs text-green-400">✓ 실행 완료</span>
           <a
-            href={`/seminar/${completedRunId}`}
+            href={`/runs/${completedRunId}/report`}
             className="text-xs text-[var(--accent)] underline hover:opacity-80"
           >
             결과 보기 →

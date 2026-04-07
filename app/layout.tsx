@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Noto_Sans_KR } from 'next/font/google';
+import { Noto_Sans_KR, Cormorant_Garamond } from 'next/font/google';
 import { Toaster } from 'sonner';
 import './globals.css';
 
@@ -10,6 +10,13 @@ const notoSansKr = Noto_Sans_KR({
   display: 'swap'
 });
 
+const cormorant = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['600', '700'],
+  variable: '--font-display',
+  display: 'swap',
+});
+
 export const metadata: Metadata = {
   title: 'Garnet',
   description: 'Garnet'
@@ -18,7 +25,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="ko">
-      <body className={notoSansKr.variable}>
+      <body className={`${notoSansKr.variable} ${cormorant.variable}`}>
         {children}
         <Toaster position="bottom-right" richColors />
       </body>

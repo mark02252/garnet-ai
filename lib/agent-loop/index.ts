@@ -7,6 +7,7 @@ import { buildSnapshotFromDb, detectOpenIssues } from './scanner'
 import { evaluateGoals } from './goal-manager'
 import { reason } from './reasoner'
 import { routeActions } from './executor'
+import { needsMeeting, triggerAutoMeeting } from './auto-meeting'
 import { evaluateAndStore } from './evaluator'
 import { notifyUrgent, notifyDailyBriefing, notifyCycleResult } from './notifier'
 import { runWeeklyReview } from './meta-cognition'
@@ -102,6 +103,13 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
 
     // 5. Reasoner
     const decision = await reason(updatedWm, goals)
+
+    // 5.5. 복합 이슈 감지 시 자동 회의
+    if (needsMeeting(updatedWm, goals) && cycleType === 'routine-cycle') {
+      try {
+        await triggerAutoMeeting(updatedWm, goals)
+      } catch { /* non-critical — don't block the cycle */ }
+    }
 
     // 6. Executor
     let autoExecuted = 0

@@ -303,7 +303,7 @@ function IntelCard({
             style={{
               fontSize: 12,
               fontWeight: 600,
-              color: 'var(--accent)',
+              color: 'var(--accent-text)',
               textDecoration: 'none',
               display: 'inline-flex',
               alignItems: 'center',

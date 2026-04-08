@@ -97,7 +97,7 @@ export default function NewPersonaPage() {
           {!isMetaConfigured && (
             <p className="text-xs text-[var(--text-muted)]">
               Instagram 계정 연결을 위해{' '}
-              <a href="/settings" className="text-[var(--accent)] underline">
+              <a href="/settings" className="text-[var(--accent-text)] underline">
                 먼저 Instagram 연동을 설정
               </a>
               해 주세요. (선택 사항 — 나중에 해도 됩니다.)

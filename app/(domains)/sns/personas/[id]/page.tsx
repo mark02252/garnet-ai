@@ -189,7 +189,7 @@ export default function PersonaDetailPage() {
           ) : (
             <p className="text-xs text-[var(--text-muted)]">
               Instagram 연동 설정이 필요합니다.{' '}
-              <a href="/settings" className="text-[var(--accent)] underline">
+              <a href="/settings" className="text-[var(--accent-text)] underline">
                 설정 페이지에서 완료하기 →
               </a>
             </p>

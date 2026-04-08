@@ -16,7 +16,7 @@ function timelineTone(type: 'run' | 'report' | 'seminar' | 'playbook' | 'approva
   if (type === 'playbook') return 'bg-amber-100 text-amber-700';
   if (type === 'approval') return 'bg-rose-100 text-rose-700';
   if (type === 'report') return 'bg-violet-100 text-violet-700';
-  return 'bg-[var(--accent-soft)] text-[var(--accent)]';
+  return 'bg-[var(--accent-soft)] text-[var(--accent-text)]';
 }
 
 function coverageTone(value: number) {
@@ -148,7 +148,7 @@ export default async function CampaignRoomDetailPage({ params }: { params: Promi
                       <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${timelineTone(item.type)}`}>{item.label}</span>
                       <p className="text-xs text-[var(--text-muted)]">{item.atLabel}</p>
                     </div>
-                    <span className="text-xs font-medium text-[var(--accent)]">열기</span>
+                    <span className="text-xs font-medium text-[var(--accent-text)]">열기</span>
                   </div>
                   <p className="mt-3 text-sm font-semibold text-[var(--text-strong)]">{item.title}</p>
                   <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">{item.summary}</p>

@@ -457,7 +457,7 @@ export default function DatasetsPage() {
                 </p>
                 <p className="mt-1.5 text-xs text-[var(--text-muted)]">CSV · XLSX · JSON · TXT 지원</p>
                 {uploadedFileName && (
-                  <p className="mt-2 text-xs font-medium text-[var(--accent)]">{uploadedFileName}</p>
+                  <p className="mt-2 text-xs font-medium text-[var(--accent-text)]">{uploadedFileName}</p>
                 )}
               </label>
 

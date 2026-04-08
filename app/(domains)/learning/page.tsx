@@ -345,7 +345,7 @@ export default function LearningPage() {
                   {item.status === 'DRAFT' && (
                     <button
                       type="button"
-                      className="ml-auto rounded-[6px] bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent)] hover:bg-[rgba(49,130,246,0.15)]"
+                      className="ml-auto rounded-[6px] bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.2)] px-2.5 py-1 text-[11px] font-semibold text-[var(--accent-text)] hover:bg-[rgba(49,130,246,0.15)]"
                       onClick={(e) => {
                         e.stopPropagation();
                         void quickConfirm(item.id);
@@ -374,7 +374,7 @@ export default function LearningPage() {
                   <h2 className="section-title">이럴 때 이렇게 답변</h2>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">마지막 수정: {formatDate(selected.updatedAt)}</p>
                   {selected.run?.id && (
-                    <Link className="mt-1 inline-flex text-xs font-medium text-[var(--accent)] underline" href={`/runs/${selected.run.id}`}>
+                    <Link className="mt-1 inline-flex text-xs font-medium text-[var(--accent-text)] underline" href={`/runs/${selected.run.id}`}>
                       원본 실행 보기: {selected.run.topic}
                     </Link>
                   )}

@@ -128,7 +128,7 @@ export default function ApprovalsPage() {
                 <button
                   onClick={() => handleDecide(item.id, 'APPROVED')}
                   disabled={deciding !== null}
-                  className="rounded-md bg-[#00BFA6] px-3 py-1.5 text-xs font-semibold text-[#050810] hover:bg-[#00A896] disabled:opacity-50">
+                  className="rounded-md bg-[#C93545] px-3 py-1.5 text-xs font-semibold text-[#ffffff] hover:bg-[#B02D3C] disabled:opacity-50">
                   {deciding === item.id ? '처리 중…' : '승인'}
                 </button>
               </div>

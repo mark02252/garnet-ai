@@ -15,7 +15,7 @@ function typeTone(type: Notification['type']) {
   if (type === 'warning') return { badge: 'bg-rose-100 text-rose-700', border: 'border-l-rose-400', dot: 'bg-rose-500' };
   if (type === 'action') return { badge: 'bg-amber-100 text-amber-700', border: 'border-l-amber-400', dot: 'bg-amber-500' };
   if (type === 'success') return { badge: 'bg-emerald-100 text-emerald-700', border: 'border-l-emerald-400', dot: 'bg-emerald-500' };
-  return { badge: 'bg-[var(--accent-soft)] text-[var(--accent)]', border: 'border-l-sky-400', dot: 'bg-[var(--accent)]' };
+  return { badge: 'bg-[var(--accent-soft)] text-[var(--accent-text)]', border: 'border-l-sky-400', dot: 'bg-[var(--accent)]' };
 }
 
 function typeLabel(type: Notification['type']) {
@@ -88,7 +88,7 @@ export default async function NotificationsPage() {
               {[
                 { label: '주의 필요', count: warnings.length, tone: 'text-rose-600' },
                 { label: '즉시 처리', count: actions.length, tone: 'text-amber-600' },
-                { label: '정보성', count: infos.length, tone: 'text-[var(--accent)]' },
+                { label: '정보성', count: infos.length, tone: 'text-[var(--accent-text)]' },
                 { label: '달성 축하', count: successes.length, tone: 'text-emerald-700' }
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between text-sm">

@@ -78,10 +78,10 @@ export default async function SeminarSessionReportPage({ params }: { params: Pro
                 <p className="text-[var(--text-muted)]">{round.status}</p>
                 {round.runId && (
                   <div className="mt-1 flex flex-wrap gap-2">
-                    <Link className="text-[var(--accent)] underline" href={`/runs/${round.runId}`}>
+                    <Link className="text-[var(--accent-text)] underline" href={`/runs/${round.runId}`}>
                       실행 결과
                     </Link>
-                    <Link className="text-[var(--accent)] underline" href={`/runs/${round.runId}/report`}>
+                    <Link className="text-[var(--accent-text)] underline" href={`/runs/${round.runId}/report`}>
                       산출물 보고서
                     </Link>
                   </div>

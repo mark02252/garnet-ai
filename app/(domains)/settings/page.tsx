@@ -1484,7 +1484,7 @@ export default function SettingsPage() {
                     type="button"
                     className={`rounded-xl border px-3 py-2 text-sm transition ${
                       active
-                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
+                        ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]'
                         : 'border-[var(--surface-border)] bg-[var(--surface)] text-[var(--text-base)] hover:bg-[var(--surface-sub)]'
                     }`}
                     onClick={() => updateAgentExecutionField('taskMode', value as AgentExecutionConfig['taskMode'])}

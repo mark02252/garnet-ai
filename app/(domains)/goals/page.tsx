@@ -225,7 +225,7 @@ export default function GoalsPage() {
         </div>
         <div className="status-tile">
           <p className="metric-label">순조로운 진행</p>
-          <p className="mt-2 text-base font-semibold text-[var(--accent)]">{onTrack}개</p>
+          <p className="mt-2 text-base font-semibold text-[var(--accent-text)]">{onTrack}개</p>
           <p className="mt-1 text-xs text-[var(--text-muted)]">70% 이상 달성 중</p>
         </div>
         <div className="status-tile">

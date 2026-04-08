@@ -64,10 +64,10 @@ export function LoopStatusCard() {
           <span className={`text-xs font-medium ${statusColors[d.status]}`}>
             {'\u25CF'} {statusLabels[d.status]}
           </span>
-          {d.status === 'running' || d.status === 'idle' ? (
+          {d.status === 'running' ? (
             <button onClick={() => handleControl('pause')} className="text-xs text-zinc-500 hover:text-zinc-300 transition">일시정지</button>
           ) : (
-            <button onClick={() => handleControl('start')} className="text-xs text-zinc-500 hover:text-zinc-300 transition">시작</button>
+            <button onClick={() => handleControl('start')} className="text-xs text-garnet-400 hover:text-garnet-300 font-medium transition">시작</button>
           )}
         </div>
       </div>

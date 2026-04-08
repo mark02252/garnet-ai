@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { isAgentLoopRunning } from '@/lib/agent-loop'
 import type { AgentLoopStatusResponse } from '@/lib/agent-loop/types'
 
 export async function GET() {
@@ -7,11 +8,7 @@ export async function GET() {
     const now = new Date()
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
-    let running = false
-    try {
-      const mod = await import('@/lib/agent-loop')
-      running = mod.isAgentLoopRunning()
-    } catch { /* module init may fail */ }
+    const running = isAgentLoopRunning()
 
     const [lastCycle, todayCycles, goals, recentDecisions] = await Promise.all([
       prisma.agentLoopCycle.findFirst({

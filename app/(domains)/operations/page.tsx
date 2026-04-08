@@ -11,6 +11,7 @@ import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
 import { listSeminarSessions, type SeminarSession } from '@/lib/seminar-storage';
 import { generateActionSuggestions, type ActionSuggestion } from '@/lib/action-engine';
+import type { ApprovalActionKind } from '@/lib/approval-actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,11 +156,9 @@ export default async function OperationsPage() {
 
   const campaignRooms = await getCampaignRooms(4).catch(() => []);
 
-  // AI 액션 제안
-  let actionSuggestions: ActionSuggestion[] = []
-  try {
-    actionSuggestions = await generateActionSuggestions()
-  } catch { /* skip */ }
+  // AI 액션 제안 — LLM 호출이 페이지를 느리게 하므로 캐시된 것만 사용
+  // generateActionSuggestions()는 Agent Loop에서 처리됨
+  const actionSuggestions: ActionSuggestion[] = []
 
   const activeSeminars = sessions.filter((session) => session.status === 'RUNNING' || session.status === 'PLANNED');
   const runningSeminars = sessions.filter((session) => session.status === 'RUNNING');
@@ -190,7 +189,8 @@ export default async function OperationsPage() {
   }
   const topSignals = [...tagMap.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
   const leadSignal = topSignals[0]?.[0] || '실행 자산화';
-  const approvalQueue = campaignRooms
+  // 캠페인 룸 승인 항목
+  const campaignApprovals = campaignRooms
     .flatMap((room) =>
       room.approvals.map((approval) => ({
         id: `${room.id}-${approval.actionKind}-${approval.targetId}`,
@@ -202,8 +202,31 @@ export default async function OperationsPage() {
         targetId: approval.targetId,
         actionLabel: approval.actionLabel
       }))
-    )
-    .slice(0, 6);
+    );
+
+  // Governor 큐 (Agent Loop 포함) 승인 대기 항목
+  let governorApprovals: typeof campaignApprovals = [];
+  try {
+    const { listPending } = await import('@/lib/governor');
+    const pending = await listPending(['PENDING_APPROVAL'], 10);
+    governorApprovals = pending.map((p) => {
+      const meta = typeof p.payload === 'object' && p.payload !== null
+        ? (p.payload as Record<string, unknown>)._agentLoop as Record<string, string> | undefined
+        : undefined;
+      return {
+        id: `gov-${p.id}`,
+        roomTitle: 'Agent Loop',
+        label: meta?.title || p.kind,
+        description: meta?.rationale || (p.riskReason ?? ''),
+        href: '/operations',
+        actionKind: p.kind as ApprovalActionKind,
+        targetId: p.id,
+        actionLabel: '승인',
+      };
+    });
+  } catch { /* governor table may not exist */ }
+
+  const approvalQueue = [...governorApprovals, ...campaignApprovals].slice(0, 8);
 
   const priorities = [
     runningSeminars.length > 0

@@ -248,6 +248,14 @@ async function runWeeklyReviewCycle(): Promise<void> {
 
     console.log(`[Agent Loop] Evolution: ${synthesis.newInsights} cross-insights, ${capabilities.length} capabilities detected, ${selfImprove.opportunities.length} self-improvements`)
   } catch { /* non-critical */ }
+  // 진화: 패러다임 전환 체크
+  try {
+    const { checkParadigmShift } = await import('./paradigm-shift')
+    const shift = await checkParadigmShift()
+    if (shift.shiftsTriggered > 0) {
+      console.log(`[Agent Loop] Paradigm shift in: ${shift.domains.join(', ')}`)
+    }
+  } catch { /* non-critical */ }
 }
 
 // ── 스케줄 관리 ──

@@ -18,6 +18,14 @@ export type RouteResult = {
 
 export async function routeAction(action: ReasonerAction): Promise<RouteResult> {
   try {
+    // Confidence 기반 리스크 조정
+    let effectiveRiskLevel = action.riskLevel
+    try {
+      const { calculateConfidence } = await import('./confidence')
+      const conf = await calculateConfidence(action)
+      effectiveRiskLevel = conf.adjustedRiskLevel
+    } catch { /* use original */ }
+
     const govAction = await enqueueWithRisk({
       kind: action.kind,
       payload: {
@@ -29,11 +37,11 @@ export async function routeAction(action: ReasonerAction): Promise<RouteResult> 
           goalAlignment: action.goalAlignment,
         },
       },
-      riskLevel: action.riskLevel,
+      riskLevel: effectiveRiskLevel,
       riskReason: `Agent Loop Reasoner: ${action.rationale}`,
     })
 
-    if (action.riskLevel === 'LOW') {
+    if (effectiveRiskLevel === 'LOW') {
       await flushPendingExec()
       // 실행 결과 확인 — EXECUTED이면 성공, FAILED이면 실패
       try {

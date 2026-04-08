@@ -48,6 +48,8 @@ export function buildReasonerPrompt(
     antiPatterns: Array<{ domain: string; pattern: string; observation: string }>
   },
   macroSummary?: string,
+  causalSummary?: string,
+  predictionSummary?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -107,6 +109,12 @@ ${knowledge.antiPatterns.length > 0
   ? knowledge.antiPatterns.map(k => `- [${k.domain}] ${k.pattern} → ${k.observation.split('\n')[0]}`).join('\n')
   : '- 없음'}` : ''}
 
+## 축적된 인과 관계
+${causalSummary || '아직 축적된 인과 관계 없음'}
+
+## 목표 달성 예측
+${predictionSummary || '예측 데이터 없음'}
+
 ## 거시 환경 (시즌/이벤트)
 ${macroSummary || '현재 특별한 시즌 없음'}
 
@@ -147,12 +155,42 @@ export async function reason(
     const { getMacroSummary } = await import('./macro-tracker')
     macroSummary = await getMacroSummary()
   } catch { /* macro-tracker not available yet */ }
+
+  // 인과 관계 요약
+  let causalSummary: string | undefined
+  try {
+    const { getCausalSummary } = await import('./causal-model')
+    causalSummary = await getCausalSummary()
+  } catch { /* causal-model not available yet */ }
+
+  // 목표 달성 예측
+  let predictionSummary: string | undefined
+  try {
+    const { getPredictionSummary } = await import('./goal-predictor')
+    predictionSummary = await getPredictionSummary()
+  } catch { /* goal-predictor not available yet */ }
+
+  const snapshotText = `GA4: 세션 ${worldModel.snapshot.ga4.sessions}, 이탈률 ${worldModel.snapshot.ga4.bounceRate}%, 전환율 ${worldModel.snapshot.ga4.conversionRate}%
+SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldModel.snapshot.sns.followerGrowth}
+경쟁사: 위협 수준 ${worldModel.snapshot.competitors.threatLevel}, 최근 ${worldModel.snapshot.competitors.recentMoves.length}건 변화
+캠페인: 활성 ${worldModel.snapshot.campaigns.active}건, 승인대기 ${worldModel.snapshot.campaigns.pendingApproval}건`
+
   const userPrompt = buildReasonerPrompt(
     worldModel, goals, businessContext,
     pastEpisodes.map(e => ({ input: e.input, output: e.output, score: e.score })),
     knowledge,
     macroSummary,
+    causalSummary,
+    predictionSummary,
   )
   const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
-  return parseReasonerResponse(raw)
+  let output = parseReasonerResponse(raw)
+
+  // 진화적 전략 변이 (10% 확률)
+  const { shouldMutate, generateMutation } = await import('./strategy-mutator')
+  if (shouldMutate()) {
+    output = await generateMutation(output, snapshotText)
+  }
+
+  return output
 }

@@ -57,6 +57,24 @@ export async function processReadyOutcomes(): Promise<number> {
         },
       })
 
+      // 인과 관계 기록
+      try {
+        const { recordCausalLink } = await import('./causal-model')
+        const changes: Record<string, number> = {}
+        for (const [k, v] of Object.entries(currentMetrics)) {
+          if (before[k] && before[k] > 0) {
+            changes[k] = ((v - before[k]) / before[k]) * 100
+          }
+        }
+        await recordCausalLink({
+          actionKind: outcome.actionKind,
+          context: outcome.governorActionId,
+          metricChanges: changes,
+          lag: `${Math.round((Date.now() - outcome.createdAt.getTime()) / 86400000)}d`,
+          domain: inferDomainFromKind(outcome.actionKind),
+        })
+      } catch { /* non-critical */ }
+
       // EpisodicMemory 점수 업데이트
       if (outcome.episodeId) {
         const newScore = Math.max(0, Math.min(100, 50 + impactScore))
@@ -111,6 +129,15 @@ function calculateImpact(before: Record<string, number>, after: Record<string, n
   if (count === 0) return 0
   // 평균 변화율을 -100~+100 범위로 클램프
   return Math.max(-100, Math.min(100, totalChange / count))
+}
+
+function inferDomainFromKind(kind: string): string {
+  const map: Record<string, string> = {
+    content_publish: 'content_strategy', budget_adjust: 'finance',
+    flow_trigger: 'operations', report_generation: 'marketing',
+    playbook_update: 'marketing', alert: 'operations',
+  }
+  return map[kind] || 'marketing'
 }
 
 /** 30일 이상 된 expired outcomes 정리 */

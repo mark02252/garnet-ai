@@ -28,6 +28,11 @@ export async function GET() {
 
     const running = checkRunning()
 
+    // Governor 실제 대기 건수
+    const governorPending = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
+      `SELECT COUNT(*)::int as count FROM "GovernorAction" WHERE "status" IN ('PENDING_APPROVAL','PENDING_SCORE') AND "deletedAt" IS NULL`
+    ).then(r => r[0]?.count ?? 0).catch(() => 0)
+
     const [lastCycle, todayCycles, goals, recentDecisions] = await Promise.all([
       prisma.agentLoopCycle.findFirst({
         where: { status: { not: 'running' } },
@@ -65,7 +70,7 @@ export async function GET() {
       },
       today: {
         autoExecuted: todayCycles.reduce((s, c) => s + c.autoExecuted, 0),
-        sentToGovernor: todayCycles.reduce((s, c) => s + c.sentToGovernor, 0),
+        sentToGovernor: governorPending,
         totalCycles: todayCycles.length,
       },
       goals: goals.map(g => ({

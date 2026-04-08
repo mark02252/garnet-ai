@@ -48,6 +48,15 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     handler: (runtime) => lazyJobHandler('runGA4AnalysisJob', runtime)
   },
   {
+    id: 'weekly-integrated-report',
+    name: '통합 주간 리포트',
+    description: '매주 월요일 GA4 + SNS + KPI 통합 분석 리포트를 Slack으로 발송합니다.',
+    cron: '0 9 * * 1',
+    category: 'report',
+    enabled: true,
+    handler: (runtime) => lazyJobHandler('runWeeklyReportJob', runtime)
+  },
+  {
     id: 'sns-sync',
     name: 'Instagram 데이터 동기화',
     description: '매일 Instagram 게시물, 도달, 팔로워 데이터를 자동 수집합니다.',

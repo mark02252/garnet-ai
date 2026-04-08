@@ -442,6 +442,82 @@ export async function fetchChannelConversions(startDate: string, endDate: string
   }));
 }
 
+// ── Cohort Retention ──────────────────────────────────────────────────────
+
+export type GA4CohortRetention = {
+  cohort: string; // 코호트 시작 주 (e.g. "2026-03-10")
+  week: number;   // 0 = 첫 주, 1 = 1주차, ...
+  users: number;
+  retentionRate: number; // 0-1
+};
+
+export async function fetchCohortRetention(weeks = 6): Promise<GA4CohortRetention[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+
+  // 코호트: 최근 N주의 주별 코호트, 주별 리텐션
+  const cohorts = [];
+  const now = new Date();
+  for (let i = 0; i < weeks; i++) {
+    const start = new Date(now);
+    start.setDate(start.getDate() - (i + 1) * 7);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    cohorts.push({
+      name: `week_${i}`,
+      dimension: 'firstSessionDate',
+      dateRange: {
+        startDate: start.toISOString().slice(0, 10),
+        endDate: end.toISOString().slice(0, 10),
+      },
+    });
+  }
+
+  try {
+    const [response] = await client.runReport({
+      property: `properties/${creds.propertyId}`,
+      cohortSpec: {
+        cohorts,
+        cohortsRange: {
+          granularity: 'WEEKLY',
+          startOffset: 0,
+          endOffset: weeks - 1,
+        },
+      },
+      dimensions: [
+        { name: 'cohort' },
+        { name: 'cohortNthWeek' },
+      ],
+      metrics: [
+        { name: 'cohortActiveUsers' },
+        { name: 'cohortTotalUsers' },
+      ],
+    });
+
+    return (response.rows || []).map(row => {
+      const cohortName = row.dimensionValues?.[0]?.value || '';
+      const nthWeek = Number(row.dimensionValues?.[1]?.value || 0);
+      const activeUsers = Number(row.metricValues?.[0]?.value || 0);
+      const totalUsers = Number(row.metricValues?.[1]?.value || 0);
+
+      // cohortName → 실제 날짜로 변환
+      const cohortIndex = cohorts.findIndex(c => c.name === cohortName);
+      const cohortDate = cohortIndex >= 0 ? cohorts[cohortIndex].dateRange.startDate : cohortName;
+
+      return {
+        cohort: cohortDate,
+        week: nthWeek,
+        users: activeUsers,
+        retentionRate: totalUsers > 0 ? activeUsers / totalUsers : 0,
+      };
+    });
+  } catch (e) {
+    console.error('[GA4 Cohort] Error:', e instanceof Error ? e.message : e);
+    return [];
+  }
+}
+
 export type GA4AiAnalysisInput = {
   traffic: GA4DailyTraffic[];
   channels: GA4ChannelBreakdown[];

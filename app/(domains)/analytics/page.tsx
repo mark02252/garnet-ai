@@ -23,6 +23,7 @@ import {
 } from 'recharts';
 import type { ForecastPoint, AnomalyPoint } from '@/lib/analytics/forecast';
 import { computeForecast, detectAnomalies } from '@/lib/analytics/forecast';
+import { BudgetSimulator } from '@/components/budget-simulator';
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -511,6 +512,7 @@ export default function AnalyticsPage() {
   const [channelTrend, setChannelTrend] = useState<Array<{date: string; channel: string; sessions: number}>>([]);
   const [stickiness, setStickiness] = useState<Array<{date: string; dau: number; wau: number; mau: number}>>([]);
   const [channelConv, setChannelConv] = useState<Array<{channel: string; sessions: number; conversions: number; engagementRate: number}>>([]);
+  const [cohortData, setCohortData] = useState<Array<{cohort: string; week: number; users: number; retentionRate: number}>>([]);
 
   const fetchRealtime = useCallback(async () => {
     try {
@@ -598,10 +600,12 @@ export default function AnalyticsPage() {
         fetch(`/api/ga4/channel-trend?${params}`).then(r => r.json()),
         fetch(`/api/ga4/stickiness?${params}`).then(r => r.json()),
         fetch(`/api/ga4/channel-conv?${params}`).then(r => r.json()),
-      ]).then(([ctRes, stkRes, ccRes]) => {
+        fetch(`/api/ga4/cohort?weeks=6`).then(r => r.json()),
+      ]).then(([ctRes, stkRes, ccRes, cohRes]) => {
         if (ctRes.status === 'fulfilled' && ctRes.value.data) setChannelTrend(ctRes.value.data);
         if (stkRes.status === 'fulfilled' && stkRes.value.data) setStickiness(stkRes.value.data);
         if (ccRes.status === 'fulfilled' && ccRes.value.data) setChannelConv(ccRes.value.data);
+        if (cohRes.status === 'fulfilled' && cohRes.value.data) setCohortData(cohRes.value.data);
       });
     } catch {
       loadDemoData();
@@ -2528,6 +2532,75 @@ export default function AnalyticsPage() {
           })()}
 
           {/* ════════════════════════════════════════════════════════
+              Section 12b: 코호트 리텐션 히트맵
+          ════════════════════════════════════════════════════════ */}
+          {cohortData.length > 0 && (() => {
+            // 코호트별 그룹핑
+            const cohorts = [...new Set(cohortData.map(d => d.cohort))].sort()
+            const maxWeek = Math.max(...cohortData.map(d => d.week), 0)
+            const weeks = Array.from({ length: maxWeek + 1 }, (_, i) => i)
+
+            const getCell = (cohort: string, week: number) =>
+              cohortData.find(d => d.cohort === cohort && d.week === week)
+
+            const heatColor = (rate: number) => {
+              if (rate >= 0.5) return 'rgba(201,53,69,0.7)'
+              if (rate >= 0.3) return 'rgba(201,53,69,0.5)'
+              if (rate >= 0.15) return 'rgba(201,53,69,0.3)'
+              if (rate > 0) return 'rgba(201,53,69,0.15)'
+              return 'transparent'
+            }
+
+            return (
+              <div className="ops-zone" style={{ marginBottom: 20 }}>
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Cohort Retention</span>
+                  <span className="text-[10px] text-[var(--text-disabled)]">{cohorts.length} cohorts × {weeks.length} weeks</span>
+                </div>
+                <div style={{ padding: 16, overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: 'left', padding: '4px 8px', color: '#7E8A98', fontWeight: 600, fontSize: 10 }}>코호트</th>
+                        {weeks.map(w => (
+                          <th key={w} style={{ textAlign: 'center', padding: '4px 6px', color: '#7E8A98', fontWeight: 600, fontSize: 10 }}>
+                            {w === 0 ? '첫주' : `${w}주`}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {cohorts.map(cohort => (
+                        <tr key={cohort}>
+                          <td style={{ padding: '4px 8px', color: '#B0B8C4', fontVariantNumeric: 'tabular-nums', fontSize: 10 }}>
+                            {cohort.slice(5)}
+                          </td>
+                          {weeks.map(w => {
+                            const cell = getCell(cohort, w)
+                            if (!cell) return <td key={w} style={{ padding: '4px 6px' }} />
+                            return (
+                              <td key={w} style={{
+                                textAlign: 'center', padding: '4px 6px',
+                                background: heatColor(cell.retentionRate),
+                                borderRadius: 3, color: '#F0ECE8',
+                                fontWeight: cell.retentionRate >= 0.3 ? 600 : 400,
+                                fontVariantNumeric: 'tabular-nums',
+                              }}>
+                                {(cell.retentionRate * 100).toFixed(0)}%
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  <p className="text-[9px] text-[var(--text-disabled)] mt-2">* 색상 진할수록 리텐션 높음. 첫주 100% 기준 N주차 재방문율.</p>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* ════════════════════════════════════════════════════════
               Section 13: 채널별 전환 기여도
           ════════════════════════════════════════════════════════ */}
           {channelConv.length > 0 && (() => {
@@ -2566,6 +2639,11 @@ export default function AnalyticsPage() {
               </div>
             );
           })()}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 13b: 예산 시뮬레이터
+          ════════════════════════════════════════════════════════ */}
+          {channelConv.length > 0 && <BudgetSimulator channels={channelConv} />}
 
           {/* ════════════════════════════════════════════════════════
               Section 14: 콘텐츠 그룹별 성과

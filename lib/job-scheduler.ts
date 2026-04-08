@@ -117,6 +117,75 @@ export async function runGA4AnalysisJob(runtime?: RuntimeConfig): Promise<JobRes
   return { ok: true, message: insight.summary, data: insight };
 }
 
+// ── Job: 통합 주간 리포트 (GA4 + SNS) ──
+
+export async function runWeeklyReportJob(runtime?: RuntimeConfig): Promise<JobResult> {
+  const sections: string[] = ['*[Garnet 주간 통합 리포트]*\n']
+
+  // GA4 요약
+  if (isGA4Configured()) {
+    try {
+      const [traffic, channels] = await Promise.all([
+        fetchDailyTraffic('7daysAgo', 'today'),
+        fetchChannelBreakdown('7daysAgo', 'today'),
+      ])
+      const totalSessions = traffic.reduce((s, d) => s + d.sessions, 0)
+      const totalUsers = traffic.reduce((s, d) => s + d.activeUsers, 0)
+      const topChannel = channels[0]
+      sections.push(`📊 *GA4 주간 요약*`)
+      sections.push(`• 세션: ${totalSessions.toLocaleString()} | 사용자: ${totalUsers.toLocaleString()}`)
+      if (topChannel) sections.push(`• 최고 채널: ${topChannel.source}/${topChannel.medium} (${topChannel.sessions.toLocaleString()} 세션)`)
+    } catch { sections.push('• GA4 데이터 수집 실패') }
+  }
+
+  // SNS 요약
+  try {
+    const persona = await prisma.snsPersona.findFirst({ where: { instagramHandle: { not: null } } })
+    if (persona) {
+      const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
+      const snaps = await prisma.snsAnalyticsSnapshot.findMany({
+        where: { personaId: persona.id, date: { gte: weekAgo } },
+      })
+      const totalReach = snaps.reduce((s, r) => s + r.reach, 0)
+      const totalSaved = snaps.reduce((s, r) => s + ((r as any).saved || 0), 0)
+      const totalShares = snaps.reduce((s, r) => s + ((r as any).shares || 0), 0)
+      const latestFollowers = snaps[snaps.length - 1]?.followers || 0
+      sections.push(`\n📱 *Instagram 주간 요약*`)
+      sections.push(`• 도달: ${totalReach.toLocaleString()} | 저장: ${totalSaved} | 공유: ${totalShares}`)
+      sections.push(`• 팔로워: ${latestFollowers.toLocaleString()}`)
+    }
+  } catch { /* skip */ }
+
+  // KPI 요약
+  const goals = await prisma.kpiGoal.findMany({ take: 4 })
+  if (goals.length > 0) {
+    sections.push(`\n🎯 *KPI 현황*`)
+    for (const g of goals) {
+      const pct = g.targetValue > 0 ? Math.round((g.currentValue / g.targetValue) * 100) : 0
+      sections.push(`• ${g.title}: ${pct}% (${g.currentValue}/${g.targetValue})`)
+    }
+  }
+
+  // AI 인사이트
+  try {
+    const insight = await runLLM(
+      '10년차 퍼포먼스 마케터입니다. 주간 데이터를 보고 핵심 액션 3가지를 한국어로 제안하세요.',
+      sections.join('\n'),
+      0.3, 1000, runtime
+    )
+    sections.push(`\n💡 *AI 주간 액션*\n${insight}`)
+  } catch { /* skip */ }
+
+  const fullReport = sections.join('\n')
+
+  // Slack 발송
+  if (process.env.SLACK_WEBHOOK_URL) {
+    await sendSlackMessage({ text: fullReport })
+  }
+
+  return { ok: true, message: fullReport }
+}
+
 // ── Job: 추천 액션 긴급 알림 ──
 
 export async function runUrgentRecommendationsJob(): Promise<JobResult> {

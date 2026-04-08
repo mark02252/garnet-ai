@@ -21,7 +21,16 @@ export function LoopStatusCard() {
   }, [])
 
   if (loading) return <div className="rounded-xl border border-zinc-800 bg-zinc-900/50 animate-pulse h-48" />
-  if (!data) return null
+
+  // API 실패 또는 데이터 없음 → 기본 상태 표시
+  const d: AgentLoopStatusResponse = data ?? {
+    status: 'idle',
+    lastCycle: null,
+    nextScheduled: { cycleType: 'routine-cycle', scheduledAt: '' },
+    today: { autoExecuted: 0, sentToGovernor: 0, totalCycles: 0 },
+    goals: [],
+    recentDecisions: [],
+  }
 
   const statusColors: Record<string, string> = {
     running: 'text-green-400',
@@ -52,10 +61,10 @@ export function LoopStatusCard() {
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide">Agent Loop</h2>
         <div className="flex items-center gap-2">
-          <span className={`text-xs font-medium ${statusColors[data.status]}`}>
-            {'\u25CF'} {statusLabels[data.status]}
+          <span className={`text-xs font-medium ${statusColors[d.status]}`}>
+            {'\u25CF'} {statusLabels[d.status]}
           </span>
-          {data.status === 'running' || data.status === 'idle' ? (
+          {d.status === 'running' || d.status === 'idle' ? (
             <button onClick={() => handleControl('pause')} className="text-xs text-zinc-500 hover:text-zinc-300 transition">일시정지</button>
           ) : (
             <button onClick={() => handleControl('start')} className="text-xs text-zinc-500 hover:text-zinc-300 transition">시작</button>
@@ -65,23 +74,23 @@ export function LoopStatusCard() {
 
       <div className="grid grid-cols-3 gap-3 mb-4">
         <div className="text-center">
-          <div className="text-lg font-bold text-zinc-100">{data.today.totalCycles}</div>
+          <div className="text-lg font-bold text-zinc-100">{d.today.totalCycles}</div>
           <div className="text-xs text-zinc-500">사이클</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold text-green-400">{data.today.autoExecuted}</div>
+          <div className="text-lg font-bold text-green-400">{d.today.autoExecuted}</div>
           <div className="text-xs text-zinc-500">자동실행</div>
         </div>
         <div className="text-center">
-          <div className="text-lg font-bold text-yellow-400">{data.today.sentToGovernor}</div>
+          <div className="text-lg font-bold text-yellow-400">{d.today.sentToGovernor}</div>
           <div className="text-xs text-zinc-500">승인대기</div>
         </div>
       </div>
 
-      {data.goals.length > 0 && (
+      {d.goals.length > 0 && (
         <div className="mb-4">
           <h3 className="text-xs text-zinc-500 mb-2">목표 진행률</h3>
-          {data.goals.map(g => (
+          {d.goals.map(g => (
             <div key={g.name} className="flex items-center gap-2 mb-1.5">
               <span className="text-xs text-zinc-400 w-32 truncate">{g.name}</span>
               <div className="flex-1 h-1.5 bg-zinc-800 rounded-full overflow-hidden">
@@ -96,17 +105,17 @@ export function LoopStatusCard() {
         </div>
       )}
 
-      {data.recentDecisions.length > 0 && (
+      {d.recentDecisions.length > 0 && (
         <div>
           <h3 className="text-xs text-zinc-500 mb-2">최근 판단</h3>
           <div className="space-y-1.5 max-h-32 overflow-y-auto">
-            {data.recentDecisions.slice(0, 5).map((d, i) => {
-              const statusIcon = d.status === 'executed' ? '\u2713' : d.status === 'pending_approval' ? '\u23F3' : '\u2014'
-              const time = new Date(d.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+            {d.recentDecisions.slice(0, 5).map((dec, i) => {
+              const statusIcon = dec.status === 'executed' ? '\u2713' : dec.status === 'pending_approval' ? '\u23F3' : '\u2014'
+              const time = new Date(dec.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
               return (
                 <div key={i} className="flex items-start gap-2 text-xs">
                   <span className="text-zinc-600 w-12 shrink-0">{time}</span>
-                  <span className="text-zinc-400 flex-1 truncate">{d.summary}</span>
+                  <span className="text-zinc-400 flex-1 truncate">{dec.summary}</span>
                   <span className="text-zinc-600">{statusIcon}</span>
                 </div>
               )

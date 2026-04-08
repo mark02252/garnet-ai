@@ -422,19 +422,21 @@ export default function SeminarPage() {
   return (
     <PageTransition>
     <div className="space-y-5">
-      <section className="dashboard-hero">
-        <p className="dashboard-eyebrow">Seminar</p>
-        <h2 className="dashboard-title">세미나 스튜디오</h2>
-        <p className="dashboard-copy">
-          주제를 던지면 에이전트들이 라운드별 토론을 반복하고, 아침 브리핑까지 자동으로 정리합니다.
-        </p>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {strategyConfigSummary && (
-            <span className="accent-pill text-xs">{strategyConfigSummary}</span>
-          )}
-          <span className="pill-option text-xs">Mac 절전 해제 시 자동 진행</span>
+      <header className="ops-zone">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="ops-zone-label">Seminar Studio</p>
+            <h2 className="mt-1 text-lg font-bold tracking-tight text-[var(--text-strong)]">세미나 스튜디오</h2>
+            <p className="mt-1 text-[12px] text-[var(--text-muted)]">주제를 던지면 에이전트들이 라운드별 토론을 반복하고, 아침 브리핑까지 자동으로 정리합니다.</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {strategyConfigSummary && (
+              <span className="accent-pill text-xs">{strategyConfigSummary}</span>
+            )}
+            <span className="text-[10px] text-[var(--text-disabled)]">Mac 절전 해제 시 자동 진행</span>
+          </div>
         </div>
-      </section>
+      </header>
 
       <section className="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
         <form onSubmit={onCreate} className="panel space-y-4">
@@ -697,28 +699,26 @@ export default function SeminarPage() {
             </div>
           )}
 
-          <div className="grid gap-3 md:grid-cols-4">
-            <div className="metric-card" style={{ borderTop: '4px solid var(--accent)' }}>
-              <p className="metric-label">완료 라운드</p>
-              <p className="metric-value">
-                {selected.completedRounds}<span className="text-base font-normal text-[var(--text-muted)]">/{selected.maxRounds}</span>
-              </p>
+          <div className="ops-kpi-grid">
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-val">{selected.completedRounds}<span className="text-base font-normal text-[var(--text-muted)]">/{selected.maxRounds}</span></p>
+              <p className="ops-kpi-label">완료 라운드</p>
             </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #6366f1' }}>
-              <p className="metric-label">간격</p>
-              <p className="metric-value">{selected.intervalMinutes}<span className="text-base font-normal text-[var(--text-muted)]">분</span></p>
+            <div className="ops-kpi-cell" style={{ '--kpi-accent': '#6366f1' } as React.CSSProperties}>
+              <p className="ops-kpi-val">{selected.intervalMinutes}<span className="text-base font-normal text-[var(--text-muted)]">분</span></p>
+              <p className="ops-kpi-label">간격</p>
             </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #10b981' }}>
-              <p className="metric-label">마지막 실행</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
+            <div className="ops-kpi-cell" style={{ '--kpi-accent': '#10b981' } as React.CSSProperties}>
+              <p className="text-[13px] font-semibold tabular-nums text-[var(--text-strong)]">
                 {selected.lastRunAt ? new Date(selected.lastRunAt).toLocaleString('ko-KR') : '-'}
               </p>
+              <p className="ops-kpi-label">마지막 실행</p>
             </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #f59e0b' }}>
-              <p className="metric-label">다음 실행</p>
-              <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">
+            <div className="ops-kpi-cell" style={{ '--kpi-accent': '#f59e0b' } as React.CSSProperties}>
+              <p className="text-[13px] font-semibold tabular-nums text-[var(--text-strong)]">
                 {selected.nextRunAt ? new Date(selected.nextRunAt).toLocaleString('ko-KR') : '-'}
               </p>
+              <p className="ops-kpi-label">다음 실행</p>
             </div>
           </div>
 
@@ -749,10 +749,10 @@ export default function SeminarPage() {
                     </span>
                     {round.runId && (
                       <div className="flex flex-wrap gap-2 ml-auto">
-                        <Link className="text-xs text-[var(--accent)] underline" href={`/runs/${round.runId}`}>
+                        <Link className="text-xs text-[var(--accent-text)] underline" href={`/runs/${round.runId}`}>
                           실행 결과
                         </Link>
-                        <Link className="text-xs text-[var(--accent)] underline" href={`/runs/${round.runId}/report`}>
+                        <Link className="text-xs text-[var(--accent-text)] underline" href={`/runs/${round.runId}/report`}>
                           산출물 보고서
                         </Link>
                       </div>

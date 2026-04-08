@@ -4,8 +4,8 @@ import { ApprovalActionList } from '@/components/approval-action-list';
 import { CollapsibleSection } from '@/components/collapsible-section';
 import { NotionPublishButton } from '@/components/notion-publish-button';
 import { SlackNotifyButton } from '@/components/slack-notify-button';
-import { PageSectionTabs } from '@/components/page-section-tabs';
 import { RecommendationsPanel } from '@/components/recommendations-panel';
+import { GarnetGemLazy } from '@/components/garnet-gem-lazy';
 import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
 import { listSeminarSessions, type SeminarSession } from '@/lib/seminar-storage';
@@ -77,7 +77,7 @@ function timelineBadge(type: TimelineItem['type']) {
 }
 
 function timelineTone(type: TimelineItem['type']) {
-  if (type === 'run') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
+  if (type === 'run') return 'bg-[var(--accent-soft)] text-[var(--accent-text)]';
   if (type === 'seminar') return 'bg-emerald-900/40 text-emerald-300';
   if (type === 'dataset') return 'bg-violet-900/40 text-violet-300';
   if (type === 'learning') return 'bg-amber-900/40 text-amber-300';
@@ -397,380 +397,396 @@ export default async function OperationsPage() {
     .filter((line): line is string => line !== null)
     .join('\n');
 
+  const dateLabel = new Date().toLocaleDateString('ko-KR', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    weekday: 'long',
+  });
+
+  const coverageItems = [
+    { label: '보고서 연결', value: deliverableCoverage, raw: `${deliverableCount}/${totalRuns}` },
+    { label: '세미나 완료', value: seminarCoverage, raw: `${completedSeminars.length}/${sessions.length}` },
+    { label: '데이터 분석', value: datasetCoverage, raw: `${analyzedDatasets}/${totalDatasets}` },
+    { label: '플레이북 확정', value: learningCoverage, raw: `${confirmedLearning}/${totalLearning}` },
+  ];
+
+  const priorityColors = ['#f43f5e', '#f59e0b', 'var(--accent)', '#6366f1'];
+
   return (
     <PageTransition>
-    <div className="space-y-5">
-      {/* ── Hero ── */}
-      <section className="dashboard-hero">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
-          <div>
-            <p className="dashboard-eyebrow">Morning Briefing</p>
-            <h1 className="dashboard-title">오늘의 브리핑</h1>
-            <p className="dashboard-copy">전체 실행 흐름과 지금 당장 처리할 일을 한 화면에서 파악합니다.</p>
-            <div className="mt-4 flex flex-wrap items-center gap-2">
-              <Link href="/campaigns" className="button-primary">캠페인 스튜디오</Link>
-              <Link href="/seminar" className="button-secondary">세미나 스튜디오</Link>
-              <Link href="/history" className="button-secondary">실행 아카이브</Link>
-              <NotionPublishButton
-                title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
-                content={briefingContent}
-                contentType="briefing"
-              />
-              <SlackNotifyButton
-                title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
-                content={briefingContent}
-                emoji="📋"
-              />
-            </div>
-            <PageSectionTabs
-              items={[
-                { label: '상태 요약', href: '#overview' },
-                { label: '빠른 질문', href: '#questions' },
-                { label: '캠페인', href: '#campaigns' },
-                { label: '타임라인', href: '#timeline' },
-                { label: '추천 액션', href: '#recommendations' }
-              ]}
-            />
-            <div className="mt-5 flex flex-wrap gap-2">
-              <span className="accent-pill">#{leadSignal}</span>
-              <span className="pill-option">즉시 대응 {priorities.length || 1}건</span>
-              <span className="pill-option">승인 대기 {approvalQueue.length}건</span>
-            </div>
-          </div>
+    <div className="space-y-3">
 
-          {/* Assistant summary panel */}
-          <div className="soft-card">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">오늘 포인트</p>
-              <span className="h-2 w-2 rounded-full bg-[var(--accent)]" />
-            </div>
-            <p className="mt-3 text-base font-semibold leading-7 text-[var(--text-strong)]">
-              실행 결과를 회수하고 다음 액션으로 넘기는 속도가 중요합니다.
-            </p>
-            <div className="mt-4 space-y-2">
-              {assistantSummary.slice(0, 2).map((line) => (
-                <div key={line} className="soft-panel">
-                  <p className="text-sm leading-6 text-[var(--text-base)]">{line}</p>
-                </div>
-              ))}
-            </div>
+      {/* ═══ ZONE 1 — Header Bar ═══ */}
+      <header className="ops-zone relative overflow-hidden">
+        <div className="absolute right-4 top-1/2 -translate-y-1/2 hidden sm:block">
+          <GarnetGemLazy size={0.8} className="h-20 w-20 opacity-80" />
+        </div>
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between relative z-10">
+          <div className="min-w-0">
+            <p className="ops-zone-label">Garnet Operations</p>
+            <h1 className="mt-1 text-lg font-bold tracking-tight text-[var(--text-strong)]">{dateLabel}</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/campaigns" className="button-primary px-3 py-2 text-xs">캠페인</Link>
+            <Link href="/seminar" className="button-secondary px-3 py-2 text-xs">세미나</Link>
+            <Link href="/history" className="button-secondary px-3 py-2 text-xs">아카이브</Link>
+            <NotionPublishButton
+              title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
+              content={briefingContent}
+              contentType="briefing"
+            />
+            <SlackNotifyButton
+              title={`오늘의 브리핑 — ${new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul' })}`}
+              content={briefingContent}
+              emoji="📋"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* ═══ ZONE 2 — KPI Strip ═══ */}
+      <div className="ops-kpi-grid">
+        <div className="ops-kpi-cell" style={{ '--kpi-accent': '#f43f5e' } as React.CSSProperties}>
+          <p className="ops-kpi-val">{priorities.length || 1}</p>
+          <p className="ops-kpi-label">즉시 대응</p>
+          <p className="ops-kpi-sub">오늘 우선순위</p>
+        </div>
+        <div className="ops-kpi-cell" style={{ '--kpi-accent': '#f59e0b' } as React.CSSProperties}>
+          <p className="ops-kpi-val">{approvalQueue.length}</p>
+          <p className="ops-kpi-label">승인 대기</p>
+          <p className="ops-kpi-sub">전환 대기 항목</p>
+        </div>
+        <div className="ops-kpi-cell">
+          <p className="ops-kpi-val">{activeSeminars.length + Math.min(reportBacklog, 3)}</p>
+          <p className="ops-kpi-label">진행 중</p>
+          <p className="ops-kpi-sub">마무리 필요 트랙</p>
+        </div>
+        <div className="ops-kpi-cell" style={{ '--kpi-accent': '#10b981' } as React.CSSProperties}>
+          <p className="ops-kpi-val">{confirmedLearning}</p>
+          <p className="ops-kpi-label">확정 플레이북</p>
+          <p className="ops-kpi-sub">재사용 자산</p>
+        </div>
+      </div>
+
+      {/* ═══ ZONE 3 — Briefing ═══ */}
+      <section className="ops-zone">
+        <div className="ops-zone-head">
+          <div className="flex items-center gap-2">
+            <span className="ops-dot bg-[var(--accent)]" style={{ marginTop: 0 }} />
+            <span className="ops-zone-label">Morning Briefing</span>
+          </div>
+          <span className="accent-pill">#{leadSignal}</span>
+        </div>
+        <div className="px-5 py-4">
+          <p className="text-[15px] font-semibold leading-7 text-[var(--text-strong)]">
+            실행 결과를 회수하고 다음 액션으로 넘기는 속도가 중요합니다.
+          </p>
+          <div className="mt-3 space-y-1.5">
+            {assistantSummary.map((line) => (
+              <p key={line} className="text-[13px] leading-6 text-[var(--text-base)]">{line}</p>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ── KPI Tiles ── */}
-      <section id="overview" className="scroll-mt-24">
-        <CollapsibleSection title="상태 요약" defaultOpen={true}>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            <div className="metric-card" style={{ borderTop: '4px solid #f43f5e' }}>
-              <p className="metric-label">즉시 대응</p>
-              <p className="metric-value">{priorities.length || 1}건</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">오늘 바로 열어봐야 할 우선순위</p>
-            </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #f59e0b' }}>
-              <p className="metric-label">승인 대기</p>
-              <p className="metric-value">{approvalQueue.length}건</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">보고서, 플레이북, 분석 전환 대기</p>
-            </div>
-            <div className="metric-card" style={{ borderTop: '4px solid var(--accent)' }}>
-              <p className="metric-label">진행 중 흐름</p>
-              <p className="metric-value">{activeSeminars.length + Math.min(reportBacklog, 3)}개</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">실행 후 아직 마무리되지 않은 트랙</p>
-            </div>
-            <div className="metric-card" style={{ borderTop: '4px solid #10b981' }}>
-              <p className="metric-label">누적 플레이북</p>
-              <p className="metric-value">{confirmedLearning}개</p>
-              <p className="mt-1 text-xs text-[var(--text-muted)]">바로 재사용 가능한 확정 자산</p>
-            </div>
-          </div>
-        </CollapsibleSection>
-      </section>
+      {/* ═══ ZONE 4 — Two-column workspace ═══ */}
+      <div className="grid gap-3 xl:grid-cols-[1fr_300px]">
 
-      {/* ── Quick Commands ── */}
-      <section id="questions" className="scroll-mt-24">
-        <CollapsibleSection title="바로 열기" defaultOpen={true}>
-          <p className="mb-3 text-sm text-[var(--text-muted)]">자주 보는 흐름만 빠르게 이동합니다.</p>
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-            {quickCommandCards.map((item) => (
-              <Link key={item.title} href={item.href} className="list-card block">
-                <span className="inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-2.5 py-1 text-[11px] font-semibold text-[var(--text-muted)]">
-                  {item.tag}
-                </span>
-                <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-                <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
-              </Link>
-            ))}
-          </div>
-        </CollapsibleSection>
-      </section>
+        {/* ── Main column ── */}
+        <div className="space-y-3">
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.28fr)_340px]">
-        <div className="space-y-5">
-          {/* ── Today's Priorities ── */}
-          <section id="campaigns" className="scroll-mt-24">
-            <CollapsibleSection title="오늘 먼저 볼 일" defaultOpen={true} badge={<span className="accent-pill">{priorities.length || 1} items</span>}>
+          {/* Priorities */}
+          <section className="ops-zone" id="overview">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">오늘 먼저 볼 일</span>
+              <span className="text-[10px] font-semibold tabular-nums text-[var(--text-disabled)]">{priorities.length} items</span>
+            </div>
+            <div className="ops-zone-body">
               {priorities.length === 0 ? (
-                <div className="soft-card" style={{ borderLeft: '4px solid #10b981' }}>
-                  <strong className="text-emerald-400">긴급 병목은 크지 않습니다.</strong>
-                  <p className="mt-1 text-sm text-[var(--text-base)]">오늘은 최신 실행을 보고서와 플레이북으로 정리하는 자산화 작업에 집중해도 좋습니다.</p>
+                <div className="px-4 py-3">
+                  <p className="text-[13px] text-emerald-400 font-semibold">긴급 병목 없음</p>
+                  <p className="mt-1 text-[12px] text-[var(--text-muted)]">자산화 작업에 집중해도 좋습니다.</p>
                 </div>
               ) : (
-                <div className="grid gap-3 md:grid-cols-2">
-                  {priorities.map((item, i) => {
-                    const priorityColors = ['#f43f5e', '#f59e0b', 'var(--accent)', '#6366f1'];
-                    const borderColor = priorityColors[i % priorityColors.length];
-                    return (
-                      <Link key={item.title} href={item.href} className="list-card block" style={{ borderLeft: `4px solid ${borderColor}` }}>
+                priorities.map((item, i) => (
+                  <Link key={item.title} href={item.href} className="ops-row">
+                    <span className="ops-dot" style={{ backgroundColor: priorityColors[i % priorityColors.length] }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
                         <span
-                          className="inline-flex rounded-full px-3 py-1 text-[11px] font-semibold"
-                          style={{ backgroundColor: `${borderColor}20`, color: borderColor }}
+                          className="shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                          style={{ backgroundColor: `${priorityColors[i % priorityColors.length]}18`, color: priorityColors[i % priorityColors.length] }}
                         >
                           {item.tag}
                         </span>
-                        <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-                        <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.description}</p>
-                        <span className="mt-4 inline-flex rounded-full bg-[var(--accent-soft)] border border-[rgba(49,130,246,0.18)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">
-                          {item.cta}
-                        </span>
-                      </Link>
-                    );
-                  })}
-                </div>
+                        <p className="truncate text-[13px] font-semibold text-[var(--text-strong)]">{item.title}</p>
+                      </div>
+                      <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-muted)] line-clamp-1">{item.description}</p>
+                    </div>
+                    <span className="shrink-0 text-[11px] font-medium text-[var(--accent-text)]">{item.cta}</span>
+                  </Link>
+                ))
               )}
-            </CollapsibleSection>
+            </div>
           </section>
 
-          {/* ── Campaign Rooms ── */}
-          <section id="timeline" className="scroll-mt-24">
-            <CollapsibleSection title="지금 관리 중인 캠페인 흐름" defaultOpen={true} trailing={<Link href="/campaigns" className="button-secondary">전체 캠페인 룸 보기</Link>}>
-              <div className="grid gap-3 md:grid-cols-2">
-                {campaignRooms.map((room) => (
-                  <article key={room.id} className="list-card">
-                    <div className="flex items-center justify-between gap-2">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${
-                          room.status === 'ACTIVE'
-                            ? 'bg-emerald-900/40 text-emerald-300'
-                            : room.status === 'NEEDS_REVIEW'
-                              ? 'bg-amber-900/40 text-amber-300'
-                              : 'bg-[var(--accent-soft)] text-[var(--accent)]'
-                        }`}
-                      >
-                        {room.statusLabel}
-                      </span>
-                      <span className="pill-option">{room.approvals.length} approvals</span>
+          {/* Campaign Rooms */}
+          <section className="ops-zone" id="campaigns">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">캠페인 흐름</span>
+              <Link href="/campaigns" className="text-[10px] font-semibold text-[var(--accent-text)] hover:underline">전체 보기</Link>
+            </div>
+            <div className="grid gap-px bg-[var(--surface-border)] md:grid-cols-2">
+              {campaignRooms.map((room) => (
+                <article key={room.id} className="ops-campaign bg-[var(--surface)] rounded-none border-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                        room.status === 'ACTIVE'
+                          ? 'bg-emerald-900/40 text-emerald-300'
+                          : room.status === 'NEEDS_REVIEW'
+                            ? 'bg-amber-900/40 text-amber-300'
+                            : 'bg-[var(--accent-soft)] text-[var(--accent-text)]'
+                      }`}
+                    >
+                      {room.statusLabel}
+                    </span>
+                    <div className="flex items-center gap-1.5 text-[10px] tabular-nums text-[var(--text-disabled)]">
+                      <span>{room.counts.briefs}B</span>
+                      <span className="text-[var(--surface-border)]">/</span>
+                      <span>{room.counts.reports}R</span>
+                      <span className="text-[var(--surface-border)]">/</span>
+                      <span>{room.counts.playbooks}P</span>
                     </div>
-                    <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{room.title}</p>
-                    <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{room.summary}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="pill-option">브리프 {room.counts.briefs}</span>
-                      <span className="pill-option">보고서 {room.counts.reports}</span>
-                      <span className="pill-option">플레이북 {room.counts.playbooks}</span>
-                    </div>
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Link href={room.primaryHref} className="button-secondary px-3 py-2 text-xs">최신 흐름</Link>
-                      <Link href="/campaigns" className="button-secondary px-3 py-2 text-xs">캠페인 룸</Link>
-                    </div>
-                  </article>
-                ))}
-              </div>
-            </CollapsibleSection>
+                  </div>
+                  <p className="mt-2 text-[13px] font-semibold leading-5 text-[var(--text-strong)] line-clamp-1">{room.title}</p>
+                  <p className="mt-1 text-[11px] leading-4 text-[var(--text-muted)] line-clamp-2">{room.summary}</p>
+                  <div className="mt-2 flex gap-2">
+                    <Link href={room.primaryHref} className="text-[10px] font-semibold text-[var(--accent-text)] hover:underline">최신 흐름</Link>
+                  </div>
+                </article>
+              ))}
+            </div>
           </section>
 
-          {/* ── Approval Inbox ── */}
-          <CollapsibleSection title="승인 대기함" defaultOpen={true} badge={<span className="accent-pill">{approvalQueue.length} approvals</span>}>
-            <ApprovalActionList
-              items={approvalQueue}
-              showRoomTitle
-              emptyMessage="지금은 승인 대기 항목이 많지 않습니다. 다음 브리프를 시작하거나, 이번 주 데이터를 더 깊게 읽어도 좋습니다."
-            />
-          </CollapsibleSection>
+          {/* Approval Inbox */}
+          <section className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">승인 대기</span>
+              <span className="text-[10px] font-semibold tabular-nums text-[var(--text-disabled)]">{approvalQueue.length}</span>
+            </div>
+            <div className="p-3">
+              <ApprovalActionList
+                items={approvalQueue}
+                showRoomTitle
+                compact
+                emptyMessage="승인 대기 항목 없음 — 다음 브리프를 시작하거나 데이터를 읽어보세요."
+              />
+            </div>
+          </section>
 
-          {/* ── Focus Board ── */}
-          <CollapsibleSection title="지금 집중 중인 흐름" defaultOpen={false} trailing={<Link href="/history" className="button-secondary">전체 실행 보기</Link>}>
-            <div className="grid gap-3 md:grid-cols-2">
+          {/* Focus Board */}
+          <CollapsibleSection title="집중 트랙" defaultOpen={false} trailing={<Link href="/history" className="text-[10px] font-semibold text-[var(--accent-text)] hover:underline">전체 실행</Link>}>
+            <div className="grid gap-px bg-[var(--surface-border)] rounded-lg overflow-hidden md:grid-cols-2">
               {focusBoard.map((item) => (
-                <Link key={`${item.eyebrow}-${item.title}`} href={item.href} className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{item.eyebrow}</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-                  <p className="mt-2 text-xs font-medium text-[var(--text-muted)]">{item.status}</p>
-                  <p className="mt-3 line-clamp-4 text-sm leading-6 text-[var(--text-base)]">{item.note}</p>
-                  <span className="mt-4 inline-flex rounded-full bg-[var(--surface-sub)] border border-[var(--surface-border)] px-3 py-1 text-xs font-semibold text-[var(--text-base)]">
-                    {item.cta}
-                  </span>
+                <Link key={`${item.eyebrow}-${item.title}`} href={item.href} className="block bg-[var(--surface)] p-3 transition-colors hover:bg-[var(--surface-sub)]">
+                  <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-[var(--text-disabled)]">{item.eyebrow}</p>
+                  <p className="mt-1.5 text-[13px] font-semibold leading-5 text-[var(--text-strong)] line-clamp-1">{item.title}</p>
+                  <p className="mt-0.5 text-[10px] text-[var(--text-muted)]">{item.status}</p>
+                  <p className="mt-1.5 text-[11px] leading-4 text-[var(--text-base)] line-clamp-2">{item.note}</p>
                 </Link>
               ))}
             </div>
           </CollapsibleSection>
 
-          {/* ── Coverage Board ── */}
-          <CollapsibleSection title="운영 자산화 진행률" defaultOpen={false} trailing={<Link href="/learning" className="button-secondary">플레이북 보기</Link>}>
-            <div className="grid gap-3 md:grid-cols-2">
-              {[
-                { label: '보고서 연결률', value: deliverableCoverage, helper: `${deliverableCount}/${totalRuns} runs` },
-                { label: '세미나 완료율', value: seminarCoverage, helper: `${completedSeminars.length}/${sessions.length} sessions` },
-                { label: '데이터 분석률', value: datasetCoverage, helper: `${analyzedDatasets}/${totalDatasets} datasets` },
-                { label: '플레이북 확정률', value: learningCoverage, helper: `${confirmedLearning}/${totalLearning} cards` }
-              ].map((item) => (
-                <div key={item.label} className="soft-panel">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-[var(--text-strong)]">{item.label}</p>
-                    <span className="pill-option">{item.value}%</span>
-                  </div>
-                  <div className="mt-3 h-1.5 rounded-full bg-[var(--surface-border)]">
-                    <div className="h-1.5 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(6, item.value)}%` }} />
-                  </div>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{item.helper}</p>
-                </div>
-              ))}
+          {/* Timeline */}
+          <section className="ops-zone" id="timeline">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">최근 활동</span>
+              <span className="text-[10px] font-semibold tabular-nums text-[var(--text-disabled)]">{timeline.length} events</span>
             </div>
-          </CollapsibleSection>
-
-          {/* ── Recent Flow / Timeline ── */}
-          <CollapsibleSection title="최근 운영 흐름" defaultOpen={false} badge={<span className="pill-option">{timeline.length} events</span>}>
-            <div className="grid gap-3">
+            <div className="ops-zone-body">
               {timeline.map((item) => (
-                <Link key={item.id} href={item.href} className="list-card block">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${timelineTone(item.type)}`}>
-                        {timelineBadge(item.type)}
-                      </span>
-                      <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{item.title}</p>
-                      <p className="mt-2 text-sm leading-6 text-[var(--text-base)]">{item.meta}</p>
-                    </div>
-                    <p className="text-xs text-[var(--text-muted)]">{formatDate(item.at)}</p>
+                <Link key={item.id} href={item.href} className="ops-timeline-row">
+                  <span className={`inline-flex items-center justify-center rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${timelineTone(item.type)}`}>
+                    {timelineBadge(item.type)}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[13px] font-medium text-[var(--text-strong)]">{item.title}</p>
+                    <p className="truncate text-[11px] text-[var(--text-muted)]">{item.meta}</p>
                   </div>
+                  <span className="whitespace-nowrap text-[10px] tabular-nums text-[var(--text-disabled)]">{formatDate(item.at)}</span>
                 </Link>
               ))}
             </div>
-          </CollapsibleSection>
+          </section>
         </div>
 
-        {/* ── Right Sidebar ── */}
-        <aside className="space-y-5 xl:sticky xl:top-24 xl:self-start">
-          {/* Decision Rail */}
-          <CollapsibleSection title="오늘의 결정 메모" defaultOpen={false}>
-            <div className="surface-note">
-              <strong>핵심 키워드:</strong> #{leadSignal}
-              <br />
-              지금 가장 먼저 해야 할 일은 실행 결과를 다음 액션과 자산으로 이어붙이는 것입니다.
-            </div>
-            <div className="mt-3 grid gap-3">
-              <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 1</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">세미나와 캠페인 스튜디오를 바로 연결하세요</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">토론이 끝난 세션부터 실행 브리프와 보고서로 넘겨야 전략이 사라지지 않습니다.</p>
-              </div>
-              <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 2</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">검증된 답변을 플레이북으로 확정하세요</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">재사용 패턴이 쌓일수록 사내 대응 속도와 일관성이 함께 올라갑니다.</p>
-              </div>
-              <div className="list-card">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">추천 3</p>
-                <p className="mt-2 text-sm font-semibold text-[var(--text-strong)]">데이터 해석을 회의 안건으로 올리세요</p>
-                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">분석 대기 데이터는 인사이트가 붙는 순간 전략 회의의 질을 크게 높여줍니다.</p>
-              </div>
-            </div>
-          </CollapsibleSection>
+        {/* ── Right sidebar ── */}
+        <aside className="space-y-3 xl:sticky xl:top-20 xl:self-start">
 
-          {/* Signal Tags */}
-          <CollapsibleSection title="반복되는 질문과 신호" defaultOpen={false}>
-            {topSignals.length === 0 ? (
-              <div className="soft-panel text-sm text-[var(--text-muted)]">아직 반복 신호가 충분하지 않습니다.</div>
-            ) : (
-              <div className="space-y-3">
-                {topSignals.map(([tag, count]) => (
-                  <div key={tag} className="soft-panel">
-                    <div className="mb-1 flex items-center justify-between text-xs text-[var(--text-base)]">
-                      <span>#{tag}</span>
-                      <span>{count}회</span>
-                    </div>
-                    <div className="h-1.5 rounded-full bg-[var(--surface-border)]">
-                      <div className="h-1.5 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(10, Math.min(100, count * 10))}%` }} />
-                    </div>
+          {/* Coverage */}
+          <div className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">자산화 진행률</span>
+              <Link href="/learning" className="text-[10px] font-semibold text-[var(--accent-text)] hover:underline">상세</Link>
+            </div>
+            <div className="px-4 py-3 space-y-3">
+              {coverageItems.map((item) => (
+                <div key={item.label}>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-[11px] font-medium text-[var(--text-base)]">{item.label}</span>
+                    <span className="text-[11px] font-bold tabular-nums text-[var(--text-strong)]">{item.value}%</span>
                   </div>
-                ))}
-              </div>
-            )}
-          </CollapsibleSection>
+                  <div className="mt-1 ops-bar-track">
+                    <div className="ops-bar-fill" style={{ width: `${Math.max(4, item.value)}%` }} />
+                  </div>
+                  <p className="mt-0.5 text-[9px] tabular-nums text-[var(--text-disabled)]">{item.raw}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Signals */}
+          <div className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">반복 신호</span>
+            </div>
+            <div className="px-4 py-3">
+              {topSignals.length === 0 ? (
+                <p className="text-[11px] text-[var(--text-muted)]">아직 반복 신호가 충분하지 않습니다.</p>
+              ) : (
+                <div className="space-y-2">
+                  {topSignals.map(([tag, count]) => (
+                    <div key={tag} className="ops-signal-row">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[11px] font-medium text-[var(--text-base)]">#{tag}</span>
+                          <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">{count}</span>
+                        </div>
+                        <div className="mt-1 ops-bar-track">
+                          <div className="ops-bar-fill" style={{ width: `${Math.max(8, Math.min(100, count * 12))}%` }} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
 
           {/* Latest Assets */}
-          <CollapsibleSection title="방금 업데이트된 자산" defaultOpen={false}>
-            <div className="space-y-3">
+          <div className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">최근 자산</span>
+            </div>
+            <div className="ops-zone-body">
               {latestSeminar && (
                 <Link
                   href={latestSeminar.status === 'COMPLETED' ? `/seminar/sessions/${latestSeminar.id}/report` : '/seminar'}
-                  className="list-card block"
+                  className="ops-asset"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Simulation</p>
-                    <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${seminarTone(latestSeminar.status)}`}>
-                      {seminarLabel(latestSeminar.status)}
-                    </span>
+                  <span className="ops-asset-type">SIM</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-medium text-[var(--text-strong)]">{latestSeminar.title || latestSeminar.topic}</p>
+                    <p className="text-[10px] text-[var(--text-disabled)]">{formatDate(latestSeminar.lastRunAt || latestSeminar.updatedAt)}</p>
                   </div>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestSeminar.title || latestSeminar.topic}</p>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestSeminar.lastRunAt || latestSeminar.updatedAt)}</p>
+                  <span className={`shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold ${seminarTone(latestSeminar.status)}`}>
+                    {seminarLabel(latestSeminar.status)}
+                  </span>
                 </Link>
               )}
               {latestRun && (
-                <Link href={`/runs/${latestRun.id}`} className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Brief</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestRun.topic}</p>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestRun.createdAt)}</p>
+                <Link href={`/runs/${latestRun.id}`} className="ops-asset">
+                  <span className="ops-asset-type">BRIEF</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-medium text-[var(--text-strong)]">{latestRun.topic}</p>
+                    <p className="text-[10px] text-[var(--text-disabled)]">{formatDate(latestRun.createdAt)}</p>
+                  </div>
                 </Link>
               )}
               {latestDataset && (
-                <Link href="/datasets" className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Data</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestDataset.name}</p>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestDataset.updatedAt)}</p>
+                <Link href="/datasets" className="ops-asset">
+                  <span className="ops-asset-type">DATA</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-medium text-[var(--text-strong)]">{latestDataset.name}</p>
+                    <p className="text-[10px] text-[var(--text-disabled)]">{formatDate(latestDataset.updatedAt)}</p>
+                  </div>
                 </Link>
               )}
               {latestKnowledge && (
-                <Link href="/learning" className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Playbook</p>
-                  <p className="mt-3 text-sm font-semibold leading-6 text-[var(--text-strong)]">{latestKnowledge.situation}</p>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">{formatDate(latestKnowledge.updatedAt)}</p>
+                <Link href="/learning" className="ops-asset">
+                  <span className="ops-asset-type">PLAY</span>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[12px] font-medium text-[var(--text-strong)]">{latestKnowledge.situation}</p>
+                    <p className="text-[10px] text-[var(--text-disabled)]">{formatDate(latestKnowledge.updatedAt)}</p>
+                  </div>
                 </Link>
               )}
               {latestReachAnalysis && (
-                <Link href="/datasets" className="list-card block">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Performance</p>
-                  <p className={`mt-3 text-sm font-semibold leading-6 ${reachSignal.tone}`}>{latestReachAnalysis.accountId}</p>
-                  <p className="mt-2 text-xs text-[var(--text-muted)]">
-                    {reachSignal.label} · {formatDate(latestReachAnalysis.createdAt)}
-                  </p>
+                <Link href="/datasets" className="ops-asset">
+                  <span className="ops-asset-type">PERF</span>
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate text-[12px] font-medium ${reachSignal.tone}`}>{latestReachAnalysis.accountId}</p>
+                    <p className="text-[10px] text-[var(--text-disabled)]">{reachSignal.label} · {formatDate(latestReachAnalysis.createdAt)}</p>
+                  </div>
                 </Link>
               )}
             </div>
-          </CollapsibleSection>
+          </div>
 
           {/* Failed Sessions */}
           {failedSeminars.length > 0 && (
-            <CollapsibleSection title="확인 필요한 세션" defaultOpen={true}>
-              <div className="space-y-3">
+            <div className="ops-zone">
+              <div className="ops-zone-head">
+                <span className="ops-zone-label text-rose-400">오류 세션</span>
+                <span className="text-[10px] font-bold tabular-nums text-rose-400">{failedSeminars.length}</span>
+              </div>
+              <div className="ops-zone-body">
                 {failedSeminars.slice(0, 3).map((session) => (
-                  <Link key={session.id} href="/seminar" className="list-card block">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-[var(--text-strong)]">{session.title || session.topic}</p>
-                      <span className="rounded-full bg-rose-900/40 px-2.5 py-1 text-[11px] font-semibold text-rose-300">실패</span>
+                  <Link key={session.id} href="/seminar" className="ops-row">
+                    <span className="ops-dot bg-rose-400" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-[12px] font-medium text-[var(--text-strong)]">{session.title || session.topic}</p>
+                      <p className="text-[10px] text-[var(--text-muted)] line-clamp-1">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
                     </div>
-                    <p className="mt-2 text-xs text-[var(--text-muted)]">{session.lastError || '오류 원인을 확인해 주세요.'}</p>
                   </Link>
                 ))}
               </div>
-            </CollapsibleSection>
+            </div>
           )}
+
+          {/* Quick Actions */}
+          <div className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">빠른 질문</span>
+            </div>
+            <div className="ops-zone-body">
+              {quickCommandCards.map((item) => (
+                <Link key={item.title} href={item.href} className="ops-row">
+                  <span className="ops-dot bg-[var(--accent)]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12px] font-medium text-[var(--text-strong)] line-clamp-1">{item.title}</p>
+                    <p className="text-[10px] text-[var(--text-muted)]">{item.description}</p>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
         </aside>
       </div>
 
-      {/* ── Recommendations ── */}
-      <section id="recommendations" className="mt-6">
-        <h2 className="text-base font-bold text-[var(--text-strong)] mb-3">추천 액션</h2>
-        <p className="text-xs text-[var(--text-muted)] mb-4">KPI 달성률, 승인 대기, 캠페인 상태를 종합 분석한 다음 행동 추천입니다.</p>
-        <RecommendationsPanel />
+      {/* ═══ ZONE 5 — Recommendations ═══ */}
+      <section className="ops-zone" id="recommendations">
+        <div className="ops-zone-head">
+          <span className="ops-zone-label">추천 액션</span>
+          <span className="text-[10px] text-[var(--text-disabled)]">KPI · 승인 · 캠페인 종합 분석</span>
+        </div>
+        <div className="p-4">
+          <RecommendationsPanel />
+        </div>
       </section>
     </div>
     </PageTransition>

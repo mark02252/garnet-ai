@@ -131,7 +131,7 @@ export default function FlowEditorPage() {
         const pct = total > 0 ? Math.round(((done + errors) / total) * 100) : 0
         return (
           <div className="flex items-center gap-3 border-b border-[var(--surface-border)] bg-[var(--surface-base)] px-4 py-2">
-            <span className="animate-spin text-[var(--accent)] text-xs">⟳</span>
+            <span className="animate-spin text-[var(--accent-text)] text-xs">⟳</span>
             <div className="flex-1">
               <div className="flex items-center justify-between text-xs text-[var(--text-muted)] mb-1">
                 <span>실행 중 — {done}/{total} 노드 완료{running > 0 ? ` · ${running}개 처리 중` : ''}{errors > 0 ? ` · ${errors}개 오류` : ''}</span>
@@ -178,7 +178,7 @@ export default function FlowEditorPage() {
           <span className="text-xs text-green-400">✓ 실행 완료</span>
           <a
             href={`/runs/${completedRunId}/report`}
-            className="text-xs text-[var(--accent)] underline hover:opacity-80"
+            className="text-xs text-[var(--accent-text)] underline hover:opacity-80"
           >
             결과 보기 →
           </a>

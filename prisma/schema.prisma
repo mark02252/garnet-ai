@@ -854,3 +854,20 @@ model PendingOutcome {
   @@index([status, measureAt])
   @@index([actionKind])
 }
+
+// ── Causal Reasoning (Phase 3) ──
+
+model CausalLink {
+  id            String   @id @default(cuid())
+  cause         String   // "content_publish:체험후기릴스"
+  effect        String   // "engagement_increase_8pct"
+  lag           String   // "3d"
+  strength      Float    @default(0.5) // 0-1
+  observedCount Int      @default(1)
+  domain        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([cause])
+  @@index([domain])
+}

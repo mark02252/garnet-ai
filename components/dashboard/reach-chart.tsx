@@ -22,7 +22,7 @@ export function ReachChart({ data }: { data: ReachDataPoint[] }) {
       <div className="panel flex items-center justify-center" style={{ height: 300 }}>
         <p className="text-sm text-[var(--text-muted)]">
           Instagram 연동 후 도달 데이터가 여기에 표시됩니다.{' '}
-          <a href="/settings" className="text-[var(--accent)] underline">설정 →</a>
+          <a href="/settings" className="text-[var(--accent-text)] underline">설정 →</a>
         </p>
       </div>
     )
@@ -39,7 +39,9 @@ export function ReachChart({ data }: { data: ReachDataPoint[] }) {
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
           <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} tickFormatter={formatChartTick} />
           <Tooltip
-            contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
+            contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }}
+            labelStyle={{ color: '#7E8A98' }}
+            itemStyle={{ color: '#B0B8C4' }}
             formatter={(value, name) => [formatCompactNumber(Number(value)), name === 'reach' ? '일별 도달' : '7일 평균']}
           />
           <Line type="monotone" dataKey="reach" stroke="#3182f6" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />

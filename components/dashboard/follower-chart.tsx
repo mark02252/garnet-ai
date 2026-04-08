@@ -55,7 +55,9 @@ export function FollowerChart({ data, currentFollowers }: { data: FollowerDataPo
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
           <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} tickFormatter={formatChartTick} />
           <Tooltip
-            contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
+            contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }}
+            labelStyle={{ color: '#7E8A98' }}
+            itemStyle={{ color: '#B0B8C4' }}
             formatter={(value) => [formatCompactNumber(Number(value)), '팔로워']}
           />
           <Line type="monotone" dataKey="followers" stroke="#3182f6" strokeWidth={2} dot={false} />

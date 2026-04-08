@@ -101,7 +101,7 @@ function SimpleMarkdown({ text }: { text: string }) {
     if (line.startsWith('* ') || line.startsWith('- ')) {
       elements.push(
         <div key={key} className="flex gap-2 pl-2">
-          <span className="text-[var(--accent)] mt-0.5">•</span>
+          <span className="text-[var(--accent-text)] mt-0.5">•</span>
           <span>{formatInline(line.slice(2))}</span>
         </div>
       )
@@ -124,7 +124,7 @@ export function FlowResultDashboard({ topic, brand, region, goal, formattedDate,
     <div className="space-y-6">
       {/* Header */}
       <div className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] p-6">
-        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--accent)]">Flow 실행 결과</p>
+        <p className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--accent-text)]">Flow 실행 결과</p>
         <h1 className="text-lg font-semibold text-[var(--text-primary)]">{topic}</h1>
         <p className="mt-1 text-xs text-[var(--text-muted)]">
           {[brand, region, goal].filter(Boolean).join(' · ')}
@@ -144,7 +144,7 @@ export function FlowResultDashboard({ topic, brand, region, goal, formattedDate,
             className="rounded-xl border border-[var(--surface-border)] bg-[var(--surface-raised)] p-5"
           >
             <div className="mb-3 flex items-center gap-2">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[10px] font-bold text-[var(--accent)]">
+              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--accent-soft)] text-[10px] font-bold text-[var(--accent-text)]">
                 {idx + 1}
               </span>
               <span className="text-sm font-medium text-[var(--text-primary)]">

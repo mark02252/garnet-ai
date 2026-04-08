@@ -12,7 +12,7 @@ type SeminarReportDashboardProps = {
 
 function priorityTone(priority: string) {
   if (priority === 'NOW') return 'bg-emerald-100 text-emerald-700';
-  if (priority === 'NEXT') return 'bg-[var(--accent-soft)] text-[var(--accent)]';
+  if (priority === 'NEXT') return 'bg-[var(--accent-soft)] text-[var(--accent-text)]';
   return 'bg-[var(--surface-sub)] text-[var(--text-base)]';
 }
 
@@ -40,63 +40,63 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
 
   return (
     <div className="space-y-4">
-      <section className={compact ? 'soft-panel space-y-4' : 'dashboard-hero'}>
-        <div>
-          <p className={compact ? 'text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]' : 'dashboard-eyebrow'}>
-            Seminar Report
-          </p>
-          <h2 className={compact ? 'mt-2 text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]' : 'dashboard-title'}>
+      <section className={compact ? 'soft-panel space-y-4' : 'ops-zone'}>
+        {!compact && <div className="ops-zone-head"><span className="ops-zone-label">Seminar Report</span></div>}
+        <div className={compact ? '' : 'p-4 space-y-3'}>
+          {compact && (
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+              Seminar Report
+            </p>
+          )}
+          <h2 className={compact ? 'mt-2 text-xl font-semibold tracking-[-0.03em] text-[var(--text-strong)]' : 'text-lg font-bold tracking-tight text-[var(--text-strong)]'}>
             {parsed.sessionName || parsed.topic || '세미나 통합 보고서'}
           </h2>
-          <p className={compact ? 'mt-2 text-sm leading-6 text-[var(--text-muted)]' : 'dashboard-copy'}>
+          <p className={compact ? 'mt-2 text-sm leading-6 text-[var(--text-muted)]' : 'text-[12px] text-[var(--text-muted)]'}>
             {parsed.topic || '주제 미입력'}
             {parsed.operationWindow ? ` · ${parsed.operationWindow}` : ''}
           </p>
           {parsed.summaryHeadline && (
-            <p className={compact ? 'mt-3 text-sm leading-6 text-[var(--text-base)]' : 'mt-4 max-w-3xl text-[15px] leading-7 text-[var(--text-base)]'}>
+            <p className={compact ? 'mt-3 text-sm leading-6 text-[var(--text-base)]' : 'mt-3 max-w-3xl text-[13px] leading-6 text-[var(--text-base)]'}>
               {parsed.summaryHeadline}
             </p>
           )}
-        </div>
-        <div className={compact ? 'grid gap-3 md:grid-cols-3' : 'dashboard-chip-grid'}>
-          <div className={compact ? 'soft-card' : 'dashboard-chip'}>
-            <strong>완료 라운드</strong>
-            <br />
-            {parsed.completedRounds || '집계 전'}
-          </div>
-          <div className={compact ? 'soft-card' : 'dashboard-chip'}>
-            <strong>라운드 간격</strong>
-            <br />
-            {parsed.intervalMinutes || '미기록'}
-          </div>
-          <div className={compact ? 'soft-card' : 'dashboard-chip'}>
-            <strong>교차검토</strong>
-            <br />
-            {parsed.debateCycles || '미기록'}
+          <div className={compact ? 'grid gap-3 md:grid-cols-3' : 'ops-kpi-grid'}>
+            <div className={compact ? 'soft-card' : 'ops-kpi-cell'}>
+              {compact ? <><strong>완료 라운드</strong><br />{parsed.completedRounds || '집계 전'}</> : <><p className="ops-kpi-label">완료 라운드</p><p className="ops-kpi-val">{parsed.completedRounds || '집계 전'}</p></>}
+            </div>
+            <div className={compact ? 'soft-card' : 'ops-kpi-cell'}>
+              {compact ? <><strong>라운드 간격</strong><br />{parsed.intervalMinutes || '미기록'}</> : <><p className="ops-kpi-label">라운드 간격</p><p className="ops-kpi-val">{parsed.intervalMinutes || '미기록'}</p></>}
+            </div>
+            <div className={compact ? 'soft-card' : 'ops-kpi-cell'}>
+              {compact ? <><strong>교차검토</strong><br />{parsed.debateCycles || '미기록'}</> : <><p className="ops-kpi-label">교차검토</p><p className="ops-kpi-val">{parsed.debateCycles || '미기록'}</p></>}
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="status-tile">
-          <p className="metric-label">참조 출처</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.totalUniqueSources}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">총 {parsed.totalSourceReferences}회 인용</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">핵심 태그</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.totalUniqueTags}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">반복 언급된 주제 수</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">산출물 유형</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.totalDeliverableTypes}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">세션에서 사용된 결과물 종류</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">즉시 액션</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{parsed.actionItems.length}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">우선순위 보드 기준</p>
+      <section className="ops-zone">
+        <div className="ops-zone-head"><span className="ops-zone-label">Key Metrics</span></div>
+        <div className="ops-kpi-grid">
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">참조 출처</p>
+            <p className="ops-kpi-val">{parsed.totalUniqueSources}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">총 {parsed.totalSourceReferences}회 인용</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">핵심 태그</p>
+            <p className="ops-kpi-val">{parsed.totalUniqueTags}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">반복 언급된 주제 수</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">산출물 유형</p>
+            <p className="ops-kpi-val">{parsed.totalDeliverableTypes}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">세션에서 사용된 결과물 종류</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">즉시 액션</p>
+            <p className="ops-kpi-val">{parsed.actionItems.length}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">우선순위 보드 기준</p>
+          </div>
         </div>
       </section>
 
@@ -228,8 +228,8 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
                       <span>{item.label}</span>
                       <span>{item.count}회</span>
                     </div>
-                    <div className="h-2 rounded-full bg-[var(--surface-border)]">
-                      <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(8, Math.min(100, item.count * 16))}%` }} />
+                    <div className="ops-bar-track">
+                      <div className="ops-bar-fill" style={{ width: `${Math.max(8, Math.min(100, item.count * 16))}%` }} />
                     </div>
                   </div>
                 ))}
@@ -264,7 +264,7 @@ export function SeminarReportDashboard({ reportText, structured, compact = false
               >
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{source.count}회 참조</p>
                 <p className="mt-2 text-sm font-semibold leading-6 text-[var(--text-strong)]">{source.title}</p>
-                {source.url && <p className="mt-2 text-xs text-[var(--accent)]">{source.url}</p>}
+                {source.url && <p className="mt-2 text-xs text-[var(--accent-text)]">{source.url}</p>}
               </a>
             ))}
           </div>

@@ -141,72 +141,74 @@ export function RunDetailClient({ run }: { run: RunDetail }) {
 
   return (
     <div className="space-y-5">
-      <section className="dashboard-hero">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="dashboard-eyebrow">Execution Detail</p>
-            <h1 className="dashboard-title">{structured?.campaignName || structured?.title || run.topic}</h1>
-            <p className="dashboard-copy">
-              {run.brand || '브랜드 미입력'} · {run.region || '지역 미입력'} · {run.goal || '목표 미입력'} · 생성 {formatDate(run.createdAt)}
-            </p>
-            <p className="mt-4 max-w-3xl text-[15px] leading-7 text-[var(--text-base)]">
-              {structured?.executiveSummary[0] || pmHighlights[0] || run.memoryLog?.direction || '이 실행의 핵심 판단과 산출물을 아래 대시보드에서 확인할 수 있습니다.'}
-            </p>
-          </div>
-          <div className="no-print flex flex-wrap gap-2">
-            <Link href={`/runs/${run.id}/report`} className="button-secondary">
-              대시보드 보고서
-            </Link>
-            <a href={`/api/runs/${run.id}/export`} className="button-primary">
-              JSON 내보내기
-            </a>
-            {run.deliverable && (
-              <a href={`/api/runs/${run.id}/export-pptx`} className="button-secondary">
-                PPTX 슬라이드
+      <section className="ops-zone">
+        <div className="ops-zone-head"><span className="ops-zone-label">Execution Detail</span></div>
+        <div className="p-4 space-y-3">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <h1 className="text-lg font-bold tracking-tight text-[var(--text-strong)]">{structured?.campaignName || structured?.title || run.topic}</h1>
+              <p className="text-[12px] text-[var(--text-muted)]">
+                {run.brand || '브랜드 미입력'} · {run.region || '지역 미입력'} · {run.goal || '목표 미입력'} · 생성 {formatDate(run.createdAt)}
+              </p>
+              <p className="mt-3 max-w-3xl text-[13px] leading-6 text-[var(--text-base)]">
+                {structured?.executiveSummary[0] || pmHighlights[0] || run.memoryLog?.direction || '이 실행의 핵심 판단과 산출물을 아래 대시보드에서 확인할 수 있습니다.'}
+              </p>
+            </div>
+            <div className="no-print flex flex-wrap gap-2">
+              <Link href={`/runs/${run.id}/report`} className="button-secondary">
+                대시보드 보고서
+              </Link>
+              <a href={`/api/runs/${run.id}/export`} className="button-primary">
+                JSON 내보내기
               </a>
-            )}
+              {run.deliverable && (
+                <a href={`/api/runs/${run.id}/export-pptx`} className="button-secondary">
+                  PPTX 슬라이드
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="dashboard-chip-grid">
-          <div className="dashboard-chip">
-            <strong>산출물 유형</strong>
-            <br />
-            {deliverableTypeLabel}
-          </div>
-          <div className="dashboard-chip">
-            <strong>주력 채널</strong>
-            <br />
-            {primaryChannel ? `${primaryChannel.channel} · ${primaryChannel.budgetPct}%` : '집계 전'}
-          </div>
-          <div className="dashboard-chip">
-            <strong>대표 KPI</strong>
-            <br />
-            {topKpi ? `${topKpi.kpi} · ${topKpi.target}` : '집계 전'}
+          <div className="ops-kpi-grid">
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-label">산출물 유형</p>
+              <p className="ops-kpi-val">{deliverableTypeLabel}</p>
+            </div>
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-label">주력 채널</p>
+              <p className="ops-kpi-val">{primaryChannel ? `${primaryChannel.channel} · ${primaryChannel.budgetPct}%` : '집계 전'}</p>
+            </div>
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-label">대표 KPI</p>
+              <p className="ops-kpi-val">{topKpi ? `${topKpi.kpi} · ${topKpi.target}` : '집계 전'}</p>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="status-tile">
-          <p className="metric-label">참여 에이전트</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{participantCards.length}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">회의에 실제 참여한 역할 수</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">웹 근거</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{run.webSources.length}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">리서치에 사용된 출처 수</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">첨부 컨텍스트</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{run.attachments.length}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">회의에 주입된 참고 자료</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">근거 신뢰도</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{confidence}/100</p>
-          <div className="mt-2 h-2 rounded-full bg-[var(--surface-border)]">
-            <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${confidence}%` }} />
+      <section className="ops-zone">
+        <div className="ops-zone-head"><span className="ops-zone-label">Key Metrics</span></div>
+        <div className="ops-kpi-grid">
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">참여 에이전트</p>
+            <p className="ops-kpi-val">{participantCards.length}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">회의에 실제 참여한 역할 수</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">웹 근거</p>
+            <p className="ops-kpi-val">{run.webSources.length}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">리서치에 사용된 출처 수</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">첨부 컨텍스트</p>
+            <p className="ops-kpi-val">{run.attachments.length}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">회의에 주입된 참고 자료</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">근거 신뢰도</p>
+            <p className="ops-kpi-val" style={{ fontVariantNumeric: 'tabular-nums' }}>{confidence}/100</p>
+            <div className="mt-1 ops-bar-track">
+              <div className="ops-bar-fill" style={{ width: `${confidence}%` }} />
+            </div>
           </div>
         </div>
       </section>
@@ -275,8 +277,8 @@ export function RunDetailClient({ run }: { run: RunDetail }) {
                             </span>
                             <span>{row.budgetPct}%</span>
                           </div>
-                          <div className="h-2 rounded-full bg-[var(--surface-border)]">
-                            <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(0, Math.min(100, row.budgetPct))}%` }} />
+                          <div className="ops-bar-track">
+                            <div className="ops-bar-fill" style={{ width: `${Math.max(0, Math.min(100, row.budgetPct))}%` }} />
                           </div>
                           <p className="mt-2 text-xs text-[var(--text-muted)]">
                             KPI {row.kpi} · 목표 {row.targetValue}

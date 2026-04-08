@@ -43,13 +43,15 @@ export function StructuredDeliverableDashboard({
   if (!structured) {
     return (
       <div className="space-y-4">
-        <section className="dashboard-hero print:rounded-none print:border-none print:bg-white print:px-0 print:py-0 print:shadow-none">
-          <p className="dashboard-eyebrow">Marketing Report</p>
-          <h1 className="dashboard-title">{topic}</h1>
-          <p className="dashboard-copy">
-            {brand || '브랜드 미입력'} · {region || '지역 미입력'} · {goal || '목표 미입력'}
-            {createdAt ? ` · 생성 ${formatDate(createdAt)}` : ''}
-          </p>
+        <section className="ops-zone print:rounded-none print:border-none print:bg-white print:px-0 print:py-0 print:shadow-none">
+          <div className="ops-zone-head"><span className="ops-zone-label">Marketing Report</span></div>
+          <div className="p-4 space-y-1">
+            <h1 className="text-lg font-bold tracking-tight text-[var(--text-strong)]">{topic}</h1>
+            <p className="text-[12px] text-[var(--text-muted)]">
+              {brand || '브랜드 미입력'} · {region || '지역 미입력'} · {goal || '목표 미입력'}
+              {createdAt ? ` · 생성 ${formatDate(createdAt)}` : ''}
+            </p>
+          </div>
         </section>
 
         <section className="panel space-y-3">
@@ -78,53 +80,55 @@ export function StructuredDeliverableDashboard({
 
   return (
     <div className="space-y-5">
-      <section className="dashboard-hero print:rounded-none print:border-none print:bg-white print:px-0 print:py-0 print:shadow-none">
-        <p className="dashboard-eyebrow">Marketing Report</p>
-        <h1 className="dashboard-title">{structured.campaignName || structured.title || topic}</h1>
-        <p className="dashboard-copy">
-          {brand || '브랜드 미입력'} · {region || '지역 미입력'} · {goal || structured.objective || '목표 미입력'}
-          {createdAt ? ` · 생성 ${formatDate(createdAt)}` : ''}
-        </p>
-        <div className="dashboard-chip-grid">
-          <div className="dashboard-chip">
-            <strong>핵심 목표</strong>
-            <br />
-            {structured.objective}
-          </div>
-          <div className="dashboard-chip">
-            <strong>주요 타깃</strong>
-            <br />
-            {structured.target}
-          </div>
-          <div className="dashboard-chip">
-            <strong>코어 메시지</strong>
-            <br />
-            {structured.coreMessage}
+      <section className="ops-zone print:rounded-none print:border-none print:bg-white print:px-0 print:py-0 print:shadow-none">
+        <div className="ops-zone-head"><span className="ops-zone-label">Marketing Report</span></div>
+        <div className="p-4 space-y-3">
+          <h1 className="text-lg font-bold tracking-tight text-[var(--text-strong)]">{structured.campaignName || structured.title || topic}</h1>
+          <p className="text-[12px] text-[var(--text-muted)]">
+            {brand || '브랜드 미입력'} · {region || '지역 미입력'} · {goal || structured.objective || '목표 미입력'}
+            {createdAt ? ` · 생성 ${formatDate(createdAt)}` : ''}
+          </p>
+          <div className="ops-kpi-grid">
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-label">핵심 목표</p>
+              <p className="ops-kpi-val">{structured.objective}</p>
+            </div>
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-label">주요 타깃</p>
+              <p className="ops-kpi-val">{structured.target}</p>
+            </div>
+            <div className="ops-kpi-cell">
+              <p className="ops-kpi-label">코어 메시지</p>
+              <p className="ops-kpi-val">{structured.coreMessage}</p>
+            </div>
           </div>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <div className="status-tile">
-          <p className="metric-label">주력 채널</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{primaryChannel?.channel || '미정'}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">{primaryChannel ? `${primaryChannel.budgetPct}% · ${primaryChannel.format}` : '채널 계획 없음'}</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">예산 커버리지</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{totalBudget}%</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">채널 플랜 합산 기준</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">대표 KPI</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{topKpi?.kpi || '미정'}</p>
-          <p className="mt-1 text-xs text-[var(--text-muted)]">{topKpi ? `${topKpi.target} · ${topKpi.period}` : 'KPI 없음'}</p>
-        </div>
-        <div className="status-tile">
-          <p className="metric-label">근거 신뢰도</p>
-          <p className="mt-2 text-base font-semibold text-[var(--text-strong)]">{confidence}/100</p>
-          <div className="mt-2 h-2 rounded-full bg-[var(--surface-border)]">
-            <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${confidence}%` }} />
+      <section className="ops-zone">
+        <div className="ops-zone-head"><span className="ops-zone-label">Key Metrics</span></div>
+        <div className="ops-kpi-grid">
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">주력 채널</p>
+            <p className="ops-kpi-val">{primaryChannel?.channel || '미정'}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{primaryChannel ? `${primaryChannel.budgetPct}% · ${primaryChannel.format}` : '채널 계획 없음'}</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">예산 커버리지</p>
+            <p className="ops-kpi-val" style={{ fontVariantNumeric: 'tabular-nums' }}>{totalBudget}%</p>
+            <p className="text-[10px] text-[var(--text-muted)]">채널 플랜 합산 기준</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">대표 KPI</p>
+            <p className="ops-kpi-val">{topKpi?.kpi || '미정'}</p>
+            <p className="text-[10px] text-[var(--text-muted)]">{topKpi ? `${topKpi.target} · ${topKpi.period}` : 'KPI 없음'}</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-label">근거 신뢰도</p>
+            <p className="ops-kpi-val" style={{ fontVariantNumeric: 'tabular-nums' }}>{confidence}/100</p>
+            <div className="mt-1 ops-bar-track">
+              <div className="ops-bar-fill" style={{ width: `${confidence}%` }} />
+            </div>
           </div>
         </div>
       </section>
@@ -183,8 +187,8 @@ export function StructuredDeliverableDashboard({
                   </div>
                   <span className="accent-pill">{row.budgetPct}%</span>
                 </div>
-                <div className="mt-3 h-2 rounded-full bg-[var(--surface-border)]">
-                  <div className="h-2 rounded-full bg-[var(--accent)]" style={{ width: `${Math.max(0, Math.min(100, row.budgetPct))}%` }} />
+                <div className="mt-3 ops-bar-track">
+                  <div className="ops-bar-fill" style={{ width: `${Math.max(0, Math.min(100, row.budgetPct))}%` }} />
                 </div>
                 <p className="mt-3 text-sm text-[var(--text-base)]">목표: {row.targetValue}</p>
               </div>

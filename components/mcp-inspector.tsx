@@ -658,7 +658,7 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
     <section className="panel space-y-6">
       <div className="grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
         <div className="panel">
-          <div className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent)]">
+          <div className="inline-flex rounded-full bg-[var(--accent-soft)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--accent-text)]">
             AI Connection Center
           </div>
           <h3 className="mt-4 text-[1.55rem] font-semibold tracking-[-0.04em] text-[var(--text-strong)]">AI 연결 센터</h3>
@@ -762,7 +762,7 @@ export function McpInspector({ connection }: { connection: McpConnectionDraft | 
                   {showcase?.subtitle || '왼쪽의 버튼을 누르면 필요한 정보를 보기 쉬운 카드 형태로 정리해 드립니다.'}
                 </p>
               </div>
-              {toolLoading && <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent)]">불러오는 중</span>}
+              {toolLoading && <span className="rounded-full bg-[var(--accent-soft)] px-3 py-1 text-xs font-semibold text-[var(--accent-text)]">불러오는 중</span>}
             </div>
             <div className="mt-5 grid gap-3 md:grid-cols-2">
               {(showcase?.cards || []).map((card, index) => (

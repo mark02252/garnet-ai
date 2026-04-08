@@ -160,7 +160,7 @@ export function NotionPublishButton({ title, content, contentType = 'seminar-rep
       <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
         <NotionIcon />
         Notion 미연결 —{' '}
-        <a href="/settings" className="text-[var(--accent)] underline">
+        <a href="/settings" className="text-[var(--accent-text)] underline">
           설정에서 연결
         </a>
       </span>

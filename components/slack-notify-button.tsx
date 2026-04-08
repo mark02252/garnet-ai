@@ -143,7 +143,7 @@ export function SlackNotifyButton({ title, content, emoji = '📣' }: SlackNotif
       <span className="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
         <SlackIcon />
         Slack 미연결 —{' '}
-        <a href="/settings" className="text-[var(--accent)] underline">
+        <a href="/settings" className="text-[var(--accent-text)] underline">
           설정에서 연결
         </a>
       </span>

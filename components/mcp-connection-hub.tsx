@@ -301,7 +301,7 @@ export function McpConnectionHub({ onActiveConnectionChange, onHubChange }: McpC
                 <label className="mb-1 block text-xs font-medium text-[var(--text-base)]">문서</label>
                 {selectedConnection.documentationUrl ? (
                   <a
-                    className="inline-flex rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--accent)]"
+                    className="inline-flex rounded-full border border-[var(--surface-border)] bg-[var(--surface)] px-3 py-2 text-sm font-medium text-[var(--accent-text)]"
                     href={selectedConnection.documentationUrl}
                     target="_blank"
                     rel="noreferrer"

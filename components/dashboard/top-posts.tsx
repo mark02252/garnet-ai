@@ -108,7 +108,7 @@ export function TopPosts({ posts }: { posts: TopPost[] }) {
       <div className="space-y-2">
         {sorted.map((post, i) => (
           <div key={post.id} className="flex items-start gap-3 py-2 border-b border-[var(--surface-border)] last:border-0">
-            <span className="text-sm font-bold text-[var(--accent)] w-5 shrink-0">{i + 1}</span>
+            <span className="text-sm font-bold text-[var(--accent-text)] w-5 shrink-0">{i + 1}</span>
             <div className="flex-1 min-w-0">
               <p className="text-sm text-[var(--text-base)] truncate">{post.caption?.slice(0, 50) || '(캡션 없음)'}</p>
               <p className="text-xs text-[var(--text-muted)] mt-0.5">{mediaTypeLabel(post.media_type)} · {formatDate(post.timestamp)}</p>

@@ -35,7 +35,7 @@ function readinessTone(active: boolean) {
 
 function stepTone(state: 'pending' | 'running' | 'completed' | 'failed') {
   if (state === 'completed') return 'border-emerald-200 bg-emerald-50 text-emerald-800';
-  if (state === 'running') return 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]';
+  if (state === 'running') return 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-text)]';
   if (state === 'failed') return 'border-rose-200 bg-rose-50 text-rose-700';
   return 'border-[var(--surface-border)] bg-[var(--surface)] text-[var(--text-muted)]';
 }
@@ -199,7 +199,7 @@ export function WarRoomEvidenceRail({
                 <a key={`${source.url}-${idx}`} href={source.url} target="_blank" rel="noreferrer" className="list-card block">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">Source {idx + 1}</p>
                   <p className="mt-2 text-sm font-medium leading-6 text-[var(--text-strong)]">{source.title}</p>
-                  <p className="mt-2 text-xs text-[var(--accent)]">{source.url}</p>
+                  <p className="mt-2 text-xs text-[var(--accent-text)]">{source.url}</p>
                 </a>
               ))}
             </div>

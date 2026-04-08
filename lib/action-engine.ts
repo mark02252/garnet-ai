@@ -96,9 +96,11 @@ export async function generateActionSuggestions(): Promise<ActionSuggestion[]> {
   // 3. AI로 추가 액션 생성
   if (suggestions.length > 0) {
     try {
+      let bizContext = ''
+      try { const { getBusinessContextPrompt } = await import('@/lib/business-context'); bizContext = getBusinessContextPrompt() } catch {}
       const context = suggestions.map(s => `[${s.priority}] ${s.title}: ${s.description}`).join('\n')
       const aiResult = await runLLM(
-        '10년차 퍼포먼스 마케터입니다. 현재 상황을 보고 추가 액션 1-2개를 JSON 배열로 제안하세요: [{"title":"제목","description":"설명","priority":"high","expectedImpact":"효과"}]',
+        `10년차 퍼포먼스 마케터입니다. ${bizContext ? bizContext + '\n' : ''}현재 상황을 보고 추가 액션 1-2개를 JSON 배열로 제안하세요: [{"title":"제목","description":"설명","priority":"high","expectedImpact":"효과"}]`,
         `현재 감지된 상황:\n${context}`,
         0.3, 1000
       )

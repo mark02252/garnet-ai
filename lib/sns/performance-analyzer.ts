@@ -270,7 +270,15 @@ ${mediaInsights.sort((a, b) => (b.reach || 0) - (a.reach || 0)).slice(0, 10).map
 "recommendations":[{"topic":"주제","contentType":"CAROUSEL","reason":"이유","priority":"high","expectedImpact":"효과"}],
 "adSuggestions":[{"targetPostDescription":"설명","suggestedBudget":"3만원","expectedEffect":"효과","objective":"도달"}]}`
 
+  // Business Context 주입
+  let bizContext = ''
+  try {
+    const { getBusinessContextPrompt } = await import('@/lib/business-context')
+    bizContext = getBusinessContextPrompt()
+  } catch { /* skip */ }
+
   const systemPrompt = `당신은 10년차 Instagram 퍼포먼스 마케터입니다.
+${bizContext ? `\n${bizContext}\n위 비즈니스 맥락을 반드시 반영하여 분석하세요.\n` : ''}
 저장(saves)과 공유(shares)를 구매 의향의 핵심 지표로 봅니다.
 참여율 = (좋아요+댓글+저장+공유) / 도달 로 계산합니다.
 유효한 JSON만 출력하세요. Markdown 코드 펜스, 추가 설명은 절대 포함하지 마세요.`

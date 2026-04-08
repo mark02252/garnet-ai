@@ -537,8 +537,16 @@ export async function analyzeGA4WithAI(
   runtime?: RuntimeConfig,
   extraData?: Partial<GA4AiAnalysisInput>
 ): Promise<GA4AiInsight> {
+  // Business Context 주입
+  let bizContext = ''
+  try {
+    const { getBusinessContextPrompt } = await import('@/lib/business-context')
+    bizContext = getBusinessContextPrompt()
+  } catch { /* skip */ }
+
   const systemPrompt = `당신은 10년차 퍼포먼스 마케터이자 GA4 분석 전문가입니다.
 데이터를 기반으로 실행 가능한 인사이트를 도출합니다.
+${bizContext ? `\n${bizContext}\n위 비즈니스 맥락을 반드시 반영하여 분석하세요.\n` : ''}
 
 반드시 아래 JSON 형식으로만 출력하세요:
 {

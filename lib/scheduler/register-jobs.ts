@@ -91,6 +91,40 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     }
   },
   {
+    id: 'prompt-optimization',
+    name: '프롬프트 자동 최적화',
+    description: '매주 일요일 모든 Flow 에이전트의 프롬프트를 자동 개선합니다.',
+    cron: '0 3 * * 0',
+    category: 'system',
+    enabled: true,
+    handler: async () => {
+      try {
+        const { optimizeAllPrompts } = await import('@/lib/self-improve/prompt-optimizer')
+        const result = await optimizeAllPrompts()
+        return { ok: true, message: `${result.templatesProcessed}개 템플릿, ${result.totalOptimized}개 프롬프트 개선` }
+      } catch (e) {
+        return { ok: false, message: e instanceof Error ? e.message : '프롬프트 최적화 실패' }
+      }
+    }
+  },
+  {
+    id: 'competitor-scan',
+    name: '경쟁사 모니터링',
+    description: '매일 등록된 경쟁사 웹사이트를 스캔하고 변화를 감지합니다.',
+    cron: '0 10 * * *',
+    category: 'collect',
+    enabled: true,
+    handler: async () => {
+      try {
+        const { runCompetitorScan } = await import('@/lib/competitor-monitor')
+        const result = await runCompetitorScan()
+        return { ok: true, message: `${result.scanned}개 스캔, ${result.alerts.length}개 변화 감지` }
+      } catch (e) {
+        return { ok: false, message: e instanceof Error ? e.message : '경쟁사 스캔 실패' }
+      }
+    }
+  },
+  {
     id: 'content-auto-evaluate',
     name: '콘텐츠 자동 평가',
     description: '매일 Instagram 게시물 성과를 평가하고 상위 패턴을 플레이북에 등록합니다.',

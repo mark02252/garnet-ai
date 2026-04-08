@@ -48,6 +48,7 @@
     "openai": "^4.86.1",
     "pdf-parse": "^2.4.5",
     "pdfjs-dist": "^5.5.207",
+    "playwright-core": "^1.59.1",
     "pptxgenjs": "^4.0.1",
     "react": "19.0.0",
     "react-dom": "19.0.0",

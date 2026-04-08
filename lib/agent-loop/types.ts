@@ -122,4 +122,20 @@ export type AgentLoopStatusResponse = {
     summary: string
     status: 'executed' | 'pending_approval' | 'no_action'
   }>
+  recentActions: Array<{
+    id: string
+    kind: string
+    title: string
+    riskLevel: string
+    status: 'executed' | 'failed' | 'pending'
+    time: string
+  }>
+  pendingApprovals: Array<{
+    id: string
+    kind: string
+    title: string
+    rationale: string
+    riskLevel: string
+    time: string
+  }>
 }

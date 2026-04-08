@@ -4,9 +4,17 @@ import type { AgentLoopStatusResponse } from '@/lib/agent-loop/types'
 import * as fs from 'fs'
 import * as path from 'path'
 
+type GovRow = {
+  id: string
+  kind: string
+  payload: string | Record<string, unknown>
+  status: string
+  riskLevel: string | null
+  createdAt: Date | string
+}
+
 function checkRunning(): boolean {
   try {
-    // process.cwd()가 다를 수 있으므로 여러 경로 시도
     const candidates = [
       path.join(process.cwd(), '.garnet-config', 'agent-loop-state.json'),
       path.resolve('.garnet-config', 'agent-loop-state.json'),
@@ -21,6 +29,14 @@ function checkRunning(): boolean {
   } catch { return false }
 }
 
+function extractMeta(payload: unknown): { title: string; rationale: string } {
+  try {
+    const p = typeof payload === 'string' ? JSON.parse(payload) : payload
+    const meta = (p as Record<string, unknown>)?._agentLoop as Record<string, string> | undefined
+    return { title: meta?.title || '', rationale: meta?.rationale || '' }
+  } catch { return { title: '', rationale: '' } }
+}
+
 export async function GET() {
   try {
     const now = new Date()
@@ -28,10 +44,21 @@ export async function GET() {
 
     const running = checkRunning()
 
-    // Governor 실제 대기 건수
-    const governorPending = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
-      `SELECT COUNT(*)::int as count FROM "GovernorAction" WHERE "status" IN ('PENDING_APPROVAL','PENDING_SCORE') AND "deletedAt" IS NULL`
-    ).then(r => r[0]?.count ?? 0).catch(() => 0)
+    // Governor 데이터
+    const governorPendingRows = await prisma.$queryRawUnsafe<GovRow[]>(
+      `SELECT id, kind, payload, status, "riskLevel", "createdAt"
+       FROM "GovernorAction"
+       WHERE "status" IN ('PENDING_APPROVAL','PENDING_SCORE') AND "deletedAt" IS NULL
+       ORDER BY "createdAt" DESC LIMIT 10`
+    ).catch(() => [] as GovRow[])
+
+    const governorRecentRows = await prisma.$queryRawUnsafe<GovRow[]>(
+      `SELECT id, kind, payload, status, "riskLevel", "createdAt"
+       FROM "GovernorAction"
+       WHERE "deletedAt" IS NULL AND "createdAt" >= $1
+       ORDER BY "createdAt" DESC LIMIT 20`,
+      oneDayAgo.toISOString()
+    ).catch(() => [] as GovRow[])
 
     const [lastCycle, todayCycles, goals, recentDecisions] = await Promise.all([
       prisma.agentLoopCycle.findFirst({
@@ -70,7 +97,7 @@ export async function GET() {
       },
       today: {
         autoExecuted: todayCycles.reduce((s, c) => s + c.autoExecuted, 0),
-        sentToGovernor: governorPending,
+        sentToGovernor: governorPendingRows.length,
         totalCycles: todayCycles.length,
       },
       goals: goals.map(g => ({
@@ -85,6 +112,32 @@ export async function GET() {
           : c.sentToGovernor > 0 ? 'pending_approval' as const
           : 'executed' as const,
       })),
+      // 오늘 실행된 액션 내역
+      recentActions: governorRecentRows.map(r => {
+        const meta = extractMeta(r.payload)
+        return {
+          id: r.id,
+          kind: r.kind,
+          title: meta.title || r.kind,
+          riskLevel: r.riskLevel || 'LOW',
+          status: r.status === 'EXECUTED' ? 'executed' as const
+            : r.status === 'FAILED' ? 'failed' as const
+            : 'pending' as const,
+          time: typeof r.createdAt === 'string' ? r.createdAt : r.createdAt.toISOString(),
+        }
+      }),
+      // 승인 대기 상세
+      pendingApprovals: governorPendingRows.map(r => {
+        const meta = extractMeta(r.payload)
+        return {
+          id: r.id,
+          kind: r.kind,
+          title: meta.title || r.kind,
+          rationale: meta.rationale,
+          riskLevel: r.riskLevel || 'MEDIUM',
+          time: typeof r.createdAt === 'string' ? r.createdAt : r.createdAt.toISOString(),
+        }
+      }),
     }
 
     return NextResponse.json(response)
@@ -97,6 +150,8 @@ export async function GET() {
       today: { autoExecuted: 0, sentToGovernor: 0, totalCycles: 0 },
       goals: [],
       recentDecisions: [],
+      recentActions: [],
+      pendingApprovals: [],
     } satisfies AgentLoopStatusResponse)
   }
 }

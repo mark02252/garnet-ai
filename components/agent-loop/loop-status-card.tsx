@@ -30,6 +30,8 @@ export function LoopStatusCard() {
     today: { autoExecuted: 0, sentToGovernor: 0, totalCycles: 0 },
     goals: [],
     recentDecisions: [],
+    recentActions: [],
+    pendingApprovals: [],
   }
 
   const statusColors: Record<string, string> = {
@@ -53,6 +55,19 @@ export function LoopStatusCard() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action }),
       })
+      const r = await fetch('/api/agent-loop/status')
+      if (r.ok) setData(await r.json())
+    } catch { /* ignore */ }
+  }
+
+  async function handleApproval(id: string, decision: 'APPROVED' | 'REJECTED') {
+    try {
+      await fetch(`/api/governor/${id}/decide`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decision }),
+      })
+      // 상태 갱신
       const r = await fetch('/api/agent-loop/status')
       if (r.ok) setData(await r.json())
     } catch { /* ignore */ }
@@ -107,6 +122,59 @@ export function LoopStatusCard() {
         </div>
       )}
 
+      {/* 승인 대기 항목 */}
+      {(d.pendingApprovals?.length ?? 0) > 0 && (
+        <div className="mb-4">
+          <h3 className="text-xs text-zinc-500 mb-2">승인 대기</h3>
+          <div className="space-y-2">
+            {d.pendingApprovals!.map(a => (
+              <div key={a.id} className="rounded-lg border border-yellow-900/50 bg-yellow-950/20 p-3">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="text-xs font-medium text-yellow-400">{a.title || a.kind}</span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-yellow-900/40 text-yellow-500">{a.riskLevel}</span>
+                </div>
+                {a.rationale && (
+                  <p className="text-[11px] text-zinc-500 leading-relaxed">{a.rationale.slice(0, 150)}{a.rationale.length > 150 ? '...' : ''}</p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button
+                    onClick={() => handleApproval(a.id, 'APPROVED')}
+                    className="text-[10px] px-2 py-1 rounded bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
+                  >승인</button>
+                  <button
+                    onClick={() => handleApproval(a.id, 'REJECTED')}
+                    className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition"
+                  >거절</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 최근 액션 내역 */}
+      {(d.recentActions?.length ?? 0) > 0 && (
+        <div className="mb-4">
+          <h3 className="text-xs text-zinc-500 mb-2">최근 액션</h3>
+          <div className="space-y-1.5 max-h-32 overflow-y-auto">
+            {d.recentActions!.slice(0, 6).map(a => {
+              const icon = a.status === 'executed' ? '✓' : a.status === 'failed' ? '✗' : '⏳'
+              const color = a.status === 'executed' ? 'text-green-500' : a.status === 'failed' ? 'text-red-500' : 'text-yellow-500'
+              const time = new Date(a.time).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+              return (
+                <div key={a.id} className="flex items-center gap-2 text-xs">
+                  <span className={`w-4 ${color}`}>{icon}</span>
+                  <span className="text-zinc-600 w-10 shrink-0">{time}</span>
+                  <span className="text-zinc-400 flex-1 truncate">{a.title || a.kind}</span>
+                  <span className="text-[10px] text-zinc-600">{a.riskLevel}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 최근 판단 */}
       {d.recentDecisions.length > 0 && (
         <div>
           <h3 className="text-xs text-zinc-500 mb-2">최근 판단</h3>

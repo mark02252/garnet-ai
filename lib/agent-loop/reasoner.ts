@@ -47,6 +47,7 @@ export function buildReasonerPrompt(
     effective: Array<{ domain: string; confidence: number; pattern: string; observation: string }>
     antiPatterns: Array<{ domain: string; pattern: string; observation: string }>
   },
+  macroSummary?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -106,6 +107,9 @@ ${knowledge.antiPatterns.length > 0
   ? knowledge.antiPatterns.map(k => `- [${k.domain}] ${k.pattern} → ${k.observation.split('\n')[0]}`).join('\n')
   : '- 없음'}` : ''}
 
+## 거시 환경 (시즌/이벤트)
+${macroSummary || '현재 특별한 시즌 없음'}
+
 위 상황을 분석하고, 지금 해야 할 액션을 우선순위 순으로 JSON으로 제안하세요.`
 }
 
@@ -137,10 +141,17 @@ export async function reason(
   })
   // Knowledge Store에서 축적된 지식 조회
   const knowledge = await getKnowledgeForReasoner()
+  // 거시 환경 정보 (macro-tracker가 존재할 때만)
+  let macroSummary: string | undefined
+  try {
+    const { getMacroSummary } = await import('./macro-tracker')
+    macroSummary = await getMacroSummary()
+  } catch { /* macro-tracker not available yet */ }
   const userPrompt = buildReasonerPrompt(
     worldModel, goals, businessContext,
     pastEpisodes.map(e => ({ input: e.input, output: e.output, score: e.score })),
     knowledge,
+    macroSummary,
   )
   const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
   return parseReasonerResponse(raw)

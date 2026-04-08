@@ -191,6 +191,19 @@ async function runDailyBriefing(): Promise<void> {
     }
   } catch { /* non-critical */ }
 
+  // Curiosity Engine: 기사 학습 + 거시 환경 추적
+  try {
+    const { learnFromArticles } = await import('./article-learner')
+    const { trackMacroContext } = await import('./macro-tracker')
+    const [articleResult, macroResult] = await Promise.all([
+      learnFromArticles(),
+      trackMacroContext(),
+    ])
+    if (articleResult.extracted > 0 || macroResult.events.length > 0) {
+      console.log(`[Agent Loop] Curiosity: ${articleResult.extracted} knowledge from articles, ${macroResult.events.length} macro events`)
+    }
+  } catch { /* non-critical */ }
+
   const wm = await loadWorldModel()
   const goals = await evaluateGoals(wm)
 
@@ -220,6 +233,20 @@ async function runWeeklyReviewCycle(): Promise<void> {
     if (discovery.newCompetitors.length > 0) {
       console.log(`[Agent Loop] Discovered ${discovery.newCompetitors.length} new competitors`)
     }
+  } catch { /* non-critical */ }
+  // Curiosity Engine: 교차 인사이트 + 능력 창발 + 자가 발전 탐색
+  try {
+    const { synthesizeCrossDomain } = await import('./cross-pollinator')
+    const { detectEmergentCapabilities } = await import('./emergence-detector')
+    const { scoutSelfImprovements } = await import('./self-improvement-scout')
+
+    const [synthesis, capabilities, selfImprove] = await Promise.all([
+      synthesizeCrossDomain(),
+      detectEmergentCapabilities(),
+      scoutSelfImprovements(),
+    ])
+
+    console.log(`[Agent Loop] Evolution: ${synthesis.newInsights} cross-insights, ${capabilities.length} capabilities detected, ${selfImprove.opportunities.length} self-improvements`)
   } catch { /* non-critical */ }
 }
 

@@ -91,6 +91,24 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     }
   },
   {
+    id: 'content-auto-evaluate',
+    name: '콘텐츠 자동 평가',
+    description: '매일 Instagram 게시물 성과를 평가하고 상위 패턴을 플레이북에 등록합니다.',
+    cron: '0 8 * * *',
+    category: 'analysis',
+    enabled: true,
+    handler: async () => {
+      try {
+        const { evaluateRecentPosts, autoGeneratePlaybookFromTopPosts } = await import('@/lib/evaluation/auto-evaluator')
+        const evalResult = await evaluateRecentPosts()
+        const playbookCount = await autoGeneratePlaybookFromTopPosts()
+        return { ok: true, message: `평가 ${evalResult.evaluated}건, 플레이북 ${playbookCount}건 생성` }
+      } catch (e) {
+        return { ok: false, message: e instanceof Error ? e.message : '자동 평가 실패' }
+      }
+    }
+  },
+  {
     id: 'urgent-recommendations',
     name: '긴급 추천 알림',
     description: '매시간 긴급 수준의 추천 사항을 점검합니다.',

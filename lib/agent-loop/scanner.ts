@@ -19,6 +19,17 @@ export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
   })
   const kpiMap = new Map(kpiGoals.map(k => [k.metric, k]))
 
+  // KpiGoal이 비어있으면 InstagramReachAnalysisRun에서 데이터 보충
+  if (kpiGoals.length === 0) {
+    const reachAnalysis = await prisma.instagramReachAnalysisRun.findFirst({
+      orderBy: { createdAt: 'desc' },
+    })
+    if (reachAnalysis) {
+      // reach 데이터를 sessions 대용으로 사용
+      kpiMap.set('sessions', { metric: 'sessions', currentValue: reachAnalysis.averageReach } as any)
+    }
+  }
+
   // SNS — SnsAnalyticsSnapshot 최신
   const latestSns = await prisma.snsAnalyticsSnapshot.findFirst({
     orderBy: { date: 'desc' },
@@ -177,6 +188,25 @@ export async function detectOpenIssues(): Promise<OpenIssue[]> {
             detectedAt: latest.date.toISOString(),
           })
         }
+      }
+    }
+  } catch { /* non-critical */ }
+
+  // 뒤처진 목표 감지
+  try {
+    const goals = await prisma.goalState.findMany({
+      orderBy: { checkedAt: 'desc' },
+      distinct: ['goalName'],
+    })
+    for (const g of goals) {
+      if (!g.onTrack && g.progressPercent < 30) {
+        issues.push({
+          id: `goal-behind-${g.goalName}`,
+          type: 'goal_behind',
+          severity: g.progressPercent === 0 ? 'high' : 'normal',
+          summary: `목표 뒤처짐: ${g.goalName} (${g.progressPercent}%)`,
+          detectedAt: g.checkedAt.toISOString(),
+        })
       }
     }
   } catch { /* non-critical */ }

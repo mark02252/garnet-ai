@@ -1,14 +1,24 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { isAgentLoopRunning } from '@/lib/agent-loop'
 import type { AgentLoopStatusResponse } from '@/lib/agent-loop/types'
+import * as fs from 'fs'
+import * as path from 'path'
+
+function checkRunning(): boolean {
+  try {
+    const statePath = path.join(process.cwd(), '.garnet-config', 'agent-loop-state.json')
+    if (!fs.existsSync(statePath)) return false
+    const data = JSON.parse(fs.readFileSync(statePath, 'utf-8'))
+    return data.running === true
+  } catch { return false }
+}
 
 export async function GET() {
   try {
     const now = new Date()
     const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
-    const running = isAgentLoopRunning()
+    const running = checkRunning()
 
     const [lastCycle, todayCycles, goals, recentDecisions] = await Promise.all([
       prisma.agentLoopCycle.findFirst({

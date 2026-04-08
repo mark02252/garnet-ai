@@ -55,8 +55,12 @@ export type GA4PagePerformance = {
 export type GA4AiInsight = {
   summary: string;
   highlights: string[];
-  recommendations: string[];
+  recommendations: Array<string | { priority?: string; action: string; expectedROI?: string; deadline?: string }>;
   anomalies: string[];
+  channelDiagnosis?: Array<{ channel: string; status: string; insight: string; action: string }>;
+  pageDiagnosis?: Array<{ page: string; issue: string; action: string; expectedImpact?: string }>;
+  weeklyFocus?: string;
+  budgetAdvice?: string;
   generatedAt: Date;
 };
 
@@ -350,35 +354,226 @@ export async function fetchNewVsReturning(startDate: string, endDate: string): P
   }));
 }
 
+// ── Tier 2+ API functions ──────────────────────────────────────────────────
+
+export type GA4ChannelTrend = {
+  date: string;
+  channel: string;
+  sessions: number;
+};
+
+export async function fetchChannelTrend(startDate: string, endDate: string): Promise<GA4ChannelTrend[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'date' }, { name: 'sessionDefaultChannelGroup' }],
+    metrics: [{ name: 'sessions' }],
+    orderBys: [{ dimension: { dimensionName: 'date' } }],
+    limit: 500,
+  });
+  return (response.rows || []).map(row => ({
+    date: row.dimensionValues?.[0]?.value || '',
+    channel: row.dimensionValues?.[1]?.value || 'Other',
+    sessions: Number(row.metricValues?.[0]?.value || 0),
+  }));
+}
+
+export type GA4Stickiness = {
+  date: string;
+  dau: number;
+  wau: number;
+  mau: number;
+};
+
+export async function fetchStickiness(startDate: string, endDate: string): Promise<GA4Stickiness[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'date' }],
+    metrics: [
+      { name: 'active1DayUsers' },
+      { name: 'active7DayUsers' },
+      { name: 'active28DayUsers' },
+    ],
+    orderBys: [{ dimension: { dimensionName: 'date' } }],
+  });
+  return (response.rows || []).map(row => ({
+    date: row.dimensionValues?.[0]?.value || '',
+    dau: Number(row.metricValues?.[0]?.value || 0),
+    wau: Number(row.metricValues?.[1]?.value || 0),
+    mau: Number(row.metricValues?.[2]?.value || 0),
+  }));
+}
+
+export type GA4ChannelConversion = {
+  channel: string;
+  sessions: number;
+  conversions: number;
+  engagementRate: number;
+};
+
+export async function fetchChannelConversions(startDate: string, endDate: string): Promise<GA4ChannelConversion[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'sessionDefaultChannelGroup' }],
+    metrics: [
+      { name: 'sessions' },
+      { name: 'conversions' },
+      { name: 'engagementRate' },
+    ],
+    orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
+    limit: 10,
+  });
+  return (response.rows || []).map(row => ({
+    channel: row.dimensionValues?.[0]?.value || 'Other',
+    sessions: Number(row.metricValues?.[0]?.value || 0),
+    conversions: Number(row.metricValues?.[1]?.value || 0),
+    engagementRate: Number(row.metricValues?.[2]?.value || 0),
+  }));
+}
+
+export type GA4AiAnalysisInput = {
+  traffic: GA4DailyTraffic[];
+  channels: GA4ChannelBreakdown[];
+  pages: GA4PagePerformance[];
+  engagement?: GA4EngagementMetrics[];
+  devices?: GA4DeviceBreakdown[];
+  landingPages?: { landingPage: string; sessions: number; bounceRate: number; engagementRate: number }[];
+  newVsReturning?: { userType: string; activeUsers: number; sessions: number; engagementRate: number }[];
+  channelConversions?: GA4ChannelConversion[];
+  stickiness?: GA4Stickiness[];
+};
+
 export async function analyzeGA4WithAI(
   traffic: GA4DailyTraffic[],
   channels: GA4ChannelBreakdown[],
   pages: GA4PagePerformance[],
-  runtime?: RuntimeConfig
+  runtime?: RuntimeConfig,
+  extraData?: Partial<GA4AiAnalysisInput>
 ): Promise<GA4AiInsight> {
-  const systemPrompt = `당신은 GA4 분석 전문가입니다. 반드시 아래 JSON만 출력하세요. 각 항목은 한국어 한 문장으로 간결하게:
-{"summary":"2문장 요약","highlights":["발견1","발견2","발견3"],"recommendations":["권고1","권고2"],"anomalies":["이상징후 또는 없음"]}`;
+  const systemPrompt = `당신은 10년차 퍼포먼스 마케터이자 GA4 분석 전문가입니다.
+데이터를 기반으로 실행 가능한 인사이트를 도출합니다.
 
-  // Trim data to reduce prompt size and response length
-  const trafficSummary = traffic.slice(-7).map(d => ({
-    date: d.date, users: d.activeUsers, sessions: d.sessions, conversions: d.conversions ?? 0
+반드시 아래 JSON 형식으로만 출력하세요:
+{
+  "summary": "3-4문장의 경영진 브리핑. 핵심 수치와 트렌드 방향을 포함",
+  "channelDiagnosis": [
+    {"channel": "채널명", "status": "growth|decline|stable", "insight": "1-2문장 진단", "action": "구체적 액션"}
+  ],
+  "pageDiagnosis": [
+    {"page": "페이지경로", "issue": "문제점", "action": "개선안", "expectedImpact": "예상효과"}
+  ],
+  "highlights": ["주요 발견 1", "주요 발견 2", "주요 발견 3"],
+  "recommendations": [
+    {"priority": "high|medium|low", "action": "구체적 권고", "expectedROI": "예상 효과 수치", "deadline": "실행 시점"}
+  ],
+  "anomalies": ["이상징후 또는 없음"],
+  "weeklyFocus": "이번 주 가장 먼저 해야 할 한 가지 액션",
+  "budgetAdvice": "예산 배분 관련 제안 (채널별 비중 조정 등)"
+}`;
+
+  // 전체 기간 트래픽 (최대 30일)
+  const trafficFull = traffic.slice(-30).map(d => ({
+    date: d.date, users: d.activeUsers, sessions: d.sessions,
+    pageViews: d.screenPageViews, events: d.eventCount, conversions: d.conversions ?? 0
   }));
-  const topChannels = channels.slice(0, 5).map(c => ({ channel: c.channel, sessions: c.sessions }));
-  const topPages = pages.slice(0, 5).map(p => ({ path: p.pagePath, views: p.pageViews, conversions: p.conversions ?? 0 }));
 
-  const userPrompt = `GA4 데이터:
-트래픽(7일):${JSON.stringify(trafficSummary)}
-채널Top5:${JSON.stringify(topChannels)}
-페이지Top5:${JSON.stringify(topPages)}`;
+  // WoW 계산
+  const recent7 = traffic.slice(-7);
+  const prev7 = traffic.slice(-14, -7);
+  const sumField = (arr: GA4DailyTraffic[], key: keyof GA4DailyTraffic) => arr.reduce((s, d) => s + (Number(d[key]) || 0), 0);
+  const wow = prev7.length >= 7 ? {
+    sessions: `${((sumField(recent7, 'sessions') / sumField(prev7, 'sessions') - 1) * 100).toFixed(1)}%`,
+    users: `${((sumField(recent7, 'activeUsers') / sumField(prev7, 'activeUsers') - 1) * 100).toFixed(1)}%`,
+    conversions: `${((sumField(recent7, 'conversions') / sumField(prev7, 'conversions') - 1) * 100).toFixed(1)}%`,
+  } : null;
 
-  const raw = await runLLM(systemPrompt, userPrompt, 0.3, 4000, runtime);
+  // 채널 데이터 (전체)
+  const channelData = channels.slice(0, 10).map(c => ({
+    source: c.source, medium: c.medium, sessions: c.sessions,
+    users: c.activeUsers, conversions: c.conversions
+  }));
+
+  // 페이지 성과 (Top 10)
+  const pageData = pages.slice(0, 10).map(p => ({
+    path: p.pagePath, views: p.screenPageViews, users: p.activeUsers,
+    avgDuration: Math.round(p.averageSessionDuration)
+  }));
+
+  // 참여도 요약
+  const engSummary = extraData?.engagement?.length ? (() => {
+    const eng = extraData.engagement!;
+    const avgEngRate = (eng.reduce((s, d) => s + d.engagementRate, 0) / eng.length * 100).toFixed(1);
+    const avgBounce = (eng.reduce((s, d) => s + d.bounceRate, 0) / eng.length * 100).toFixed(1);
+    const avgPPV = (eng.reduce((s, d) => s + d.screenPageViewsPerSession, 0) / eng.length).toFixed(2);
+    return { avgEngagementRate: `${avgEngRate}%`, avgBounceRate: `${avgBounce}%`, avgPagesPerSession: avgPPV };
+  })() : null;
+
+  // 디바이스 요약
+  const deviceSummary = extraData?.devices?.map(d => ({
+    device: d.deviceCategory, sessions: d.sessions, engRate: `${(d.engagementRate * 100).toFixed(1)}%`
+  }));
+
+  // 랜딩 페이지 이탈률 Top 5
+  const highBounceLPs = extraData?.landingPages
+    ?.filter(lp => lp.sessions > 50)
+    ?.sort((a, b) => b.bounceRate - a.bounceRate)
+    ?.slice(0, 5)
+    ?.map(lp => ({ page: lp.landingPage, bounceRate: `${(lp.bounceRate * 100).toFixed(1)}%`, sessions: lp.sessions }));
+
+  // 신규 vs 재방문
+  const userTypeSummary = extraData?.newVsReturning?.map(u => ({
+    type: u.userType, users: u.activeUsers, engRate: `${(u.engagementRate * 100).toFixed(1)}%`
+  }));
+
+  // 스티키니스 (최신값)
+  const stickyLatest = extraData?.stickiness?.length ? (() => {
+    const s = extraData.stickiness![extraData.stickiness!.length - 1];
+    return { dau: s.dau, wau: s.wau, mau: s.mau, dauMauRatio: `${((s.dau / Math.max(s.mau, 1)) * 100).toFixed(1)}%` };
+  })() : null;
+
+  const userPrompt = `GA4 분석 데이터 (10년차 마케터 관점으로 분석해주세요):
+
+■ 트래픽 추세 (${trafficFull.length}일):
+${JSON.stringify(trafficFull)}
+
+■ WoW 변화: ${wow ? JSON.stringify(wow) : '데이터 부족'}
+
+■ 채널별 성과 (Top 10):
+${JSON.stringify(channelData)}
+
+■ 페이지 성과 (Top 10):
+${JSON.stringify(pageData)}
+
+${engSummary ? `■ 참여도 평균: ${JSON.stringify(engSummary)}` : ''}
+${deviceSummary ? `■ 디바이스별: ${JSON.stringify(deviceSummary)}` : ''}
+${highBounceLPs?.length ? `■ 이탈률 높은 랜딩 페이지: ${JSON.stringify(highBounceLPs)}` : ''}
+${userTypeSummary ? `■ 신규 vs 재방문: ${JSON.stringify(userTypeSummary)}` : ''}
+${stickyLatest ? `■ 스티키니스: ${JSON.stringify(stickyLatest)}` : ''}
+
+분석 관점:
+1. 채널별로 성장/하락 진단하고 구체적 액션 제시
+2. 이탈률 높은 페이지에 대한 개선안
+3. 예산 배분 제안 (어느 채널에 더 투자할지)
+4. 이번 주 가장 먼저 해야 할 한 가지
+5. 이상 징후가 있다면 원인 추정과 대응 방안`;
+
+  const raw = await runLLM(systemPrompt, userPrompt, 0.3, 8000, runtime);
 
   // Extract string value for a given key from potentially-truncated JSON
   const extractField = (text: string, key: string): string | null => {
-    // Full match (closing quote present)
     const full = text.match(new RegExp(`"${key}"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"`));
     if (full) return full[1];
-    // Truncated: take everything from opening quote to end of text (min 10 chars)
     const partial = text.match(new RegExp(`"${key}"\\s*:\\s*"([^"]{10,})`));
     return partial ? partial[1].trim() : null;
   };
@@ -388,40 +583,34 @@ export async function analyzeGA4WithAI(
     return [...match[1].matchAll(/"((?:[^"\\\\]|\\\\.)*)"/g)].map(m => m[1]);
   };
 
-  // Try multiple extraction strategies in order
   const extractJSON = (text: string): string | null => {
-    // 1. Code block with closing fence: ```json ... ```
     const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     if (fenced) return fenced[1];
-    // 2. Code block without closing fence: ```json { ... }
     const openFence = text.match(/```(?:json)?\s*(\{[\s\S]*\})/);
     if (openFence) return openFence[1];
-    // 3. Raw JSON object anywhere in text
-    const start = text.indexOf('{');
-    const end = text.lastIndexOf('}');
-    if (start !== -1 && end > start) return text.slice(start, end + 1);
+    const s = text.indexOf('{');
+    const e = text.lastIndexOf('}');
+    if (s !== -1 && e > s) return text.slice(s, e + 1);
     return null;
   };
 
   try {
     const jsonStr = extractJSON(raw);
     if (!jsonStr) throw new Error('JSON not found');
-    const parsed = JSON.parse(jsonStr) as {
-      summary?: string;
-      highlights?: string[];
-      recommendations?: string[];
-      anomalies?: string[];
-    };
+    const parsed = JSON.parse(jsonStr) as Record<string, unknown>;
 
     return {
-      summary: parsed.summary || '분석 결과를 생성했습니다.',
-      highlights: parsed.highlights || [],
-      recommendations: parsed.recommendations || [],
-      anomalies: parsed.anomalies || [],
+      summary: (parsed.summary as string) || '분석 결과를 생성했습니다.',
+      highlights: (parsed.highlights as string[]) || [],
+      recommendations: (parsed.recommendations as GA4AiInsight['recommendations']) || [],
+      anomalies: (parsed.anomalies as string[]) || [],
+      channelDiagnosis: parsed.channelDiagnosis as GA4AiInsight['channelDiagnosis'],
+      pageDiagnosis: parsed.pageDiagnosis as GA4AiInsight['pageDiagnosis'],
+      weeklyFocus: parsed.weeklyFocus as string | undefined,
+      budgetAdvice: parsed.budgetAdvice as string | undefined,
       generatedAt: new Date()
     };
   } catch {
-    // JSON is truncated — extract individual fields via regex
     const summary = extractField(raw, 'summary');
     if (summary) {
       return {
@@ -429,6 +618,8 @@ export async function analyzeGA4WithAI(
         highlights: extractArray(raw, 'highlights'),
         recommendations: extractArray(raw, 'recommendations'),
         anomalies: extractArray(raw, 'anomalies'),
+        weeklyFocus: extractField(raw, 'weeklyFocus') || undefined,
+        budgetAdvice: extractField(raw, 'budgetAdvice') || undefined,
         generatedAt: new Date()
       };
     }

@@ -17,6 +17,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  CartesianGrid,
   LabelList,
   ReferenceLine,
 } from 'recharts';
@@ -55,6 +56,7 @@ type EngagementMetric = {
   bounceRate: number;
   averageSessionDuration: number;
   screenPageViewsPerSession: number;
+  sessionsPerUser: number;
 };
 
 type DeviceBreakdown = {
@@ -178,6 +180,7 @@ const DEMO_ENGAGEMENT: EngagementMetric[] = Array.from({ length: 30 }, (_, i) =>
     bounceRate: 1 - engRate + Math.random() * 0.05,
     averageSessionDuration: 120 + Math.random() * 60,
     screenPageViewsPerSession: 3 + Math.random() * 2,
+    sessionsPerUser: 1.1 + Math.random() * 0.5,
   };
 });
 
@@ -295,11 +298,11 @@ function getChannelColor(source: string, medium: string): string {
     if (source === 'facebook') return '#1877f2';
     if (source === 'youtube') return '#ff0000';
     if (source === 'kakao') return '#f7e600';
-    return '#6aabcc';
+    return '#7E8A98';
   }
   if (medium === 'email') return '#ffaa00';
   if (medium === 'referral') return '#4a9abf';
-  if (medium === '(none)') return '#00d4ff';
+  if (medium === '(none)') return '#E8707E';
   if (medium === 'cpc' || medium === 'paid') return '#f97316';
   return '#4a9abf';
 }
@@ -312,10 +315,10 @@ function getDeviceName(cat: string): string {
 }
 
 function getDeviceColor(cat: string): string {
-  if (cat === 'desktop') return '#00d4ff';
+  if (cat === 'desktop') return '#E8707E';
   if (cat === 'mobile') return '#00ff88';
   if (cat === 'tablet') return '#ffaa00';
-  return '#6aabcc';
+  return '#7E8A98';
 }
 
 function buildDemoForecast(): ForecastData {
@@ -371,7 +374,7 @@ function Sparkline({
 function WoWBadge({ pct }: { pct: number }) {
   const isGood = pct >= 0;
   const color = isGood ? '#00ff88' : '#ff4466';
-  const bg = isGood ? '#f0fdf4' : '#fef2f2';
+  const bg = isGood ? 'rgba(0,255,136,0.06)' : 'rgba(255,68,102,0.06)';
   const arrow = isGood ? '▲' : '▼';
   return (
     <span
@@ -409,22 +412,22 @@ function ChartTooltip({
   return (
     <div
       style={{
-        background: '#fff',
-        border: '1px solid #e8ebed',
+        background: 'rgba(8,10,20,0.94)',
+        border: '1px solid rgba(201,53,69,0.14)',
         borderRadius: 8,
         padding: '8px 12px',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         fontSize: 12,
       }}
     >
-      <p style={{ color: '#7aaccc', marginBottom: 6, fontWeight: 600 }}>{label}</p>
+      <p style={{ color: '#7E8A98', marginBottom: 6, fontWeight: 600 }}>{label}</p>
       {payload.map((p) => (
         <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
           <span
             style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0 }}
           />
-          <span style={{ color: '#7aaccc' }}>{p.name}</span>
-          <span style={{ fontWeight: 700, color: '#e8f4ff', marginLeft: 'auto', paddingLeft: 12 }}>
+          <span style={{ color: '#7E8A98' }}>{p.name}</span>
+          <span style={{ fontWeight: 700, color: '#F0ECE8', marginLeft: 'auto', paddingLeft: 12 }}>
             {pctMode
               ? `${(typeof p.value === 'number' ? p.value : 0).toFixed(1)}%`
               : (typeof p.value === 'number' ? p.value : 0).toLocaleString('ko-KR')}
@@ -472,12 +475,12 @@ function ForecastTooltip({
         borderRadius: 6,
       }}
     >
-      <p style={{ color: '#a8d8ff', marginBottom: 4 }}>{label}</p>
+      <p style={{ color: '#B0B8C4', marginBottom: 4 }}>{label}</p>
       {point?.activeUsers != null && (
-        <p style={{ color: '#e8f4ff' }}>방문자: {point.activeUsers.toLocaleString('ko-KR')}명</p>
+        <p style={{ color: '#F0ECE8' }}>방문자: {point.activeUsers.toLocaleString('ko-KR')}명</p>
       )}
       {point?.forecastValue != null && (
-        <p style={{ color: '#00d4ff' }}>예측: {point.forecastValue.toLocaleString('ko-KR')}명</p>
+        <p style={{ color: '#E8707E' }}>예측: {point.forecastValue.toLocaleString('ko-KR')}명</p>
       )}
       {point?.isAnomaly && (
         <p style={{ color: '#ff4444' }}>⚠️ 이상 트래픽 감지</p>
@@ -505,6 +508,9 @@ export default function AnalyticsPage() {
   const [isDemo, setIsDemo] = useState(false);
   const [dateRange, setDateRange] = useState<DateRange>('30daysAgo');
   const [forecastData, setForecastData] = useState<ForecastData | null>(null);
+  const [channelTrend, setChannelTrend] = useState<Array<{date: string; channel: string; sessions: number}>>([]);
+  const [stickiness, setStickiness] = useState<Array<{date: string; dau: number; wau: number; mau: number}>>([]);
+  const [channelConv, setChannelConv] = useState<Array<{channel: string; sessions: number; conversions: number; engagementRate: number}>>([]);
 
   const fetchRealtime = useCallback(async () => {
     try {
@@ -586,6 +592,17 @@ export default function AnalyticsPage() {
       } else {
         setUserType(DEMO_USER_TYPE);
       }
+
+      // Tier 2+ data (non-blocking)
+      Promise.allSettled([
+        fetch(`/api/ga4/channel-trend?${params}`).then(r => r.json()),
+        fetch(`/api/ga4/stickiness?${params}`).then(r => r.json()),
+        fetch(`/api/ga4/channel-conv?${params}`).then(r => r.json()),
+      ]).then(([ctRes, stkRes, ccRes]) => {
+        if (ctRes.status === 'fulfilled' && ctRes.value.data) setChannelTrend(ctRes.value.data);
+        if (stkRes.status === 'fulfilled' && stkRes.value.data) setStickiness(stkRes.value.data);
+        if (ccRes.status === 'fulfilled' && ccRes.value.data) setChannelConv(ccRes.value.data);
+      });
     } catch {
       loadDemoData();
     } finally {
@@ -763,8 +780,8 @@ export default function AnalyticsPage() {
       {isDemo && (
         <div
           style={{
-            background: 'rgba(0,212,255,0.07)',
-            border: '1px solid rgba(0,212,255,0.2)',
+            background: 'rgba(201,53,69,0.07)',
+            border: '1px solid rgba(201,53,69,0.2)',
             borderRadius: 12,
             padding: '12px 16px',
             display: 'flex',
@@ -775,15 +792,15 @@ export default function AnalyticsPage() {
         >
           <span style={{ fontSize: 16, lineHeight: 1.4 }}>📊</span>
           <div>
-            <p style={{ fontSize: 13, fontWeight: 700, color: '#00d4ff', margin: 0 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: '#E8707E', margin: 0 }}>
               미리보기 모드 — 데모 데이터로 표시 중
             </p>
-            <p style={{ fontSize: 12, color: '#7aaccc', margin: '3px 0 0' }}>
+            <p style={{ fontSize: 12, color: '#7E8A98', margin: '3px 0 0' }}>
               GA4 연동 후 실제 데이터로 자동 전환됩니다.{' '}
               <code
                 style={{
-                  background: 'rgba(0,212,255,0.1)',
-                  color: '#00d4ff',
+                  background: 'rgba(201,53,69,0.1)',
+                  color: '#E8707E',
                   borderRadius: 4,
                   padding: '1px 5px',
                   fontSize: 11,
@@ -824,8 +841,8 @@ export default function AnalyticsPage() {
                 display: 'flex',
                 alignItems: 'center',
                 gap: 7,
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
+                background: 'rgba(0,255,136,0.06)',
+                border: '1px solid rgba(0,255,136,0.2)',
                 borderRadius: 10,
                 padding: '7px 14px',
               }}
@@ -841,11 +858,11 @@ export default function AnalyticsPage() {
                   animation: 'pulse 2s infinite',
                 }}
               />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#16a34a' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: '#00ff88' }}>
                 실시간 {realtimeUsers.toLocaleString('ko-KR')}명
               </span>
               {isDemo && (
-                <span style={{ fontSize: 11, color: '#7aaccc' }}>(데모)</span>
+                <span style={{ fontSize: 11, color: '#7E8A98' }}>(데모)</span>
               )}
             </div>
           )}
@@ -853,8 +870,8 @@ export default function AnalyticsPage() {
           <div
             style={{
               display: 'flex',
-              background: '#f5f6f7',
-              border: '1px solid #e8ebed',
+              background: 'var(--surface-sub)',
+              border: '1px solid rgba(201,53,69,0.14)',
               borderRadius: 10,
               padding: 3,
               gap: 2,
@@ -870,8 +887,8 @@ export default function AnalyticsPage() {
                   style={{
                     fontSize: 12,
                     fontWeight: active ? 700 : 500,
-                    color: active ? '#fff' : '#7aaccc',
-                    background: active ? '#00d4ff' : 'transparent',
+                    color: active ? '#fff' : '#7E8A98',
+                    background: active ? '#C93545' : 'transparent',
                     border: 'none',
                     borderRadius: 7,
                     padding: '5px 12px',
@@ -904,12 +921,12 @@ export default function AnalyticsPage() {
               width: 36,
               height: 36,
               borderRadius: '50%',
-              border: '3px solid #e8ebed',
-              borderTopColor: '#00d4ff',
+              border: '3px solid rgba(201,53,69,0.14)',
+              borderTopColor: '#C93545',
               animation: 'spin 0.8s linear infinite',
             }}
           />
-          <p style={{ color: '#7aaccc', fontSize: 14 }}>데이터를 불러오는 중...</p>
+          <p style={{ color: '#7E8A98', fontSize: 14 }}>데이터를 불러오는 중...</p>
           <style>{`
             @keyframes spin { to { transform: rotate(360deg); } }
             @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
@@ -938,14 +955,14 @@ export default function AnalyticsPage() {
                 value: totalUsers,
                 wow: wowUsers,
                 dataKey: 'activeUsers' as keyof DailyTraffic,
-                color: '#00d4ff',
+                color: '#E8707E',
               },
               {
                 label: '세션',
                 value: totalSessions,
                 wow: wowSessions,
                 dataKey: 'sessions' as keyof DailyTraffic,
-                color: '#6aabcc',
+                color: '#7E8A98',
               },
               {
                 label: '페이지뷰',
@@ -982,7 +999,7 @@ export default function AnalyticsPage() {
                 </p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
                   <WoWBadge pct={kpi.wow} />
-                  <span style={{ fontSize: 11, color: '#b0b8c1' }}>vs 이전 {periodLabel}</span>
+                  <span style={{ fontSize: 11, color: '#7E8A98' }}>vs 이전 {periodLabel}</span>
                 </div>
                 <Sparkline data={sparkData} dataKey={kpi.dataKey} color={kpi.color} />
               </div>
@@ -995,19 +1012,19 @@ export default function AnalyticsPage() {
           <div className="panel" style={{ marginBottom: 20 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#E8707E', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Traffic Overview
                 </p>
                 <h2 className="section-title">트래픽 트렌드</h2>
               </div>
               <div style={{ display: 'flex', gap: 16 }}>
                 {[
-                  { label: '활성 사용자', color: '#00d4ff' },
-                  { label: '세션', color: '#6aabcc' },
+                  { label: '활성 사용자', color: '#C93545' },
+                  { label: '세션', color: '#7E8A98' },
                 ].map(l => (
                   <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                     <span style={{ width: 12, height: 3, background: l.color, borderRadius: 2, display: 'inline-block' }} />
-                    <span style={{ fontSize: 12, color: '#7aaccc' }}>{l.label}</span>
+                    <span style={{ fontSize: 12, color: '#7E8A98' }}>{l.label}</span>
                   </div>
                 ))}
               </div>
@@ -1017,7 +1034,7 @@ export default function AnalyticsPage() {
                 <ComposedChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tick={{ fontSize: 11, fill: '#7E8A98' }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v: string) =>
@@ -1026,7 +1043,7 @@ export default function AnalyticsPage() {
                     interval={Math.max(1, Math.floor(chartData.length / 8) - 1)}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tick={{ fontSize: 11, fill: '#7E8A98' }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
@@ -1037,7 +1054,7 @@ export default function AnalyticsPage() {
                     x={todayStr}
                     stroke="#3a6080"
                     strokeDasharray="3 3"
-                    label={{ value: '오늘', fill: '#6aabcc', fontSize: 11 }}
+                    label={{ value: '오늘', fill: '#7E8A98', fontSize: 11 }}
                   />
 
                   {/* 신뢰 구간 밴드 (stackId 기법) */}
@@ -1055,7 +1072,7 @@ export default function AnalyticsPage() {
                     stackId="band"
                     dataKey="bandWidth"
                     stroke="none"
-                    fill="#00d4ff"
+                    fill="#C93545"
                     fillOpacity={0.1}
                     legendType="none"
                     connectNulls={false}
@@ -1065,8 +1082,8 @@ export default function AnalyticsPage() {
                   {/* 과거 실제 트래픽 */}
                   <Area
                     dataKey="activeUsers"
-                    stroke="#00d4ff"
-                    fill="#00d4ff"
+                    stroke="#C93545"
+                    fill="#C93545"
                     fillOpacity={0.15}
                     strokeWidth={2}
                     dot={<CustomAnomalyDot />}
@@ -1077,7 +1094,7 @@ export default function AnalyticsPage() {
                   {/* 예측 점선 */}
                   <Line
                     dataKey="forecastValue"
-                    stroke="#00d4ff"
+                    stroke="#C93545"
                     strokeDasharray="5 5"
                     strokeWidth={2}
                     dot={false}
@@ -1089,19 +1106,19 @@ export default function AnalyticsPage() {
                 <AreaChart data={trafficChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="gradUsers" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00d4ff" stopOpacity={0.25} />
-                      <stop offset="95%" stopColor="#00d4ff" stopOpacity={0.01} />
+                      <stop offset="5%" stopColor="#C93545" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#C93545" stopOpacity={0.01} />
                     </linearGradient>
                   </defs>
                   <XAxis
                     dataKey="date"
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tick={{ fontSize: 11, fill: '#7E8A98' }}
                     axisLine={false}
                     tickLine={false}
                     interval={Math.max(1, Math.floor(trafficChartData.length / 8) - 1)}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tick={{ fontSize: 11, fill: '#7E8A98' }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => (v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
@@ -1111,11 +1128,11 @@ export default function AnalyticsPage() {
                   <Area
                     type="monotone"
                     dataKey="활성 사용자"
-                    stroke="#00d4ff"
+                    stroke="#C93545"
                     strokeWidth={2}
                     fill="url(#gradUsers)"
                     dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: '#00d4ff' }}
+                    activeDot={{ r: 4, strokeWidth: 0, fill: '#C93545' }}
                   />
                 </AreaChart>
               )}
@@ -1123,77 +1140,123 @@ export default function AnalyticsPage() {
           </div>
 
           {/* ════════════════════════════════════════════════════════
-              Section 3: 참여도 & 이탈률
+              Section 3: 채널별 세션 추세 (replaces 참여도 & 이탈률)
           ════════════════════════════════════════════════════════ */}
-          {engagementChartData.length > 0 && (
-            <div className="panel" style={{ marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
-                <div>
-                  <p style={{ fontSize: 11, fontWeight: 600, color: '#00ff88', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
-                    Engagement
-                  </p>
-                  <h2 className="section-title">참여도 & 이탈률</h2>
+          {(() => {
+            const CHANNEL_COLORS: Record<string, string> = {
+              'Organic Search': '#C93545', Direct: '#0066ff', Referral: '#ffaa00',
+              'Organic Social': '#00ff88', 'Paid Search': '#6366f1', Other: '#7E8A98',
+            };
+            const topChannels = [...new Set(channelTrend.map(d => d.channel))].slice(0, 5);
+            const dateMap = new Map<string, Record<string, number>>();
+            for (const d of channelTrend) {
+              const ch = topChannels.includes(d.channel) ? d.channel : 'Other';
+              const key = fmtDate(d.date);
+              if (!dateMap.has(key)) dateMap.set(key, { date: key } as any);
+              const row = dateMap.get(key)!;
+              (row as any)[ch] = ((row as any)[ch] || 0) + d.sessions;
+            }
+            const chartData = [...dateMap.values()];
+            const displayChannels = topChannels.length > 0 ? topChannels : ['Organic Search', 'Direct', 'Referral'];
+            return chartData.length > 0 ? (
+              <div className="ops-zone" style={{ marginBottom: 20 }}>
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Channel Trend</span>
+                  <div style={{ display: 'flex', gap: 12 }}>
+                    {displayChannels.map(ch => (
+                      <div key={ch} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <span style={{ width: 10, height: 3, background: CHANNEL_COLORS[ch] || '#7E8A98', borderRadius: 2, display: 'inline-block' }} />
+                        <span style={{ fontSize: 10, color: '#7E8A98' }}>{ch}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div style={{ display: 'flex', gap: 16 }}>
-                  {[
-                    { label: '참여율', color: '#00ff88' },
-                    { label: '이탈률', color: '#ff4466' },
-                  ].map(l => (
-                    <div key={l.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                      <span style={{ width: 12, height: 3, background: l.color, borderRadius: 2, display: 'inline-block' }} />
-                      <span style={{ fontSize: 12, color: '#7aaccc' }}>{l.label}</span>
-                    </div>
-                  ))}
+                <div style={{ padding: 16 }}>
+                  <h2 className="section-title" style={{ marginBottom: 16 }}>채널별 세션 추세</h2>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <AreaChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                      <defs>
+                        {displayChannels.map(ch => (
+                          <linearGradient key={ch} id={`gradCh${ch.replace(/\s/g, '')}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={CHANNEL_COLORS[ch] || '#7E8A98'} stopOpacity={0.15} />
+                            <stop offset="95%" stopColor={CHANNEL_COLORS[ch] || '#7E8A98'} stopOpacity={0.01} />
+                          </linearGradient>
+                        ))}
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false} width={40} />
+                      <Tooltip content={<ChartTooltip />} />
+                      {displayChannels.map(ch => (
+                        <Area key={ch} type="monotone" dataKey={ch} stroke={CHANNEL_COLORS[ch] || '#7E8A98'} strokeWidth={2}
+                          fill={`url(#gradCh${ch.replace(/\s/g, '')})`} dot={false}
+                          activeDot={{ r: 3, strokeWidth: 0, fill: CHANNEL_COLORS[ch] || '#7E8A98' }} />
+                      ))}
+                    </AreaChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
-              <ResponsiveContainer width="100%" height={220}>
-                <AreaChart data={engagementChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="gradEngage" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#00ff88" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="#00ff88" stopOpacity={0.01} />
-                    </linearGradient>
-                    <linearGradient id="gradBounce" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#ff4466" stopOpacity={0.15} />
-                      <stop offset="95%" stopColor="#ff4466" stopOpacity={0.01} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="date"
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
-                    axisLine={false}
-                    tickLine={false}
-                    interval={Math.max(1, Math.floor(engagementChartData.length / 8) - 1)}
-                  />
-                  <YAxis
-                    domain={[0, 100]}
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
-                    axisLine={false}
-                    tickLine={false}
-                    tickFormatter={(v) => `${v}%`}
-                    width={36}
-                  />
-                  <Tooltip content={<ChartTooltip pctMode />} />
-                  <Area
-                    type="monotone"
-                    dataKey="참여율"
-                    stroke="#00ff88"
-                    strokeWidth={2}
-                    fill="url(#gradEngage)"
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: '#00ff88' }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="이탈률"
-                    stroke="#ff4466"
-                    strokeWidth={2}
-                    fill="url(#gradBounce)"
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0, fill: '#ff4466' }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
+            ) : null;
+          })()}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 3b: 이탈률 변화 추세
+          ════════════════════════════════════════════════════════ */}
+          {engagementChartData.length > 0 && (
+            <div className="ops-zone" style={{ marginBottom: 20 }}>
+              <div className="ops-zone-head">
+                <span className="ops-zone-label">Bounce Rate Trend</span>
+              </div>
+              <div style={{ padding: 16 }}>
+                <h2 className="section-title" style={{ marginBottom: 16 }}>이탈률 변화 추세</h2>
+                <ResponsiveContainer width="100%" height={180}>
+                  <AreaChart data={engagementChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="gradBounceNew" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ff4466" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#ff4466" stopOpacity={0.01} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false}
+                      interval={Math.max(1, Math.floor(engagementChartData.length / 8) - 1)} />
+                    <YAxis tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false}
+                      tickFormatter={(v) => `${v}%`} width={36} />
+                    <Tooltip content={<ChartTooltip pctMode />} />
+                    <Area type="monotone" dataKey="이탈률" stroke="#ff4466" strokeWidth={2}
+                      fill="url(#gradBounceNew)" dot={false}
+                      activeDot={{ r: 4, strokeWidth: 0, fill: '#ff4466' }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 3c: 세션 깊이 추세
+          ════════════════════════════════════════════════════════ */}
+          {engagement.length > 0 && (
+            <div className="ops-zone" style={{ marginBottom: 20 }}>
+              <div className="ops-zone-head">
+                <span className="ops-zone-label">Session Depth</span>
+              </div>
+              <div style={{ padding: 16 }}>
+                <h2 className="section-title" style={{ marginBottom: 16 }}>세션 깊이 추세</h2>
+                <ResponsiveContainer width="100%" height={180}>
+                  <LineChart data={engagement.map(d => ({
+                    date: fmtDate(d.date),
+                    '페이지뷰/세션': parseFloat(d.screenPageViewsPerSession.toFixed(2)),
+                    '세션/사용자': parseFloat(d.sessionsPerUser.toFixed(2)),
+                  }))} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false} width={36} />
+                    <Tooltip content={<ChartTooltip />} />
+                    <Line type="monotone" dataKey="페이지뷰/세션" stroke="#0066ff" strokeWidth={2} dot={false} />
+                    <Line type="monotone" dataKey="세션/사용자" stroke="#ffaa00" strokeWidth={2} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           )}
 
@@ -1211,7 +1274,7 @@ export default function AnalyticsPage() {
             {/* Left: 유입 채널 */}
             <div className="panel">
               <div style={{ marginBottom: 16 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#6aabcc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#7E8A98', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Acquisition
                 </p>
                 <h2 className="section-title">유입 채널 Top 10</h2>
@@ -1225,7 +1288,7 @@ export default function AnalyticsPage() {
                         style={{
                           fontSize: 10,
                           fontWeight: 700,
-                          color: '#b0b8c1',
+                          color: '#7E8A98',
                           width: 14,
                           textAlign: 'right',
                           flexShrink: 0,
@@ -1236,7 +1299,7 @@ export default function AnalyticsPage() {
                       <span
                         style={{
                           fontSize: 12,
-                          color: '#333d4b',
+                          color: '#B0B8C4',
                           width: 130,
                           flexShrink: 0,
                           overflow: 'hidden',
@@ -1250,7 +1313,7 @@ export default function AnalyticsPage() {
                         style={{
                           flex: 1,
                           height: 8,
-                          background: '#f5f6f7',
+                          background: 'var(--surface-sub)',
                           borderRadius: 100,
                           overflow: 'hidden',
                         }}
@@ -1269,7 +1332,7 @@ export default function AnalyticsPage() {
                         style={{
                           fontSize: 12,
                           fontWeight: 700,
-                          color: '#e8f4ff',
+                          color: '#F0ECE8',
                           width: 52,
                           textAlign: 'right',
                           flexShrink: 0,
@@ -1314,11 +1377,14 @@ export default function AnalyticsPage() {
                         formatter={(value) => [value != null ? Number(value).toLocaleString('ko-KR') : '0', '세션']}
                         contentStyle={{
                           fontSize: 12,
-                          background: '#fff',
-                          border: '1px solid #e8ebed',
+                          background: 'rgba(8,10,20,0.94)',
+                          border: '1px solid rgba(201,53,69,0.14)',
                           borderRadius: 8,
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                          color: '#F0ECE8',
                         }}
+                        labelStyle={{ color: '#7E8A98' }}
+                        itemStyle={{ color: '#B0B8C4' }}
                       />
                     </PieChart>
                   </ResponsiveContainer>
@@ -1333,8 +1399,8 @@ export default function AnalyticsPage() {
                       pointerEvents: 'none',
                     }}
                   >
-                    <p style={{ fontSize: 11, color: '#7aaccc', margin: 0 }}>총 세션</p>
-                    <p style={{ fontSize: 18, fontWeight: 800, color: '#e8f4ff', margin: '2px 0 0' }}>
+                    <p style={{ fontSize: 11, color: '#7E8A98', margin: 0 }}>총 세션</p>
+                    <p style={{ fontSize: 18, fontWeight: 800, color: '#F0ECE8', margin: '2px 0 0' }}>
                       {totalDeviceSessions.toLocaleString('ko-KR')}
                     </p>
                   </div>
@@ -1353,12 +1419,29 @@ export default function AnalyticsPage() {
                           flexShrink: 0,
                         }}
                       />
-                      <span style={{ fontSize: 12, color: '#7aaccc' }}>{d.name}</span>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff' }}>
+                      <span style={{ fontSize: 12, color: '#7E8A98' }}>{d.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#F0ECE8' }}>
                         {((d.value / totalDeviceSessions) * 100).toFixed(0)}%
                       </span>
                     </div>
                   ))}
+                </div>
+                {/* Device engagement rates */}
+                <div style={{ marginTop: 12 }}>
+                  <p style={{ fontSize: 9, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.12em', color: '#7E8A98', marginBottom: 6 }}>참여율 by Device</p>
+                  {devices.map(d => {
+                    const engPct = (d.engagementRate * 100).toFixed(1);
+                    const label = d.deviceCategory === 'mobile' ? '모바일' : d.deviceCategory === 'desktop' ? '데스크탑' : '태블릿';
+                    return (
+                      <div key={d.deviceCategory} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, color: '#7E8A98', width: 48, flexShrink: 0 }}>{label}</span>
+                        <div className="ops-bar-track" style={{ flex: 1, height: 4 }}>
+                          <div className="ops-bar-fill" style={{ width: `${d.engagementRate * 100}%`, backgroundColor: '#E8707E' }} />
+                        </div>
+                        <span style={{ fontSize: 10, fontWeight: 600, color: '#F0ECE8', width: 38, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>{engPct}%</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -1378,21 +1461,21 @@ export default function AnalyticsPage() {
             {/* Left: 상위 페이지 */}
             <div className="panel">
               <div style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#E8707E', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Content
                 </p>
                 <h2 className="section-title">상위 페이지 Top 10</h2>
               </div>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid #e8ebed' }}>
-                    <th style={{ textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#b0b8c1', padding: '0 0 8px', paddingRight: 8 }}>
+                  <tr style={{ borderBottom: '1px solid rgba(201,53,69,0.14)' }}>
+                    <th style={{ textAlign: 'left', fontSize: 11, fontWeight: 600, color: '#7E8A98', padding: '0 0 8px', paddingRight: 8 }}>
                       페이지
                     </th>
-                    <th style={{ textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#b0b8c1', padding: '0 0 8px', paddingLeft: 8, width: 64 }}>
+                    <th style={{ textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#7E8A98', padding: '0 0 8px', paddingLeft: 8, width: 64 }}>
                       조회수
                     </th>
-                    <th style={{ textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#b0b8c1', padding: '0 0 8px', paddingLeft: 8, width: 64 }}>
+                    <th style={{ textAlign: 'right', fontSize: 11, fontWeight: 600, color: '#7E8A98', padding: '0 0 8px', paddingLeft: 8, width: 64 }}>
                       사용자
                     </th>
                   </tr>
@@ -1402,14 +1485,14 @@ export default function AnalyticsPage() {
                     <tr
                       key={i}
                       style={{
-                        background: i % 2 === 0 ? '#fff' : '#f9fafb',
-                        borderBottom: i < 9 ? '1px solid #f5f6f7' : 'none',
+                        background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-sub)',
+                        borderBottom: i < 9 ? '1px solid rgba(201,53,69,0.14)' : 'none',
                       }}
                     >
                       <td
                         style={{
                           fontSize: 12,
-                          color: '#333d4b',
+                          color: '#B0B8C4',
                           padding: '7px 8px 7px 0',
                           fontFamily: 'ui-monospace, monospace',
                           overflow: 'hidden',
@@ -1421,10 +1504,10 @@ export default function AnalyticsPage() {
                       >
                         {pg.pagePath.length > 30 ? pg.pagePath.slice(0, 30) + '…' : pg.pagePath}
                       </td>
-                      <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#e8f4ff', padding: '7px 0 7px 8px' }}>
+                      <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 600, color: '#F0ECE8', padding: '7px 0 7px 8px' }}>
                         {pg.screenPageViews.toLocaleString('ko-KR')}
                       </td>
-                      <td style={{ textAlign: 'right', fontSize: 12, color: '#7aaccc', padding: '7px 0 7px 8px' }}>
+                      <td style={{ textAlign: 'right', fontSize: 12, color: '#7E8A98', padding: '7px 0 7px 8px' }}>
                         {pg.activeUsers.toLocaleString('ko-KR')}
                       </td>
                     </tr>
@@ -1446,24 +1529,24 @@ export default function AnalyticsPage() {
                   const pct = (g['활성 사용자'] / maxGeoUsers) * 100;
                   return (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: '#b0b8c1', width: 14, textAlign: 'right', flexShrink: 0 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: '#7E8A98', width: 14, textAlign: 'right', flexShrink: 0 }}>
                         {i + 1}
                       </span>
-                      <span style={{ fontSize: 12, color: '#333d4b', width: 90, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <span style={{ fontSize: 12, color: '#B0B8C4', width: 90, flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {g.name}
                       </span>
-                      <div style={{ flex: 1, height: 8, background: '#f5f6f7', borderRadius: 100, overflow: 'hidden' }}>
+                      <div style={{ flex: 1, height: 8, background: 'var(--surface-sub)', borderRadius: 100, overflow: 'hidden' }}>
                         <div
                           style={{
                             height: '100%',
                             width: `${pct}%`,
-                            background: i === 0 ? '#00d4ff' : `rgba(0,212,255,${0.85 - i * 0.07})`,
+                            background: i === 0 ? '#C93545' : `rgba(201,53,69,${0.85 - i * 0.07})`,
                             borderRadius: 100,
                             transition: 'width 0.6s ease',
                           }}
                         />
                       </div>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff', width: 52, textAlign: 'right', flexShrink: 0 }}>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: '#F0ECE8', width: 52, textAlign: 'right', flexShrink: 0 }}>
                         {g['활성 사용자'].toLocaleString('ko-KR')}
                       </span>
                     </div>
@@ -1487,7 +1570,7 @@ export default function AnalyticsPage() {
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
                   <thead>
-                    <tr style={{ borderBottom: '2px solid #e8ebed' }}>
+                    <tr style={{ borderBottom: '2px solid rgba(201,53,69,0.14)' }}>
                       {['랜딩 페이지', '세션', '이탈률', '참여율'].map((h, i) => (
                         <th
                           key={h}
@@ -1495,7 +1578,7 @@ export default function AnalyticsPage() {
                             textAlign: i === 0 ? 'left' : 'right',
                             fontSize: 11,
                             fontWeight: 600,
-                            color: '#b0b8c1',
+                            color: '#7E8A98',
                             padding: '0 8px 10px',
                             letterSpacing: '0.04em',
                           }}
@@ -1509,28 +1592,28 @@ export default function AnalyticsPage() {
                     {landingPages.map((lp, i) => {
                       const bounceColor =
                         lp.bounceRate > 0.7
-                          ? { bg: '#fef2f2', text: '#ff4466' }
+                          ? { bg: 'rgba(255,68,102,0.06)', text: '#ff4466' }
                           : lp.bounceRate > 0.5
-                          ? { bg: '#fffbeb', text: '#d97706' }
-                          : { bg: '#f0fdf4', text: '#16a34a' };
+                          ? { bg: 'rgba(249,115,22,0.06)', text: '#fbbf24' }
+                          : { bg: 'rgba(0,255,136,0.06)', text: '#00ff88' };
                       const engColor =
                         lp.engagementRate > 0.5
-                          ? { bg: '#f0fdf4', text: '#16a34a' }
+                          ? { bg: 'rgba(0,255,136,0.06)', text: '#00ff88' }
                           : lp.engagementRate > 0.3
-                          ? { bg: '#fffbeb', text: '#d97706' }
-                          : { bg: '#fef2f2', text: '#ff4466' };
+                          ? { bg: 'rgba(249,115,22,0.06)', text: '#fbbf24' }
+                          : { bg: 'rgba(255,68,102,0.06)', text: '#ff4466' };
                       return (
                         <tr
                           key={i}
                           style={{
-                            background: i % 2 === 0 ? '#fff' : '#f9fafb',
-                            borderBottom: i < landingPages.length - 1 ? '1px solid #f0f1f3' : 'none',
+                            background: i % 2 === 0 ? 'var(--surface)' : 'var(--surface-sub)',
+                            borderBottom: i < landingPages.length - 1 ? '1px solid rgba(201,53,69,0.14)' : 'none',
                           }}
                         >
                           <td
                             style={{
                               fontSize: 12,
-                              color: '#333d4b',
+                              color: '#B0B8C4',
                               padding: '9px 8px',
                               fontFamily: 'ui-monospace, monospace',
                               maxWidth: 280,
@@ -1542,7 +1625,7 @@ export default function AnalyticsPage() {
                           >
                             {lp.landingPage.length > 40 ? lp.landingPage.slice(0, 40) + '…' : lp.landingPage}
                           </td>
-                          <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#e8f4ff', padding: '9px 8px' }}>
+                          <td style={{ textAlign: 'right', fontSize: 12, fontWeight: 700, color: '#F0ECE8', padding: '9px 8px' }}>
                             {lp.sessions.toLocaleString('ko-KR')}
                           </td>
                           <td style={{ textAlign: 'right', padding: '9px 8px' }}>
@@ -1598,7 +1681,7 @@ export default function AnalyticsPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: 600,
-                    color: '#00d4ff',
+                    color: '#E8707E',
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
                     marginBottom: 2,
@@ -1617,7 +1700,7 @@ export default function AnalyticsPage() {
               >
                 <div className="metric-card">
                   <p className="metric-label">예측 평균 방문자</p>
-                  <p className="metric-value" style={{ color: '#00d4ff' }}>
+                  <p className="metric-value" style={{ color: '#E8707E' }}>
                     {Math.round(
                       forecastData.forecast.reduce((s, f) => s + f.value, 0) /
                         forecastData.forecast.length
@@ -1627,7 +1710,7 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="metric-card">
                   <p className="metric-label">예측 범위</p>
-                  <p className="metric-value" style={{ color: '#6aabcc', fontSize: '1.1rem' }}>
+                  <p className="metric-value" style={{ color: '#7E8A98', fontSize: '1.1rem' }}>
                     {Math.min(...forecastData.forecast.map((f) => f.lower)).toLocaleString('ko-KR')}
                     ~
                     {Math.max(...forecastData.forecast.map((f) => f.upper)).toLocaleString('ko-KR')}
@@ -1652,7 +1735,7 @@ export default function AnalyticsPage() {
           <div className="panel" style={{ marginBottom: 8 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
               <div>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#6aabcc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#7E8A98', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   AI Insights
                 </p>
                 <h2 className="section-title">AI 성과 분석</h2>
@@ -1669,8 +1752,8 @@ export default function AnalyticsPage() {
                       padding: '8px 16px',
                       fontSize: 13,
                       fontWeight: 600,
-                      color: '#7aaccc',
-                      background: '#f2f4f6',
+                      color: '#7E8A98',
+                      background: 'var(--surface-sub)',
                       border: 'none',
                       borderRadius: 10,
                       cursor: analyzing ? 'not-allowed' : 'pointer',
@@ -1691,12 +1774,12 @@ export default function AnalyticsPage() {
                     fontSize: 13,
                     fontWeight: 700,
                     color: '#fff',
-                    background: analyzing ? '#4a9abf' : 'linear-gradient(135deg, #00d4ff 0%, #6aabcc 100%)',
+                    background: analyzing ? '#B02D3C' : 'linear-gradient(135deg, #C93545 0%, #B02D3C 100%)',
                     border: 'none',
                     borderRadius: 10,
                     cursor: analyzing ? 'not-allowed' : 'pointer',
                     transition: 'opacity 0.15s',
-                    boxShadow: analyzing ? 'none' : '0 2px 8px rgba(0,212,255,0.3)',
+                    boxShadow: analyzing ? 'none' : '0 2px 8px rgba(201,53,69,0.3)',
                   }}
                 >
                   <span style={{ fontSize: 15 }}>{analyzing ? '⏳' : '✨'}</span>
@@ -1741,7 +1824,7 @@ export default function AnalyticsPage() {
                         padding: '3px 10px',
                         fontSize: 11,
                         fontWeight: 700,
-                        color: '#e0e7ff',
+                        color: '#c7d2fe',
                         letterSpacing: '0.08em',
                         textTransform: 'uppercase',
                       }}>Executive Summary</span>
@@ -1758,19 +1841,19 @@ export default function AnalyticsPage() {
                 {/* ── 2. Key Findings ── */}
                 {insight.highlights.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#F0ECE8', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
                       주요 발견 사항
                     </p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
                       {insight.highlights.map((h, i) => {
                         const isWarning = i === 0;
                         const isOpportunity = i === 1;
-                        const iconColor = isWarning ? '#ff4466' : isOpportunity ? '#00ff88' : '#00d4ff';
-                        const iconBg = isWarning ? '#fef2f2' : isOpportunity ? '#f0fdf4' : '#eff6ff';
+                        const iconColor = isWarning ? '#ff4466' : isOpportunity ? '#00ff88' : '#E8707E';
+                        const iconBg = isWarning ? 'rgba(255,68,102,0.06)' : isOpportunity ? 'rgba(0,255,136,0.06)' : 'rgba(29,78,216,0.08)';
                         const iconLabel = isWarning ? '⚠' : isOpportunity ? '↑' : 'i';
                         const badgeText = isWarning ? '높은 영향' : isOpportunity ? '성장 기회' : '참고 정보';
-                        const badgeBg = isWarning ? '#fee2e2' : isOpportunity ? '#dcfce7' : '#dbeafe';
-                        const badgeColor = isWarning ? '#dc2626' : isOpportunity ? '#16a34a' : '#1d4ed8';
+                        const badgeBg = isWarning ? 'rgba(255,68,102,0.1)' : isOpportunity ? 'rgba(0,255,136,0.1)' : 'rgba(29,78,216,0.1)';
+                        const badgeColor = isWarning ? '#ff4466' : isOpportunity ? '#00ff88' : '#60a5fa';
                         const title = h.length > 30 ? h.slice(0, h.indexOf('—') > 0 ? h.indexOf('—') : 30).trim() : h;
                         const desc = h.indexOf('—') > 0 ? h.slice(h.indexOf('—') + 1).trim() : (h.length > 30 ? h.slice(30) : '');
                         return (
@@ -1792,11 +1875,11 @@ export default function AnalyticsPage() {
                               </span>
                             </div>
                             <div>
-                              <p style={{ fontSize: 13, fontWeight: 700, color: '#e8f4ff', margin: '0 0 4px', lineHeight: 1.4 }}>
+                              <p style={{ fontSize: 13, fontWeight: 700, color: '#F0ECE8', margin: '0 0 4px', lineHeight: 1.4 }}>
                                 {title}
                               </p>
                               {desc && (
-                                <p style={{ fontSize: 12, color: '#7aaccc', margin: 0, lineHeight: 1.55 }}>
+                                <p style={{ fontSize: 12, color: '#7E8A98', margin: 0, lineHeight: 1.55 }}>
                                   {desc}
                                 </p>
                               )}
@@ -1811,17 +1894,20 @@ export default function AnalyticsPage() {
                 {/* ── 3. Recommendations ── */}
                 {insight.recommendations.length > 0 && (
                   <div>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#e8f4ff', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#F0ECE8', letterSpacing: '0.04em', marginBottom: 12, textTransform: 'uppercase' }}>
                       우선순위별 개선 권고
                     </p>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                       {insight.recommendations.map((r, i) => {
-                        const priority = i === 0 ? 'HIGH' : i === 1 ? 'MEDIUM' : 'LOW';
-                        const borderColor = priority === 'HIGH' ? '#ff4466' : priority === 'MEDIUM' ? '#f97316' : '#00d4ff';
-                        const badgeBg = priority === 'HIGH' ? '#fef2f2' : priority === 'MEDIUM' ? '#fff7ed' : '#eff6ff';
-                        const badgeColor = priority === 'HIGH' ? '#dc2626' : priority === 'MEDIUM' ? '#ea580c' : '#1d4ed8';
+                        const isObj = typeof r === 'object' && r !== null;
+                        const text = isObj ? r.action : String(r);
+                        const priority = isObj && r.priority ? r.priority.toUpperCase() : (i === 0 ? 'HIGH' : i === 1 ? 'MEDIUM' : 'LOW');
+                        const borderColor = priority === 'HIGH' ? '#ff4466' : priority === 'MEDIUM' ? '#f97316' : '#C93545';
+                        const badgeBg = priority === 'HIGH' ? 'rgba(255,68,102,0.06)' : priority === 'MEDIUM' ? 'rgba(249,115,22,0.08)' : 'rgba(29,78,216,0.08)';
+                        const badgeColor = priority === 'HIGH' ? '#ff4466' : priority === 'MEDIUM' ? '#fb923c' : '#60a5fa';
                         const badgeLabel = priority === 'HIGH' ? '높음' : priority === 'MEDIUM' ? '중간' : '낮음';
-                        const impact = priority === 'HIGH' ? '전환율 +0.5%p 예상' : priority === 'MEDIUM' ? '유입 +15% 예상' : '참여도 개선';
+                        const impact = isObj && r.expectedROI ? r.expectedROI : (priority === 'HIGH' ? '전환율 +0.5%p 예상' : priority === 'MEDIUM' ? '유입 +15% 예상' : '참여도 개선');
+                        const deadline = isObj && r.deadline ? r.deadline : null;
                         return (
                           <div
                             key={i}
@@ -1830,8 +1916,8 @@ export default function AnalyticsPage() {
                               alignItems: 'center',
                               gap: 14,
                               padding: '14px 18px',
-                              background: '#fff',
-                              border: '1px solid #f2f4f6',
+                              background: 'var(--surface)',
+                              border: '1px solid rgba(201,53,69,0.14)',
                               borderLeft: `4px solid ${borderColor}`,
                               borderRadius: 10,
                             }}
@@ -1844,11 +1930,12 @@ export default function AnalyticsPage() {
                             }}>
                               {badgeLabel}
                             </span>
-                            <p style={{ fontSize: 13, color: '#e8f4ff', margin: 0, lineHeight: 1.55, flex: 1 }}>
-                              {r}
-                            </p>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 13, color: '#F0ECE8', margin: 0, lineHeight: 1.55 }}>{text}</p>
+                              {deadline && <p style={{ fontSize: 10, color: '#7E8A98', margin: '2px 0 0' }}>{deadline}</p>}
+                            </div>
                             <span style={{
-                              fontSize: 11, color: '#8b9299', background: '#f8f9fa',
+                              fontSize: 11, color: '#7E8A98', background: 'var(--surface-sub)',
                               borderRadius: 6, padding: '3px 8px', flexShrink: 0,
                               whiteSpace: 'nowrap',
                             }}>
@@ -1865,8 +1952,8 @@ export default function AnalyticsPage() {
                 {insight.anomalies.length > 0 && (
                   <div
                     style={{
-                      background: '#fff5f5',
-                      border: '1px solid #fecaca',
+                      background: 'rgba(255,68,102,0.06)',
+                      border: '1px solid rgba(255,68,102,0.2)',
                       borderRadius: 14,
                       padding: '18px 20px',
                     }}
@@ -1875,19 +1962,19 @@ export default function AnalyticsPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <div style={{
                           width: 32, height: 32, borderRadius: '50%',
-                          background: '#fee2e2',
+                          background: 'rgba(255,68,102,0.1)',
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           fontSize: 16,
                         }}>
                           ⚠
                         </div>
-                        <p style={{ fontSize: 13, fontWeight: 700, color: '#dc2626', margin: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: '#ff4466', margin: 0 }}>
                           이상 감지 — Anomaly Detection
                         </p>
                       </div>
                       <span style={{
                         fontSize: 11, fontWeight: 700, padding: '4px 10px',
-                        borderRadius: 20, background: '#dc2626', color: '#fff',
+                        borderRadius: 20, background: '#ff4466', color: '#fff',
                         letterSpacing: '0.04em',
                       }}>
                         즉시 확인 필요
@@ -1898,12 +1985,84 @@ export default function AnalyticsPage() {
                         <div key={i} style={{
                           display: 'flex', gap: 10, alignItems: 'flex-start',
                           padding: '10px 14px',
-                          background: '#fff',
-                          border: '1px solid #fecaca',
+                          background: 'var(--surface)',
+                          border: '1px solid rgba(255,68,102,0.2)',
                           borderRadius: 8,
                         }}>
                           <span style={{ color: '#ff4466', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>!</span>
-                          <p style={{ fontSize: 13, color: '#7f1d1d', margin: 0, lineHeight: 1.55 }}>{a}</p>
+                          <p style={{ fontSize: 13, color: '#F0ECE8', margin: 0, lineHeight: 1.55 }}>{a}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── 5. Weekly Focus ── */}
+                {insight.weeklyFocus && (
+                  <div style={{
+                    padding: '14px 18px', borderRadius: 10,
+                    background: 'rgba(201,53,69,0.06)', border: '1px solid rgba(201,53,69,0.2)',
+                  }}>
+                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#E8707E', marginBottom: 6 }}>This Week&apos;s Focus</p>
+                    <p style={{ fontSize: 14, fontWeight: 600, color: '#F0ECE8', margin: 0, lineHeight: 1.6 }}>{insight.weeklyFocus}</p>
+                  </div>
+                )}
+
+                {/* ── 6. Budget Advice ── */}
+                {insight.budgetAdvice && (
+                  <div style={{
+                    padding: '14px 18px', borderRadius: 10,
+                    background: 'var(--surface)', border: '1px solid rgba(201,53,69,0.14)',
+                  }}>
+                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#7E8A98', marginBottom: 6 }}>Budget Allocation</p>
+                    <p style={{ fontSize: 13, color: '#B0B8C4', margin: 0, lineHeight: 1.6 }}>{insight.budgetAdvice}</p>
+                  </div>
+                )}
+
+                {/* ── 7. Channel Diagnosis ── */}
+                {insight.channelDiagnosis && insight.channelDiagnosis.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#7E8A98', marginBottom: 10 }}>Channel Diagnosis</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {insight.channelDiagnosis.map((cd, i) => {
+                        const statusColor = cd.status === 'growth' ? '#00ff88' : cd.status === 'decline' ? '#ff4466' : '#7E8A98';
+                        const statusLabel = cd.status === 'growth' ? '성장' : cd.status === 'decline' ? '하락' : '안정';
+                        return (
+                          <div key={i} style={{
+                            padding: '10px 14px', borderRadius: 8,
+                            background: 'var(--surface)', border: '1px solid rgba(201,53,69,0.14)',
+                            display: 'flex', gap: 10, alignItems: 'flex-start',
+                          }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 4,
+                              background: `${statusColor}15`, color: statusColor, flexShrink: 0, marginTop: 2 }}>{statusLabel}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <p style={{ fontSize: 12, fontWeight: 600, color: '#F0ECE8', margin: 0 }}>{cd.channel}</p>
+                              <p style={{ fontSize: 11, color: '#7E8A98', margin: '2px 0 0', lineHeight: 1.5 }}>{cd.insight}</p>
+                              <p style={{ fontSize: 11, color: '#E8707E', margin: '4px 0 0' }}>{cd.action}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── 8. Page Diagnosis ── */}
+                {insight.pageDiagnosis && insight.pageDiagnosis.length > 0 && (
+                  <div>
+                    <p style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.14em', color: '#7E8A98', marginBottom: 10 }}>Page Diagnosis</p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      {insight.pageDiagnosis.map((pd, i) => (
+                        <div key={i} style={{
+                          padding: '10px 14px', borderRadius: 8,
+                          background: 'var(--surface)', border: '1px solid rgba(201,53,69,0.14)',
+                        }}>
+                          <p style={{ fontSize: 11, fontWeight: 600, color: '#F0ECE8', margin: 0, fontFamily: 'ui-monospace, monospace' }}>{pd.page}</p>
+                          <p style={{ fontSize: 11, color: '#ff4466', margin: '3px 0 0' }}>{pd.issue}</p>
+                          <p style={{ fontSize: 11, color: '#E8707E', margin: '2px 0 0' }}>{pd.action}</p>
+                          {pd.expectedImpact && (
+                            <p style={{ fontSize: 10, color: '#7E8A98', margin: '2px 0 0' }}>{pd.expectedImpact}</p>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -1923,12 +2082,12 @@ export default function AnalyticsPage() {
                 }}
               >
                 <span style={{ fontSize: 32 }}>✨</span>
-                <p style={{ fontSize: 14, color: '#7aaccc', margin: 0 }}>
+                <p style={{ fontSize: 14, color: '#7E8A98', margin: 0 }}>
                   {isDemo
                     ? 'AI 분석 미리보기 버튼을 클릭하면 데모 인사이트를 확인할 수 있습니다.'
                     : 'AI 분석 실행 버튼을 클릭하면 GA4 데이터를 기반으로 인사이트를 생성합니다.'}
                 </p>
-                <p style={{ fontSize: 12, color: '#b0b8c1', margin: 0 }}>
+                <p style={{ fontSize: 12, color: '#7E8A98', margin: 0 }}>
                   트래픽 패턴, 채널 성과, 이탈률 개선 방향을 AI가 분석합니다.
                 </p>
               </div>
@@ -1941,11 +2100,11 @@ export default function AnalyticsPage() {
           {hourlyChartData.length > 0 && (
             <div className="panel" style={{ marginBottom: 20, marginTop: 20 }}>
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#00d4ff', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#E8707E', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   Hourly Pattern
                 </p>
                 <h2 className="section-title">시간대별 트래픽</h2>
-                <p style={{ fontSize: 13, color: '#7aaccc', marginTop: 4 }}>
+                <p style={{ fontSize: 13, color: '#7E8A98', marginTop: 4 }}>
                   방문이 집중되는 시간대를 파악하세요
                 </p>
               </div>
@@ -1953,33 +2112,33 @@ export default function AnalyticsPage() {
                 <BarChart data={hourlyChartData} margin={{ top: 4, right: 8, left: 0, bottom: 0 }} barSize={14}>
                   <defs>
                     <linearGradient id="hourlyBarGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.95} />
-                      <stop offset="100%" stopColor="#00d4ff" stopOpacity={0.45} />
+                      <stop offset="0%" stopColor="#C93545" stopOpacity={0.95} />
+                      <stop offset="100%" stopColor="#C93545" stopOpacity={0.45} />
                     </linearGradient>
                   </defs>
                   <XAxis
                     dataKey="name"
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tick={{ fontSize: 11, fill: '#7E8A98' }}
                     tickLine={false}
                     axisLine={false}
                     interval={2}
                   />
                   <YAxis
-                    tick={{ fontSize: 11, fill: '#b0b8c1' }}
+                    tick={{ fontSize: 11, fill: '#7E8A98' }}
                     tickLine={false}
                     axisLine={false}
                     width={36}
                   />
                   <Tooltip
                     content={<ChartTooltip />}
-                    cursor={{ fill: 'rgba(0,212,255,0.06)' }}
+                    cursor={{ fill: 'rgba(201,53,69,0.06)' }}
                   />
                   <Bar dataKey="세션" fill="url(#hourlyBarGrad)" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
-              <p style={{ fontSize: 12, color: '#7aaccc', textAlign: 'center', marginTop: 8 }}>
+              <p style={{ fontSize: 12, color: '#7E8A98', textAlign: 'center', marginTop: 8 }}>
                 피크 타임:{' '}
-                <strong style={{ color: '#00d4ff' }}>{peakHour}시</strong>에 세션이 가장 집중됩니다
+                <strong style={{ color: '#E8707E' }}>{peakHour}시</strong>에 세션이 가장 집중됩니다
               </p>
             </div>
           )}
@@ -1990,7 +2149,7 @@ export default function AnalyticsPage() {
           {userType.length > 0 && (
             <div className="panel" style={{ marginBottom: 20 }}>
               <div style={{ marginBottom: 20 }}>
-                <p style={{ fontSize: 11, fontWeight: 600, color: '#6aabcc', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#7E8A98', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 2 }}>
                   User Segments
                 </p>
                 <h2 className="section-title">신규 vs 재방문 사용자</h2>
@@ -1999,7 +2158,7 @@ export default function AnalyticsPage() {
                 {/* 신규 사용자 */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                    background: 'linear-gradient(135deg, rgba(29,78,216,0.06) 0%, rgba(29,78,216,0.1) 100%)',
                     border: '1px solid #bfdbfe',
                     borderRadius: 12,
                     padding: '20px 24px',
@@ -2007,26 +2166,26 @@ export default function AnalyticsPage() {
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
                     <span style={{ fontSize: 20 }}>🆕</span>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: '#1d4ed8', margin: 0 }}>신규 사용자</p>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa', margin: 0 }}>신규 사용자</p>
                   </div>
-                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#1d4ed8', margin: '0 0 4px' }}>
+                  <p style={{ fontSize: '2rem', fontWeight: 800, color: '#60a5fa', margin: '0 0 4px' }}>
                     {(newUser?.activeUsers || 0).toLocaleString('ko-KR')}
                   </p>
-                  <p style={{ fontSize: 12, color: '#00d4ff', margin: '0 0 14px' }}>
+                  <p style={{ fontSize: 12, color: '#E8707E', margin: '0 0 14px' }}>
                     전체의 <strong>{newUserPct.toFixed(1)}%</strong>
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: '#7aaccc' }}>참여율</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: '#1d4ed8' }}>
+                    <span style={{ fontSize: 12, color: '#7E8A98' }}>참여율</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: '#60a5fa' }}>
                       {((newUser?.engagementRate || 0) * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div style={{ height: 6, background: '#bfdbfe', borderRadius: 100, marginTop: 6, overflow: 'hidden' }}>
+                  <div style={{ height: 6, background: 'rgba(29,78,216,0.15)', borderRadius: 100, marginTop: 6, overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
                         width: `${Math.min((newUser?.engagementRate || 0) * 100, 100)}%`,
-                        background: '#00d4ff',
+                        background: '#C93545',
                         borderRadius: 100,
                       }}
                     />
@@ -2036,8 +2195,8 @@ export default function AnalyticsPage() {
                 {/* 재방문 사용자 */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                    border: '1px solid #ddd6fe',
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(99,102,241,0.08) 100%)',
+                    border: '1px solid rgba(99,102,241,0.15)',
                     borderRadius: 12,
                     padding: '20px 24px',
                   }}
@@ -2049,21 +2208,21 @@ export default function AnalyticsPage() {
                   <p style={{ fontSize: '2rem', fontWeight: 800, color: '#7c3aed', margin: '0 0 4px' }}>
                     {(returningUser?.activeUsers || 0).toLocaleString('ko-KR')}
                   </p>
-                  <p style={{ fontSize: 12, color: '#6aabcc', margin: '0 0 14px' }}>
+                  <p style={{ fontSize: 12, color: '#7E8A98', margin: '0 0 14px' }}>
                     전체의 <strong>{returningUserPct.toFixed(1)}%</strong>
                   </p>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 12, color: '#7aaccc' }}>참여율</span>
+                    <span style={{ fontSize: 12, color: '#7E8A98' }}>참여율</span>
                     <span style={{ fontSize: 13, fontWeight: 700, color: '#7c3aed' }}>
                       {((returningUser?.engagementRate || 0) * 100).toFixed(1)}%
                     </span>
                   </div>
-                  <div style={{ height: 6, background: '#ddd6fe', borderRadius: 100, marginTop: 6, overflow: 'hidden' }}>
+                  <div style={{ height: 6, background: 'rgba(99,102,241,0.15)', borderRadius: 100, marginTop: 6, overflow: 'hidden' }}>
                     <div
                       style={{
                         height: '100%',
                         width: `${Math.min((returningUser?.engagementRate || 0) * 100, 100)}%`,
-                        background: '#6aabcc',
+                        background: '#7E8A98',
                         borderRadius: 100,
                       }}
                     />
@@ -2074,12 +2233,12 @@ export default function AnalyticsPage() {
               {/* Split Bar */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 12, color: '#00d4ff', fontWeight: 600 }}>신규 {newUserPct.toFixed(1)}%</span>
-                  <span style={{ fontSize: 12, color: '#6aabcc', fontWeight: 600 }}>재방문 {returningUserPct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 12, color: '#E8707E', fontWeight: 600 }}>신규 {newUserPct.toFixed(1)}%</span>
+                  <span style={{ fontSize: 12, color: '#7E8A98', fontWeight: 600 }}>재방문 {returningUserPct.toFixed(1)}%</span>
                 </div>
-                <div style={{ height: 10, background: '#f5f6f7', borderRadius: 100, overflow: 'hidden', display: 'flex' }}>
-                  <div style={{ width: `${newUserPct}%`, background: '#00d4ff', transition: 'width 0.6s ease' }} />
-                  <div style={{ width: `${returningUserPct}%`, background: '#6aabcc', transition: 'width 0.6s ease' }} />
+                <div style={{ height: 10, background: 'var(--surface-sub)', borderRadius: 100, overflow: 'hidden', display: 'flex' }}>
+                  <div style={{ width: `${newUserPct}%`, background: '#C93545', transition: 'width 0.6s ease' }} />
+                  <div style={{ width: `${returningUserPct}%`, background: '#7E8A98', transition: 'width 0.6s ease' }} />
                 </div>
               </div>
             </div>
@@ -2102,14 +2261,14 @@ export default function AnalyticsPage() {
                     label: '사용자',
                     curr: currWeekTotals.users,
                     prev: prevWeekTotals.users,
-                    color: '#00d4ff',
+                    color: '#E8707E',
                     icon: '👤',
                   },
                   {
                     label: '세션',
                     curr: currWeekTotals.sessions,
                     prev: prevWeekTotals.sessions,
-                    color: '#6aabcc',
+                    color: '#7E8A98',
                     icon: '📊',
                   },
                   {
@@ -2126,8 +2285,8 @@ export default function AnalyticsPage() {
                     <div
                       key={metric.label}
                       style={{
-                        background: '#f9fafb',
-                        border: '1px solid #e8ebed',
+                        background: 'var(--surface-sub)',
+                        border: '1px solid rgba(201,53,69,0.14)',
                         borderRadius: 12,
                         padding: '18px 20px',
                         borderTop: `3px solid ${metric.color}`,
@@ -2135,19 +2294,19 @@ export default function AnalyticsPage() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
                         <span style={{ fontSize: 16 }}>{metric.icon}</span>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: '#7aaccc' }}>{metric.label}</span>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: '#7E8A98' }}>{metric.label}</span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
                         <div>
-                          <p style={{ fontSize: 10, color: '#b0b8c1', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                          <p style={{ fontSize: 10, color: '#7E8A98', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                             이전 기간
                           </p>
-                          <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#7aaccc', margin: 0 }}>
+                          <p style={{ fontSize: '1.1rem', fontWeight: 700, color: '#7E8A98', margin: 0 }}>
                             {metric.prev.toLocaleString('ko-KR')}
                           </p>
                         </div>
                         <div>
-                          <p style={{ fontSize: 10, color: '#b0b8c1', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
+                          <p style={{ fontSize: 10, color: '#7E8A98', fontWeight: 600, textTransform: 'uppercase', marginBottom: 4 }}>
                             현재 기간
                           </p>
                           <p style={{ fontSize: '1.1rem', fontWeight: 800, color: metric.color, margin: 0 }}>
@@ -2162,8 +2321,8 @@ export default function AnalyticsPage() {
                           gap: 4,
                           fontSize: 13,
                           fontWeight: 700,
-                          color: isUp ? '#16a34a' : '#dc2626',
-                          background: isUp ? '#f0fdf4' : '#fef2f2',
+                          color: isUp ? '#00ff88' : '#ff4466',
+                          background: isUp ? 'rgba(0,255,136,0.06)' : 'rgba(255,68,102,0.06)',
                           borderRadius: 8,
                           padding: '4px 10px',
                         }}
@@ -2192,7 +2351,7 @@ export default function AnalyticsPage() {
                 {/* 가장 활발한 시간대 */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)',
+                    background: 'linear-gradient(135deg, rgba(29,78,216,0.06) 0%, rgba(29,78,216,0.1) 100%)',
                     border: '1px solid #bfdbfe',
                     borderRadius: 12,
                     padding: '20px 24px',
@@ -2207,7 +2366,7 @@ export default function AnalyticsPage() {
                         width: 40,
                         height: 40,
                         borderRadius: 10,
-                        background: '#00d4ff',
+                        background: '#C93545',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2217,14 +2376,14 @@ export default function AnalyticsPage() {
                     >
                       ⏰
                     </span>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', margin: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#60a5fa', margin: 0 }}>
                       가장 활발한 시간대
                     </p>
                   </div>
-                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1d4ed8', margin: 0 }}>
+                  <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#60a5fa', margin: 0 }}>
                     {peakHour}시
                   </p>
-                  <p style={{ fontSize: 12, color: '#00d4ff', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 12, color: '#E8707E', margin: 0, lineHeight: 1.5 }}>
                     이 시간대에 콘텐츠 발행 및 광고 집중을 권장합니다
                   </p>
                 </div>
@@ -2232,8 +2391,8 @@ export default function AnalyticsPage() {
                 {/* 신규 사용자 비율 */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)',
-                    border: '1px solid #ddd6fe',
+                    background: 'linear-gradient(135deg, rgba(99,102,241,0.06) 0%, rgba(99,102,241,0.08) 100%)',
+                    border: '1px solid rgba(99,102,241,0.15)',
                     borderRadius: 12,
                     padding: '20px 24px',
                     display: 'flex',
@@ -2247,7 +2406,7 @@ export default function AnalyticsPage() {
                         width: 40,
                         height: 40,
                         borderRadius: 10,
-                        background: '#6aabcc',
+                        background: '#7E8A98',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -2264,7 +2423,7 @@ export default function AnalyticsPage() {
                   <p style={{ fontSize: '1.5rem', fontWeight: 800, color: '#7c3aed', margin: 0 }}>
                     {newUserPct.toFixed(1)}%
                   </p>
-                  <p style={{ fontSize: 12, color: '#6aabcc', margin: 0, lineHeight: 1.5 }}>
+                  <p style={{ fontSize: 12, color: '#7E8A98', margin: 0, lineHeight: 1.5 }}>
                     재방문율 {returningUserPct.toFixed(1)}% — 높을수록 브랜드 충성도가 높습니다
                   </p>
                 </div>
@@ -2272,8 +2431,8 @@ export default function AnalyticsPage() {
                 {/* 최고 성과 채널 */}
                 <div
                   style={{
-                    background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                    border: '1px solid #bbf7d0',
+                    background: 'linear-gradient(135deg, rgba(0,255,136,0.06) 0%, rgba(0,255,136,0.1) 100%)',
+                    border: '1px solid rgba(0,255,136,0.2)',
                     borderRadius: 12,
                     padding: '20px 24px',
                     display: 'flex',
@@ -2297,7 +2456,7 @@ export default function AnalyticsPage() {
                     >
                       🏆
                     </span>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: '#16a34a', margin: 0 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: '#00ff88', margin: 0 }}>
                       최고 성과 채널
                     </p>
                   </div>
@@ -2305,7 +2464,7 @@ export default function AnalyticsPage() {
                     style={{
                       fontSize: '1.1rem',
                       fontWeight: 800,
-                      color: '#16a34a',
+                      color: '#00ff88',
                       margin: 0,
                       wordBreak: 'break-all',
                       fontFamily: 'ui-monospace, monospace',
@@ -2322,6 +2481,183 @@ export default function AnalyticsPage() {
               </div>
             </div>
           )}
+          {/* ════════════════════════════════════════════════════════
+              Section 12: DAU/WAU/MAU 스티키니스
+          ════════════════════════════════════════════════════════ */}
+          {stickiness.length > 0 && (() => {
+            const stickyData = stickiness.map(d => ({
+              date: fmtDate(d.date),
+              DAU: d.dau,
+              WAU: d.wau,
+              MAU: d.mau,
+            }));
+            const latest = stickiness[stickiness.length - 1];
+            const dauMau = latest && latest.mau > 0 ? ((latest.dau / latest.mau) * 100).toFixed(1) : '0';
+            const dauWau = latest && latest.wau > 0 ? ((latest.dau / latest.wau) * 100).toFixed(1) : '0';
+            return (
+              <div className="ops-zone" style={{ marginBottom: 20 }}>
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Stickiness</span>
+                  <div style={{ display: 'flex', gap: 16 }}>
+                    <span style={{ fontSize: 10, color: '#7E8A98' }}>DAU/MAU <strong style={{ color: '#F0ECE8' }}>{dauMau}%</strong></span>
+                    <span style={{ fontSize: 10, color: '#7E8A98' }}>DAU/WAU <strong style={{ color: '#F0ECE8' }}>{dauWau}%</strong></span>
+                  </div>
+                </div>
+                <div style={{ padding: 16 }}>
+                  <h2 className="section-title" style={{ marginBottom: 16 }}>사용자 정착도</h2>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <AreaChart data={stickyData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="gradDAU" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="5%" stopColor="#C93545" stopOpacity={0.2} />
+                          <stop offset="95%" stopColor="#C93545" stopOpacity={0.01} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#7E8A98' }} axisLine={false} tickLine={false} width={45} />
+                      <Tooltip content={<ChartTooltip />} />
+                      <Area type="monotone" dataKey="MAU" stroke="#6366f1" strokeWidth={1.5} fill="none" dot={false} />
+                      <Area type="monotone" dataKey="WAU" stroke="#0066ff" strokeWidth={1.5} fill="none" dot={false} />
+                      <Area type="monotone" dataKey="DAU" stroke="#C93545" strokeWidth={2} fill="url(#gradDAU)" dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 13: 채널별 전환 기여도
+          ════════════════════════════════════════════════════════ */}
+          {channelConv.length > 0 && (() => {
+            const totalConv = channelConv.reduce((s, c) => s + c.conversions, 0);
+            const CONV_COLORS = ['#C93545', '#0066ff', '#ffaa00', '#00ff88', '#6366f1', '#E8707E', '#7E8A98'];
+            return (
+              <div className="ops-zone" style={{ marginBottom: 20 }}>
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Channel Attribution</span>
+                  <span style={{ fontSize: 10, color: '#7E8A98' }}>전환 합계 <strong style={{ color: '#F0ECE8' }}>{totalConv.toLocaleString()}</strong></span>
+                </div>
+                <div style={{ padding: 16 }}>
+                  <h2 className="section-title" style={{ marginBottom: 16 }}>채널별 전환 기여</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {channelConv.map((c, i) => {
+                      const pct = totalConv > 0 ? (c.conversions / totalConv * 100) : 0;
+                      const color = CONV_COLORS[i % CONV_COLORS.length];
+                      return (
+                        <div key={c.channel}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                            <span style={{ fontSize: 12, color: '#F0ECE8', fontWeight: 500 }}>{c.channel}</span>
+                            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#7E8A98' }}>
+                              <span>{c.conversions.toLocaleString()} 전환</span>
+                              <span>{c.sessions.toLocaleString()} 세션</span>
+                              <span style={{ color: '#E8707E', fontWeight: 600 }}>{pct.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div className="ops-bar-track" style={{ height: 6 }}>
+                            <div className="ops-bar-fill" style={{ width: `${Math.max(2, pct)}%`, backgroundColor: color }} />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 14: 콘텐츠 그룹별 성과
+          ════════════════════════════════════════════════════════ */}
+          {pages.length > 0 && (() => {
+            const groups: Record<string, { views: number; users: number; pages: string[] }> = {};
+            const classify = (path: string) => {
+              if (path.startsWith('/movie')) return '영화';
+              if (path.startsWith('/booking')) return '예매';
+              if (path.startsWith('/space')) return '공간';
+              if (path.startsWith('/login') || path === '/login_popup') return '로그인';
+              if (path.startsWith('/blog') || path.startsWith('/community')) return '콘텐츠';
+              return '기타';
+            };
+            for (const p of pages) {
+              const g = classify(p.pagePath);
+              if (!groups[g]) groups[g] = { views: 0, users: 0, pages: [] };
+              groups[g].views += p.screenPageViews;
+              groups[g].users += p.activeUsers;
+              if (groups[g].pages.length < 3) groups[g].pages.push(p.pagePath);
+            }
+            const totalViews = Object.values(groups).reduce((s, g) => s + g.views, 0);
+            const sorted = Object.entries(groups).sort((a, b) => b[1].views - a[1].views);
+            const GROUP_COLORS: Record<string, string> = {
+              '영화': '#C93545', '예매': '#0066ff', '공간': '#6366f1',
+              '로그인': '#ffaa00', '콘텐츠': '#00ff88', '기타': '#7E8A98',
+            };
+            return (
+              <div className="ops-zone" style={{ marginBottom: 20 }}>
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Content Groups</span>
+                </div>
+                <div style={{ padding: 16 }}>
+                  <h2 className="section-title" style={{ marginBottom: 16 }}>콘텐츠 그룹별 성과</h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {sorted.map(([name, data]) => {
+                      const pct = totalViews > 0 ? (data.views / totalViews * 100) : 0;
+                      return (
+                        <div key={name}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 3 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                              <span style={{ width: 8, height: 8, borderRadius: 2, background: GROUP_COLORS[name] || '#7E8A98', flexShrink: 0 }} />
+                              <span style={{ fontSize: 12, color: '#F0ECE8', fontWeight: 600 }}>{name}</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 12, fontSize: 10, color: '#7E8A98' }}>
+                              <span>{data.views.toLocaleString()} 조회</span>
+                              <span>{data.users.toLocaleString()} 사용자</span>
+                              <span style={{ color: '#E8707E', fontWeight: 600 }}>{pct.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                          <div className="ops-bar-track" style={{ height: 5 }}>
+                            <div className="ops-bar-fill" style={{ width: `${Math.max(2, pct)}%`, backgroundColor: GROUP_COLORS[name] || '#7E8A98' }} />
+                          </div>
+                          <p style={{ fontSize: 9, color: '#4A5568', marginTop: 2 }}>{data.pages.join(', ')}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 15: 이상 트래픽 로그
+          ════════════════════════════════════════════════════════ */}
+          {forecastData && forecastData.forecast && (() => {
+            const anomalies = forecastData.forecast.filter(d => d.isAnomaly);
+            if (anomalies.length === 0) return null;
+            return (
+              <div className="ops-zone" style={{ marginBottom: 20 }}>
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Anomaly Log</span>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: '#ff4466' }}>{anomalies.length} detected</span>
+                </div>
+                <div style={{ padding: 0 }}>
+                  {anomalies.map((a, i) => (
+                    <div key={i} className="ops-row" style={{ padding: '8px 16px' }}>
+                      <span className="ops-dot" style={{ backgroundColor: '#ff4466' }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{ fontSize: 11, fontWeight: 600, color: '#F0ECE8' }}>{fmtDate(a.date)}</span>
+                        <span style={{ fontSize: 10, color: '#7E8A98', marginLeft: 8 }}>
+                          실제 {a.activeUsers.toLocaleString()}명
+                          {a.forecastValue != null && ` vs 예측 ${Math.round(a.forecastValue).toLocaleString()}명`}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
         </>
       )}
     </div>

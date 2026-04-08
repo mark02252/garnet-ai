@@ -4,6 +4,12 @@ import {
   fetchDailyTraffic,
   fetchChannelBreakdown,
   fetchPagePerformance,
+  fetchEngagementMetrics,
+  fetchDeviceBreakdown,
+  fetchLandingPages,
+  fetchNewVsReturning,
+  fetchChannelConversions,
+  fetchStickiness,
   analyzeGA4WithAI,
   isGA4Configured
 } from '@/lib/ga4-client';
@@ -30,14 +36,40 @@ export async function POST(req: Request) {
     }
 
     const body = bodySchema.parse(await req.json());
+    const start = body.startDate;
+    const end = body.endDate;
 
+    // Core data (required)
     const [traffic, channels, pages] = await Promise.all([
-      fetchDailyTraffic(body.startDate, body.endDate),
-      fetchChannelBreakdown(body.startDate, body.endDate),
-      fetchPagePerformance(body.startDate, body.endDate)
+      fetchDailyTraffic(start, end),
+      fetchChannelBreakdown(start, end),
+      fetchPagePerformance(start, end),
     ]);
 
-    const insight = await analyzeGA4WithAI(traffic, channels, pages, body.runtime as Record<string, string> | undefined);
+    // Extended data (best-effort, non-blocking)
+    const [engRes, devRes, lpRes, nvrRes, ccRes, stkRes] = await Promise.allSettled([
+      fetchEngagementMetrics(start, end),
+      fetchDeviceBreakdown(start, end),
+      fetchLandingPages(start, end),
+      fetchNewVsReturning(start, end),
+      fetchChannelConversions(start, end),
+      fetchStickiness(start, end),
+    ]);
+
+    const extraData = {
+      engagement: engRes.status === 'fulfilled' ? engRes.value : undefined,
+      devices: devRes.status === 'fulfilled' ? devRes.value : undefined,
+      landingPages: lpRes.status === 'fulfilled' ? lpRes.value : undefined,
+      newVsReturning: nvrRes.status === 'fulfilled' ? nvrRes.value : undefined,
+      channelConversions: ccRes.status === 'fulfilled' ? ccRes.value : undefined,
+      stickiness: stkRes.status === 'fulfilled' ? stkRes.value : undefined,
+    };
+
+    const insight = await analyzeGA4WithAI(
+      traffic, channels, pages,
+      body.runtime as Record<string, string> | undefined,
+      extraData
+    );
 
     return NextResponse.json({
       insight,

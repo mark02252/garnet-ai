@@ -5,7 +5,7 @@ owner: "rnr"
 audience: "self"
 doc_kind: "catalog"
 tags: ["로드맵", "우선순위", "계획"]
-updated: 2026-04-07
+updated: 2026-04-08
 ---
 
 # Garnet 로드맵
@@ -22,6 +22,7 @@ updated: 2026-04-07
 - Flow Builder
 - Gemma 4 통합
 - Shell <> Flow 자동 생성/실행
+- **Agent Loop** — World Model 기반 자율 순환 루프 (15분/1시간/일간/주간 다중 주기)
 
 ## 다음 우선순위
 

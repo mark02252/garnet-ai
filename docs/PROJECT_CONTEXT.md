@@ -98,6 +98,17 @@ updated: 2026-04-07
 - Workspace shared data 테이블 준비
 - SMTP 차단이 현재 블로킹 포인트
 
+### 14. Agent Loop (자율 순환 루프)
+- World Model 기반 누적 상황 인식 + 트렌드 추적
+- Goal Manager — 전략 목표 추적 + 진행률 계산
+- Reasoner — LLM 추론 엔진 (Gemma 4 우선 폴백 체인)
+- 다중 주기: 15분(긴급) / 1시간(루틴) / 일간(브리핑) / 주간(리뷰)
+- 리스크 기반 자율: LOW 자동실행, MEDIUM+ Governor 승인
+- Meta-Cognition — 판단 품질 자동 추적 + 루프 자체 개선
+- Operations 대시보드 통합 (상태 카드 + 목표 진행률 + 판단 타임라인)
+- Telegram 알림 (긴급/데일리 브리핑/승인 요청)
+- 상세: `docs/superpowers/specs/2026-04-08-agent-loop-design.md`
+
 ## 현재 정보 구조
 - `/` -> `/operations` (리다이렉트)
 - `/shell` — Agent Shell (풀스크린)

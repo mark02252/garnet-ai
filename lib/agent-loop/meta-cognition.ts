@@ -7,6 +7,8 @@ import { prisma } from '@/lib/prisma'
 import { runLLM } from '@/lib/llm'
 import { getTopEpisodes } from '@/lib/memory/episodic-store'
 import { optimizeAllPrompts } from '@/lib/self-improve/prompt-optimizer'
+import { getKnowledgeStats, pruneWeakKnowledge } from './knowledge-store'
+import { cleanupOldOutcomes } from './outcome-observer'
 
 export type MetaCognitionReport = {
   decisionAccuracy: number
@@ -73,6 +75,14 @@ ${recentEpisodes.slice(0, 5).map(e => `- ${e.input.slice(0, 150)}`).join('\n')}
       await optimizeAllPrompts()
     } catch { /* non-critical */ }
   }
+
+  // Knowledge Store 정리 + 통계
+  try {
+    await pruneWeakKnowledge()
+    await cleanupOldOutcomes()
+    const knowledgeStats = await getKnowledgeStats()
+    insights.push(`Knowledge Store: ${knowledgeStats.reduce((s, k) => s + k.count, 0)}건 (${knowledgeStats.map(k => `${k.domain}: ${k.count}`).join(', ')})`)
+  } catch { /* non-critical */ }
 
   return {
     decisionAccuracy,

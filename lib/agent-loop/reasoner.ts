@@ -6,6 +6,7 @@
 import { runLLM } from '@/lib/llm'
 import { getBusinessContextPrompt } from '@/lib/business-context'
 import { retrieveSimilarEpisodes } from '@/lib/memory/episodic-store'
+import { getKnowledgeForReasoner } from './knowledge-store'
 import type { WorldModel, GoalProgress, ReasonerOutput, ReasonerAction } from './types'
 
 const SYSTEM_PROMPT = `당신은 Garnet Agent Loop의 추론 엔진입니다. 마케팅 전문가로서 현재 상황을 분석하고 최적의 액션을 결정합니다.
@@ -42,6 +43,10 @@ export function buildReasonerPrompt(
   goals: GoalProgress[],
   businessContext: string,
   pastEpisodes: Array<{ input: string; output: string; score: number | null }>,
+  knowledge?: {
+    effective: Array<{ domain: string; confidence: number; pattern: string; observation: string }>
+    antiPatterns: Array<{ domain: string; pattern: string; observation: string }>
+  },
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -90,6 +95,16 @@ ${issuesText}
 ## 과거 유사 판단 이력
 ${episodesText}
 ${recentActionsText ? `\n## 중복 방지\n${recentActionsText}` : ''}
+${knowledge ? `
+## 축적된 비즈니스 지식
+${knowledge.effective.length > 0
+  ? knowledge.effective.map(k => `- [${k.domain}, 신뢰도 ${k.confidence.toFixed(1)}] ${k.pattern} → ${k.observation.split('\n')[0]}`).join('\n')
+  : '- 아직 축적된 지식 없음'}
+
+## 하지 말아야 할 것 (Anti-Patterns)
+${knowledge.antiPatterns.length > 0
+  ? knowledge.antiPatterns.map(k => `- [${k.domain}] ${k.pattern} → ${k.observation.split('\n')[0]}`).join('\n')
+  : '- 없음'}` : ''}
 
 위 상황을 분석하고, 지금 해야 할 액션을 우선순위 순으로 JSON으로 제안하세요.`
 }
@@ -120,9 +135,12 @@ export async function reason(
     minScore: 50,
     limit: 3,
   })
+  // Knowledge Store에서 축적된 지식 조회
+  const knowledge = await getKnowledgeForReasoner()
   const userPrompt = buildReasonerPrompt(
     worldModel, goals, businessContext,
     pastEpisodes.map(e => ({ input: e.input, output: e.output, score: e.score })),
+    knowledge,
   )
   const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
   return parseReasonerResponse(raw)

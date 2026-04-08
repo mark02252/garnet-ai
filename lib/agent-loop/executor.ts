@@ -6,6 +6,7 @@
 import { enqueueWithRisk } from '@/lib/governor'
 import { flushPendingExec } from '@/lib/governor-executor'
 import { isTelegramConfigured, sendApprovalRequest } from '@/lib/telegram'
+import { scheduleMeasurement } from './outcome-observer'
 import type { ReasonerAction } from './types'
 
 export type RouteResult = {
@@ -39,6 +40,24 @@ export async function routeAction(action: ReasonerAction): Promise<RouteResult> 
         const { getById } = await import('@/lib/governor')
         const updated = await getById(govAction.id)
         const wasExecuted = updated?.status === 'EXECUTED'
+
+        // Outcome 측정 예약
+        if (wasExecuted) {
+          try {
+            const { buildSnapshotFromDb } = await import('./scanner')
+            const snapshot = await buildSnapshotFromDb()
+            await scheduleMeasurement({
+              governorActionId: govAction.id,
+              actionKind: action.kind,
+              metricsBefore: {
+                engagement: snapshot.sns.engagement,
+                followers: snapshot.sns.followerGrowth,
+                reach: 0,
+              },
+            })
+          } catch { /* non-critical */ }
+        }
+
         return {
           routed: 'auto',
           actionId: govAction.id,

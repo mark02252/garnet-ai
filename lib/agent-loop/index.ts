@@ -106,8 +106,13 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     // 3. World Model 저장
     await saveWorldModel(updatedWm, cycleType)
 
-    // urgency-check: 이슈 없으면 종료
+    // urgency-check: 만기된 Outcome 측정 처리 + 이슈 없으면 종료
     if (cycleType === 'urgency-check') {
+      try {
+        const { processReadyOutcomes } = await import('./outcome-observer')
+        await processReadyOutcomes()
+      } catch { /* non-critical */ }
+
       if (issues.filter(i => i.severity === 'critical' || i.severity === 'high').length === 0) {
         const result: CycleResult = {
           cycleId, cycleType, actionsCount: 0, autoExecuted: 0,

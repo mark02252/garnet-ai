@@ -958,9 +958,16 @@ export default function AnalyticsPage() {
                       <span className="text-[9px] text-[var(--text-disabled)]">{dateStr}</span>
                     </div>
                   </div>
-                  <div className="text-right shrink-0">
+                  <div className="text-right shrink-0 space-y-0.5">
                     <p className="text-[11px] font-semibold tabular-nums text-[var(--text-strong)]">도달 {formatCompactNumber(post.reach)}</p>
-                    <p className="text-[9px] text-[var(--text-disabled)]">♥ {post.like_count || 0}</p>
+                    <div className="flex items-center justify-end gap-1.5 text-[9px] text-[var(--text-disabled)]">
+                      <span>♥ {post.like_count || 0}</span>
+                      {(post as any).saved > 0 && <span className="text-[#6366f1]">저장 {(post as any).saved}</span>}
+                      {(post as any).shares > 0 && <span className="text-[#0066ff]">공유 {(post as any).shares}</span>}
+                    </div>
+                    {(post as any).engagement_rate != null && (
+                      <p className="text-[9px] tabular-nums text-emerald-400">{((post as any).engagement_rate * 100).toFixed(1)}%</p>
+                    )}
                     {post.permalink && <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-[var(--accent-text)]">보기</a>}
                   </div>
                 </div>

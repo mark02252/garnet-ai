@@ -2,7 +2,7 @@
 
 import { DEFAULT_DOMAIN_AGENT_POOL } from '@/lib/agent-config'
 import type { DomainAgentProfile } from '@/lib/types'
-import type { FlowNode, AgentNode, ToolNode } from '@/lib/flow/types'
+import type { FlowNode, AgentNode, ToolNode, DebateNode, JudgeNode } from '@/lib/flow/types'
 
 const PRESET_AGENTS: DomainAgentProfile[] = Object.entries(DEFAULT_DOMAIN_AGENT_POOL)
   .filter(([key]) => key !== '_GLOBAL_AGENT_POLICY')
@@ -75,6 +75,47 @@ export default function NodePalette({ onAddNode }: Props) {
         className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-raised)] px-2 py-1.5 text-left text-xs text-[var(--text-primary)] hover:border-[var(--accent)]"
       >
         🔍 웹 검색
+      </button>
+
+      <p className="mb-1 mt-3 text-[9px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">고급</p>
+      <button
+        onClick={() => {
+          const node: DebateNode = {
+            type: 'debate',
+            id: `debate-${Date.now()}`,
+            position: { x: 300, y: 150 + Math.random() * 100 },
+            data: {
+              topic: '',
+              rounds: 3,
+              model: 'gemma4',
+              proSystemPrompt: '당신은 찬성 측 토론자입니다. 근거를 들어 논증하세요. 한국어.',
+              conSystemPrompt: '당신은 반대 측 토론자입니다. 반론을 제시하세요. 한국어.',
+            },
+          }
+          onAddNode(node)
+        }}
+        className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-raised)] px-2 py-1.5 text-left text-xs text-[var(--text-primary)] hover:border-[var(--accent)]"
+      >
+        ⚔ 토론 (Debate)
+      </button>
+      <button
+        onClick={() => {
+          const node: JudgeNode = {
+            type: 'judge',
+            id: `judge-${Date.now()}`,
+            position: { x: 300, y: 150 + Math.random() * 100 },
+            data: {
+              criteria: '품질, 정확성, 실행 가능성',
+              threshold: 70,
+              maxRetries: 3,
+              model: 'gemma4',
+            },
+          }
+          onAddNode(node)
+        }}
+        className="rounded-lg border border-[var(--surface-border)] bg-[var(--surface-raised)] px-2 py-1.5 text-left text-xs text-[var(--text-primary)] hover:border-[var(--accent)]"
+      >
+        🏛 평가 (Judge)
       </button>
     </div>
   )

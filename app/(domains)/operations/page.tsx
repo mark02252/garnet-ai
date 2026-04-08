@@ -9,6 +9,7 @@ import { GarnetGemLazy } from '@/components/garnet-gem-lazy';
 import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
 import { listSeminarSessions, type SeminarSession } from '@/lib/seminar-storage';
+import { generateActionSuggestions, type ActionSuggestion } from '@/lib/action-engine';
 
 export const dynamic = 'force-dynamic';
 
@@ -152,6 +153,12 @@ export default async function OperationsPage() {
   ]);
 
   const campaignRooms = await getCampaignRooms(4).catch(() => []);
+
+  // AI 액션 제안
+  let actionSuggestions: ActionSuggestion[] = []
+  try {
+    actionSuggestions = await generateActionSuggestions()
+  } catch { /* skip */ }
 
   const activeSeminars = sessions.filter((session) => session.status === 'RUNNING' || session.status === 'PLANNED');
   const runningSeminars = sessions.filter((session) => session.status === 'RUNNING');
@@ -531,6 +538,37 @@ export default async function OperationsPage() {
               )}
             </div>
           </section>
+
+          {/* AI Action Suggestions */}
+          {actionSuggestions.length > 0 && (
+            <section className="ops-zone">
+              <div className="ops-zone-head">
+                <span className="ops-zone-label">AI Action Suggestions</span>
+                <span className="text-[10px] font-semibold tabular-nums text-[var(--text-disabled)]">{actionSuggestions.length} items</span>
+              </div>
+              <div className="ops-zone-body">
+                {actionSuggestions.map((action) => {
+                  const dotColor = action.priority === 'urgent' ? '#ff4466' : action.priority === 'high' ? '#f59e0b' : 'var(--accent)'
+                  return (
+                    <div key={action.id} className="ops-row">
+                      <span className="ops-dot" style={{ backgroundColor: dotColor }} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+                            style={{ backgroundColor: `${dotColor}18`, color: dotColor }}>
+                            {action.priority}
+                          </span>
+                          <p className="truncate text-[13px] font-semibold text-[var(--text-strong)]">{action.title}</p>
+                        </div>
+                        <p className="mt-0.5 text-[12px] leading-5 text-[var(--text-muted)] line-clamp-1">{action.description}</p>
+                      </div>
+                      <span className="shrink-0 text-[10px] text-[var(--accent-text)]">{action.suggestedDeadline}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+          )}
 
           {/* Campaign Rooms */}
           <section className="ops-zone" id="campaigns">

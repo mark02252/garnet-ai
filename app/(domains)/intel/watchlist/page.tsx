@@ -224,7 +224,30 @@ export default function WatchlistPage() {
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                  {kw.keyword.startsWith('http') && (
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch('/api/playwright', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ action: 'capture', url: kw.keyword }),
+                          })
+                          if (res.ok) alert('스크린샷 캡처 완료')
+                          else alert('캡처 실패')
+                        } catch { alert('캡처 실패') }
+                      }}
+                      title="경쟁사 스크린샷 캡처"
+                      style={{
+                        fontSize: 10, padding: '3px 8px', borderRadius: 4,
+                        border: '1px solid rgba(201,53,69,0.2)', background: 'rgba(201,53,69,0.06)',
+                        color: '#E8707E', cursor: 'pointer', whiteSpace: 'nowrap',
+                      }}
+                    >
+                      스캔
+                    </button>
+                  )}
                   <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                     {formatDate(kw.createdAt)}
                   </span>

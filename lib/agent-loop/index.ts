@@ -261,5 +261,6 @@ export function isAgentLoopRunning(): boolean {
 }
 
 export async function triggerCycle(cycleType: CycleType): Promise<CycleResult | null> {
+  registerAgentLoopHandlers() // 수동 트리거 시에도 handler 보장
   return runCycle(cycleType)
 }

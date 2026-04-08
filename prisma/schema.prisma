@@ -815,3 +815,42 @@ model AgentLoopCycle {
   @@index([createdAt])
   @@index([status])
 }
+
+// ── Knowledge Engine (Phase 1) ──
+
+model KnowledgeEntry {
+  id            String   @id @default(cuid())
+  domain        String   // marketing, competitive, consumer, b2b, operations, finance, macro, self_improvement
+  level         Int      @default(1) // 1=fact, 2=pattern, 3=principle
+  pattern       String   // 조건/상황
+  observation   String   // 관찰된 결과
+  confidence    Float    @default(0.5)
+  observedCount Int      @default(1)
+  source        String   // "MONOPLEX 2026-Q2", "industry_article", etc
+  isAntiPattern Boolean  @default(false)
+  relatedIds    String   @default("[]") // JSON
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([domain])
+  @@index([level])
+  @@index([confidence])
+  @@index([isAntiPattern])
+}
+
+model PendingOutcome {
+  id               String    @id @default(cuid())
+  governorActionId String
+  episodeId        String?
+  actionKind       String
+  metricsBefore    String    // JSON
+  metricsAfter     String?   // JSON
+  impactScore      Float?    // -100 ~ +100
+  measureAt        DateTime
+  measuredAt       DateTime?
+  status           String    @default("pending") // pending | measured | expired
+  createdAt        DateTime  @default(now())
+
+  @@index([status, measureAt])
+  @@index([actionKind])
+}

@@ -47,13 +47,15 @@ export function LoopStatusCard() {
   }
 
   async function handleControl(action: string) {
-    await fetch('/api/agent-loop/control', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action }),
-    })
-    const r = await fetch('/api/agent-loop/status')
-    setData(await r.json())
+    try {
+      await fetch('/api/agent-loop/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      })
+      const r = await fetch('/api/agent-loop/status')
+      if (r.ok) setData(await r.json())
+    } catch { /* ignore */ }
   }
 
   return (

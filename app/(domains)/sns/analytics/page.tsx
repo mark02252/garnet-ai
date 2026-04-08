@@ -1,9 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { loadStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { loadStoredMetaConnectionDraft, saveStoredMetaConnectionDraft } from '@/lib/meta-connection-storage'
+import { ensureValidToken, type TokenStatus } from '@/lib/meta-token-manager'
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import { formatChartTick, formatCompactNumber } from '@/lib/format-number'
 import { InstagramLoginButton } from '@/components/instagram-login-button'
@@ -52,11 +53,14 @@ type ReportAdSuggestion = {
   objective: string
 }
 type ReportPatterns = {
-  bestPostingTimes: string[]
+  bestPostingTimes: string[] | string
   bestContentType: string
-  topHashtags: string[]
+  topHashtags: string[] | string
   topKeywords: string[]
   audienceInsight: string
+  savesInsight?: string
+  sharesInsight?: string
+  videoInsight?: string
 }
 type Report = {
   id: string
@@ -70,12 +74,29 @@ type Report = {
     totalEngagement: number
     avgEngagementRate: number
     trendDirection: 'UP' | 'DOWN' | 'FLAT'
+    totalSaved?: number
+    totalShares?: number
+    profileViews?: number
+    websiteClicks?: number
+    followerCount?: number
   }
   topPosts: ReportTopPost[]
   lowPosts: ReportLowPost[]
   patterns: ReportPatterns
   recommendations: ReportRecommendation[]
   adSuggestions: ReportAdSuggestion[]
+  channelHealth?: {
+    reachTrend: string
+    engagementTrend: string
+    followerGrowth: string
+    healthScore: number
+  }
+  weeklyFocus?: string
+  contentAnalysis?: {
+    byType: Array<{ type: string; count: number; avgReach: number; avgEngRate: number; avgSaves: number }>
+    hashtagEffectiveness: Array<{ hashtag: string; avgReach: number; count: number; effectiveness: string }>
+    bestPostingTimes: Array<{ day: string; hour: number; avgReach: number; postCount: number }>
+  }
 }
 
 type OverviewSnapshot = {
@@ -99,6 +120,9 @@ export default function AnalyticsPage() {
   const [personaId, setPersonaId] = useState('')
   const [snapshots, setSnapshots] = useState<Snapshot[]>([])
   const [syncing, setSyncing] = useState(false)
+  const [syncStatus, setSyncStatus] = useState('')
+  const [followerDaily, setFollowerDaily] = useState<Array<{date: string; change: number}>>([])
+  const [onlineFollowers, setOnlineFollowers] = useState<Record<string, number>>({})
   const [chatInput, setChatInput] = useState('')
   const [chatAnswer, setChatAnswer] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
@@ -113,6 +137,7 @@ export default function AnalyticsPage() {
   const [bestTimes, setBestTimes] = useState<BestTimeSlot[]>([])
   const [contentTypeStats, setContentTypeStats] = useState<ContentTypeStat[]>([])
   const [isConnected, setIsConnected] = useState(false)
+  const [tokenExpired, setTokenExpired] = useState(false)
   const [createdDraft, setCreatedDraft] = useState<{id: string; title: string} | null>(null)
   const [showContentKit, setShowContentKit] = useState(false)
   const [overview, setOverview] = useState<OverviewData | null>(null)
@@ -155,7 +180,19 @@ export default function AnalyticsPage() {
       try {
         const draft = await loadStoredMetaConnectionDraft(window.location.origin)
         const accountId = draft.value.instagramBusinessAccountId || ''
-        const accessToken = draft.value.accessToken || ''
+        let accessToken = draft.value.accessToken || ''
+
+        // 토큰 자동 갱신
+        if (accessToken) {
+          const tokenResult = await ensureValidToken(accessToken)
+          if (tokenResult.refreshed) {
+            accessToken = tokenResult.token
+            await saveStoredMetaConnectionDraft({ ...draft.value, accessToken })
+          }
+          if (tokenResult.status === 'expired') {
+            setTokenExpired(true)
+          }
+        }
         setIsConnected(!!accountId && !!accessToken)
         if (accountId) {
           const res = await fetch('/api/dashboard', {
@@ -190,6 +227,22 @@ export default function AnalyticsPage() {
               setContentTypeStats(stats)
             }
           }
+
+          // 팔로워 일별 + 시간대별 활성 데이터도 로드
+          if (accessToken && accountId) {
+            try {
+              const syncRes = await fetch('/api/sns/analytics/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ personaId, accessToken, businessAccountId: accountId }),
+              })
+              if (syncRes.ok) {
+                const sd = await syncRes.json()
+                if (sd.followerDaily?.length) setFollowerDaily(sd.followerDaily)
+                if (sd.onlineFollowers && Object.keys(sd.onlineFollowers).length > 0) setOnlineFollowers(sd.onlineFollowers)
+              }
+            } catch {}
+          }
         }
       } catch {}
     })()
@@ -216,17 +269,46 @@ export default function AnalyticsPage() {
   const totalPosts = snapshots.reduce((s, n) => s + n.postCount, 0)
 
   async function handleSync() {
-    if (!personaId) return
     setSyncing(true)
+
     const draft = await loadStoredMetaConnectionDraft(window.location.origin)
     const accessToken = draft.value.accessToken || ''
     const businessAccountId = draft.value.instagramBusinessAccountId || ''
-    await fetch('/api/sns/analytics/sync', {
+
+    // 페르소나가 없으면 자동 생성 시도
+    let pid = personaId
+    if (!pid) {
+      try {
+        const username = draft.value.connectedAccounts?.[0]?.username || 'my-account'
+        const createRes = await fetch('/api/sns/personas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: username, instagramHandle: username, learnMode: 'FROM_POSTS', platform: 'INSTAGRAM' }),
+        })
+        if (createRes.ok) {
+          const created = await createRes.json()
+          pid = created.id
+          setPersonaId(pid)
+          setPersonas(prev => [...prev, created])
+        }
+      } catch { /* ignore */ }
+    }
+    if (!pid) { setSyncing(false); setSyncStatus('페르소나 생성 실패'); return }
+
+    setSyncStatus('1/3 Instagram 게시물 수집 중...')
+    const syncRes = await fetch('/api/sns/analytics/sync', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ personaId, accessToken, businessAccountId }),
+      body: JSON.stringify({ personaId: pid, accessToken, businessAccountId }),
     })
-    // InstagramReachDaily도 동기화
+    try {
+      const syncData = await syncRes.json()
+      console.log('[SNS] syncData keys:', Object.keys(syncData), 'followerDaily:', syncData.followerDaily?.length, 'onlineFollowers:', Object.keys(syncData.onlineFollowers || {}).length)
+      if (syncData.followerDaily?.length) setFollowerDaily(syncData.followerDaily)
+      if (syncData.onlineFollowers && Object.keys(syncData.onlineFollowers).length > 0) setOnlineFollowers(syncData.onlineFollowers)
+    } catch { /* ignore */ }
+
+    setSyncStatus('2/3 도달 데이터 수집 중...')
     if (accessToken && businessAccountId) {
       await fetch('/api/instagram/reach/agent', {
         method: 'POST',
@@ -237,15 +319,16 @@ export default function AnalyticsPage() {
         }),
       }).catch(() => {})
     }
-    const updated = await fetch(`/api/sns/analytics?personaId=${personaId}&days=${days}`).then(r => r.json())
+    setSyncStatus('3/3 분석 데이터 로드 중...')
+    const updated = await fetch(`/api/sns/analytics?personaId=${pid}&days=${days}`).then(r => r.json())
     setSnapshots(updated)
-    // Reach fallback: InstagramReachDaily 데이터로 보완
+    // Reach fallback
     if (businessAccountId) {
       try {
         const dashRes = await fetch('/api/dashboard', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ days, accountId: businessAccountId, accessToken, personaId }),
+          body: JSON.stringify({ days, accountId: businessAccountId, accessToken, personaId: pid }),
         })
         if (dashRes.ok) {
           const dashData = await dashRes.json()
@@ -255,7 +338,9 @@ export default function AnalyticsPage() {
       } catch {}
     }
     setLastSyncAt(new Date().toISOString())
+    setSyncStatus('수집 완료')
     setSyncing(false)
+    setTimeout(() => setSyncStatus(''), 3000)
   }
 
   async function handleChat() {
@@ -351,7 +436,7 @@ export default function AnalyticsPage() {
 
         ${report.topPosts?.length ? `
           <h2>Top 게시물</h2>
-          ${report.topPosts.map((p: ReportTopPost, i: number) => `
+          ${report.topPosts?.map((p: ReportTopPost, i: number) => `
             <div class="card">
               <strong>${i + 1}. ${p.caption?.slice(0, 60) || ''}</strong>
               <br><small>도달: ${p.reach?.toLocaleString() || '?'} · ${p.whyGood || ''}</small>
@@ -373,9 +458,9 @@ export default function AnalyticsPage() {
         ${report.patterns ? `
           <h2>패턴 인사이트</h2>
           <ul>
-            ${report.patterns.bestPostingTimes?.length ? `<li>최적 시간: ${report.patterns.bestPostingTimes.join(', ')}</li>` : ''}
-            ${report.patterns.bestContentType ? `<li>최적 유형: ${report.patterns.bestContentType}</li>` : ''}
-            ${report.patterns.audienceInsight ? `<li>${report.patterns.audienceInsight}</li>` : ''}
+            ${report.patterns?.bestPostingTimes ? `<li>최적 시간: ${Array.isArray(report.patterns?.bestPostingTimes) ? report.patterns?.bestPostingTimes.join(', ') : report.patterns?.bestPostingTimes}</li>` : ''}
+            ${report.patterns?.bestContentType ? `<li>최적 유형: ${report.patterns?.bestContentType}</li>` : ''}
+            ${report.patterns?.audienceInsight ? `<li>${report.patterns?.audienceInsight}</li>` : ''}
           </ul>
         ` : ''}
 
@@ -445,8 +530,19 @@ export default function AnalyticsPage() {
   return (
     <div className="p-6 space-y-6 max-w-5xl mx-auto">
 
+      {/* 토큰 만료 경고 */}
+      {tokenExpired && (
+        <div className="error-note flex items-center justify-between gap-4">
+          <div>
+            <strong>Instagram 토큰이 만료되었습니다.</strong>
+            <p className="mt-1 text-[12px]">재로그인하면 자동 갱신 시스템이 활성화되어 앞으로는 끊기지 않습니다.</p>
+          </div>
+          <a href="/meta/connect" className="button-primary text-xs px-3 py-2 shrink-0">재연결</a>
+        </div>
+      )}
+
       {/* Instagram 연결 배너 */}
-      {metaConfigured === false && (
+      {!tokenExpired && metaConfigured === false && (
         <div className="soft-card flex items-center justify-between gap-4 p-4">
           <p className="text-sm text-[var(--text-base)]">
             Instagram을 연결하면 실시간 인사이트를 확인할 수 있습니다.
@@ -457,234 +553,325 @@ export default function AnalyticsPage() {
 
       {/* KPI 카드 (Overview API 기반) */}
       {overview && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {[
-            { label: '총 팔로워', value: formatCompactNumber(overviewFollowers) },
-            { label: '총 도달', value: formatCompactNumber(overviewReach) },
-            { label: '참여율', value: `${overviewEngagement}%` },
-            { label: '예약 발행 대기', value: String(overviewScheduled) },
-          ].map(({ label, value }) => (
-            <div key={label} className="metric-card">
-              <p className="metric-label">{label}</p>
-              <p className="metric-value">{value}</p>
-            </div>
-          ))}
+        <div className="ops-kpi-grid">
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-val">{formatCompactNumber(overviewFollowers)}</p>
+            <p className="ops-kpi-label">총 팔로워</p>
+          </div>
+          <div className="ops-kpi-cell">
+            <p className="ops-kpi-val">{formatCompactNumber(overviewReach)}</p>
+            <p className="ops-kpi-label">총 도달</p>
+          </div>
+          <div className="ops-kpi-cell" style={{ '--kpi-accent': '#10b981' } as React.CSSProperties}>
+            <p className="ops-kpi-val">{overviewEngagement}%</p>
+            <p className="ops-kpi-label">참여율</p>
+          </div>
+          <div className="ops-kpi-cell" style={{ '--kpi-accent': '#ffaa00' } as React.CSSProperties}>
+            <p className="ops-kpi-val">{overviewScheduled}</p>
+            <p className="ops-kpi-label">발행 대기</p>
+          </div>
         </div>
       )}
 
-      {/* 팔로워 추이 차트 */}
-      {followerTrend.length > 1 && (
-        <div className="soft-card p-4">
-          <p className="section-title mb-3">팔로워 추이</p>
-          <ResponsiveContainer width="100%" height={220}>
-            <LineChart data={followerTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-border)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={55} tickFormatter={formatChartTick} />
-              <Tooltip
-                contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
-                formatter={(value) => [formatCompactNumber(Number(value)), '팔로워']}
-              />
-              <Line type="monotone" dataKey="followers" stroke="#6aabcc" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-      )}
+      {/* 팔로워 추이 → 도달 추이 (팔로워는 과거 이력 없어 동일값이므로 도달 추이로 대체) */}
+      {(() => {
+        // 팔로워 데이터에 변화가 있으면 팔로워 차트, 없으면 도달 추이 차트
+        const uniqueFollowers = new Set(followerTrend.map(f => f.followers))
+        const hasFollowerVariation = uniqueFollowers.size > 1
+
+        if (hasFollowerVariation && followerTrend.length > 1) {
+          return (
+            <div className="ops-zone">
+              <div className="ops-zone-head">
+                <span className="ops-zone-label">Follower Trend</span>
+                <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">현재 {formatCompactNumber(currentFollowers || latestFollowers)}</span>
+              </div>
+              <div style={{ padding: 16 }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={followerTrend} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7E8A98' }} tickFormatter={(v: string) => v.slice(5)} />
+                    <YAxis tick={{ fontSize: 11, fill: '#7E8A98' }} width={55} tickFormatter={formatChartTick} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }} labelStyle={{ color: '#7E8A98' }} itemStyle={{ color: '#B0B8C4' }}
+                      formatter={(value) => [formatCompactNumber(Number(value)), '팔로워']} />
+                    <Line type="monotone" dataKey="followers" stroke="#C93545" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )
+        }
+
+        // 팔로워 변화 없음 → 계정 도달 추이 표시 (InstagramReachDaily 데이터 활용)
+        if (effectiveReachData.length > 1) {
+          return (
+            <div className="ops-zone">
+              <div className="ops-zone-head">
+                <span className="ops-zone-label">Account Reach Trend</span>
+                <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">팔로워 {formatCompactNumber(currentFollowers || latestFollowers)} (추이 데이터 수집 중)</span>
+              </div>
+              <div style={{ padding: 16 }}>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={effectiveReachData.slice(-days)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                    <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#7E8A98' }} tickFormatter={(v: string) => v.slice(5)} />
+                    <YAxis tick={{ fontSize: 11, fill: '#7E8A98' }} width={50} tickFormatter={formatChartTick} />
+                    <Tooltip contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }} labelStyle={{ color: '#7E8A98' }} itemStyle={{ color: '#B0B8C4' }}
+                      formatter={(value) => [formatCompactNumber(Number(value)), '일별 도달']} />
+                    <Line type="monotone" dataKey="reach" stroke="#C93545" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                  </LineChart>
+                </ResponsiveContainer>
+                <p className="text-[9px] text-[var(--text-disabled)] mt-1">* 팔로워 추이는 매일 수집 시 자동으로 쌓입니다. 현재는 계정 도달 추이를 표시합니다.</p>
+              </div>
+            </div>
+          )
+        }
+
+        return null
+      })()}
+
+      {/* 팔로워 일별 증감 차트 */}
+      {followerDaily.length > 1 && (() => {
+        // 누적 팔로워 계산 (현재 팔로워에서 역산)
+        const currentF = currentFollowers || latestFollowers || 7025
+        let cumulative = currentF
+        const dailySorted = [...followerDaily].sort((a, b) => b.date.localeCompare(a.date))
+        const cumulativeData: Array<{date: string; followers: number; change: number}> = []
+        for (const d of dailySorted) {
+          cumulativeData.unshift({ date: d.date, followers: cumulative, change: d.change })
+          cumulative -= d.change
+        }
+        const totalGain = followerDaily.reduce((s, d) => s + d.change, 0)
+        return (
+          <div className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">Follower Growth</span>
+              <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">30일 +{totalGain} ({currentF.toLocaleString()}명)</span>
+            </div>
+            <div style={{ padding: 16 }}>
+              <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={cumulativeData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#7E8A98' }} tickFormatter={(v: string) => v.slice(5)} />
+                  <YAxis tick={{ fontSize: 10, fill: '#7E8A98' }} width={50} tickFormatter={formatChartTick} domain={['dataMin - 50', 'dataMax + 50']} />
+                  <Tooltip contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }} labelStyle={{ color: '#7E8A98' }} itemStyle={{ color: '#B0B8C4' }}
+                    formatter={(value: number, name: string) => [name === 'change' ? `+${value}` : formatCompactNumber(value), name === 'change' ? '일별 증감' : '누적 팔로워']} />
+                  <Line type="monotone" dataKey="followers" stroke="#C93545" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )
+      })()}
+
+      {/* 시간대별 활성 팔로워 */}
+      {Object.keys(onlineFollowers).length > 0 && (() => {
+        const hourlyData = Object.entries(onlineFollowers)
+          .sort(([a], [b]) => Number(a) - Number(b))
+          .map(([hour, count]) => ({ hour: `${hour}시`, count, hourNum: Number(hour) }))
+        const peakHour = hourlyData.reduce((max, d) => d.count > max.count ? d : max, hourlyData[0])
+        return (
+          <div className="ops-zone">
+            <div className="ops-zone-head">
+              <span className="ops-zone-label">Online Followers by Hour</span>
+              <span className="text-[10px] text-[var(--text-disabled)]">피크: <strong className="text-[var(--text-strong)]">{peakHour.hour}</strong> ({peakHour.count.toLocaleString()}명)</span>
+            </div>
+            <div style={{ padding: 16 }}>
+              <ResponsiveContainer width="100%" height={160}>
+                <BarChart data={hourlyData} margin={{ top: 5, right: 5, bottom: 5, left: 0 }}>
+                  <XAxis dataKey="hour" tick={{ fontSize: 9, fill: '#7E8A98' }} interval={2} />
+                  <YAxis tick={{ fontSize: 9, fill: '#7E8A98' }} width={35} tickFormatter={formatChartTick} />
+                  <Tooltip contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }} labelStyle={{ color: '#7E8A98' }} itemStyle={{ color: '#B0B8C4' }}
+                    formatter={(value: number) => [value.toLocaleString() + '명', '활성 팔로워']} />
+                  <Bar dataKey="count" radius={[3, 3, 0, 0]}
+                    fill="#C93545"
+                    fillOpacity={0.7}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+              <p className="text-[9px] text-[var(--text-disabled)] mt-1">* 팔로워가 Instagram에서 가장 활발한 시간대입니다. 이 시간에 게시하면 도달이 극대화됩니다.</p>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* 최근 게시물 성과 */}
       {overview && overview.recentContent.length > 0 && (
-        <div className="soft-card p-4">
-          <p className="section-title mb-3">최근 게시물 성과</p>
-          <div className="space-y-2">
+        <div className="ops-zone">
+          <div className="ops-zone-head">
+            <span className="ops-zone-label">Recent Posts</span>
+            <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">{overview.recentContent.length}건</span>
+          </div>
+          <div className="ops-zone-body">
             {overview.recentContent.map((draft) => {
               const typeLabel = draft.type === 'VIDEO' ? '영상' : draft.type === 'CAROUSEL' ? '캐러셀' : '이미지'
               const dateStr = draft.publishedAt
                 ? (() => { try { return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit' }).format(new Date(draft.publishedAt)) } catch { return draft.publishedAt.slice(5, 10) } })()
                 : '-'
               return (
-                <div key={draft.id} className="list-card flex items-center justify-between gap-3">
+                <a key={draft.id} href={`/sns/studio/${draft.id}`} className="ops-row">
+                  <span className="rounded px-1.5 py-0.5 text-[9px] font-bold uppercase bg-[var(--surface-sub)] text-[var(--text-muted)]">{typeLabel}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-[var(--text-strong)] truncate">{draft.title || '(제목 없음)'}</p>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--surface-sub)] text-[var(--text-muted)]">{typeLabel}</span>
-                      <span className="text-[11px] text-[var(--text-muted)]">{dateStr} 발행</span>
-                    </div>
+                    <p className="text-[12px] font-medium text-[var(--text-strong)] truncate">{draft.title || '(제목 없음)'}</p>
                   </div>
-                  <a href={`/sns/studio/${draft.id}`} className="button-secondary text-xs whitespace-nowrap">
-                    보기
-                  </a>
-                </div>
+                  <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">{dateStr}</span>
+                </a>
               )
             })}
           </div>
         </div>
       )}
 
+      {/* 헤더 — 성과 분석 + 컨트롤 */}
+      <header className="ops-zone">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0 flex items-center gap-3">
+            {personaId && (() => {
+              const currentPersona = personas.find(p => p.id === personaId)
+              return (
+                <>
+                  <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-xs shrink-0">
+                    {(currentPersona?.name || 'P')[0]}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="ops-zone-label" style={{ letterSpacing: '0.06em' }}>
+                        {currentPersona?.instagramHandle ? `@${currentPersona.instagramHandle.replace(/^@/, '')}` : currentPersona?.name || ''}
+                      </p>
+                      <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-gray-400'}`} />
+                    </div>
+                    <h1 className="text-lg font-bold tracking-tight text-[var(--text-strong)]">성과 분석</h1>
+                  </div>
+                </>
+              )
+            })()}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select className="input text-xs py-1 px-2" value={personaId} onChange={e => setPersonaId(e.target.value)} style={{ maxWidth: 140 }}>
+              {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+            <div className="flex rounded overflow-hidden border border-[var(--border)]">
+              {([7, 30, 90] as const).map((d) => (
+                <button key={d} type="button"
+                  className={`px-3 py-1 text-[10px] font-semibold transition-colors ${days === d ? 'bg-[var(--accent)] text-white' : 'bg-[var(--surface-sub)] text-[var(--text-muted)]'}`}
+                  onClick={() => setDays(d)}>{d}일</button>
+              ))}
+            </div>
+            {lastSyncAt && <span className="text-[10px] text-[var(--text-disabled)]">{(() => { try { return new Intl.DateTimeFormat('ko-KR', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(lastSyncAt)) } catch { return '' } })()}</span>}
+            <button className="button-primary px-3 py-1.5 text-[10px]" onClick={handleSync} disabled={syncing}>
+              {syncing ? syncStatus || '수집 중...' : '지금 수집'}
+            </button>
+          </div>
+        </div>
+      </header>
+
       {/* 빠른 링크 */}
-      <div className="soft-card p-4">
-        <p className="section-title mb-3">빠른 링크</p>
-        <div className="flex flex-wrap gap-3">
-          {[
-            { label: 'Meta 비즈니스 스위트', href: 'https://business.facebook.com' },
-            { label: 'Meta 광고 관리자', href: 'https://adsmanager.facebook.com' },
-            { label: 'Instagram 인사이트', href: 'https://www.instagram.com/accounts/insights/' },
-          ].map(({ label, href }) => (
-            <a
-              key={href}
-              href={href}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="button-secondary text-sm"
-            >
-              {label} →
-            </a>
-          ))}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="dashboard-eyebrow">SNS 스튜디오</p>
-          <h1 className="dashboard-title">성과 분석</h1>
-        </div>
-        <div className="flex items-center gap-3">
-          <select className="input" value={personaId} onChange={e => setPersonaId(e.target.value)}>
-            {personas.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <div className="flex rounded-lg overflow-hidden border border-[var(--border)]">
-            {([7, 30, 90] as const).map((d) => (
-              <button
-                key={d}
-                type="button"
-                className={`px-3 py-1 text-xs font-medium transition-colors ${
-                  days === d
-                    ? 'bg-[var(--accent)] text-white'
-                    : 'bg-[var(--surface-sub)] text-[var(--text-muted)] hover:text-[var(--text-strong)]'
-                }`}
-                onClick={() => setDays(d)}
-              >
-                {d}일
-              </button>
-            ))}
-          </div>
-          {lastSyncAt && (
-            <p className="text-xs text-[var(--text-muted)]">
-              마지막 동기화: {(() => {
-                try {
-                  return new Intl.DateTimeFormat('ko-KR', {
-                    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-                  }).format(new Date(lastSyncAt))
-                } catch { return lastSyncAt }
-              })()}
-            </p>
-          )}
-          <button className="button-secondary" onClick={handleSync} disabled={syncing}>
-            {syncing ? '수집 중...' : '지금 수집'}
-          </button>
-        </div>
-      </div>
-
-      {/* 계정 개요 */}
-      {personaId && (() => {
-        const currentPersona = personas.find(p => p.id === personaId)
-        return (
-          <div className="card flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold text-sm shrink-0">
-              {(currentPersona?.name || 'P')[0]}
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-semibold text-[var(--text-strong)]">
-                  {currentPersona?.instagramHandle ? `@${currentPersona.instagramHandle.replace(/^@/, '')}` : currentPersona?.name || ''}
-                </p>
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium ${
-                  isConnected
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                }`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${isConnected ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                  {isConnected ? '연결됨' : '미연결'}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 mt-1 text-xs text-[var(--text-muted)]">
-                {(currentFollowers > 0 || latestFollowers > 0) && (
-                  <span>팔로워 {formatCompactNumber(currentFollowers || latestFollowers)}</span>
-                )}
-                {lastSyncAt && (
-                  <span>마지막 동기화: {(() => {
-                    try {
-                      return new Intl.DateTimeFormat('ko-KR', {
-                        month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
-                      }).format(new Date(lastSyncAt))
-                    } catch { return lastSyncAt }
-                  })()}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      })()}
-
-      {/* KPI 타일 */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="flex flex-wrap gap-2">
         {[
-          ['총 도달수', formatCompactNumber(totalReach)],
-          ['평균 인게이지먼트', `${avgEngagement}%`],
-          ['팔로워', formatCompactNumber(latestFollowers)],
-          ['발행 수', String(totalPosts)],
-        ].map(([label, value]) => (
-          <div key={label} className="card">
-            <p className="text-xs text-[var(--text-muted)] mb-1">{label}</p>
-            <p className="text-2xl font-bold text-[var(--text-strong)]">{value}</p>
-          </div>
+          { label: 'Meta BS', href: 'https://business.facebook.com' },
+          { label: '광고 관리자', href: 'https://adsmanager.facebook.com' },
+          { label: 'IG 인사이트', href: 'https://www.instagram.com/accounts/insights/' },
+        ].map(({ label, href }) => (
+          <a key={href} href={href} target="_blank" rel="noopener noreferrer"
+            className="text-[10px] font-medium text-[var(--accent-text)] hover:underline">{label} →</a>
         ))}
       </div>
 
-      {/* 도달수 추이 라인 차트 */}
+      {/* KPI 타일 — 확장 (저장, 공유, 프로필방문, 웹사이트 클릭 포함) */}
+      {(() => {
+        const totalSaved = snapshots.reduce((s, snap) => s + ((snap as any).saved || 0), 0)
+        const totalShares = snapshots.reduce((s, snap) => s + ((snap as any).shares || 0), 0)
+        const profileViews = snapshots.reduce((s, snap) => s + ((snap as any).profileViews || 0), 0)
+        const websiteClicks = snapshots.reduce((s, snap) => s + ((snap as any).websiteClicks || 0), 0)
+        return (
+          <>
+            <div className="ops-kpi-grid">
+              <div className="ops-kpi-cell">
+                <p className="ops-kpi-val">{formatCompactNumber(totalReach)}</p>
+                <p className="ops-kpi-label">총 도달</p>
+              </div>
+              <div className="ops-kpi-cell" style={{ '--kpi-accent': '#10b981' } as React.CSSProperties}>
+                <p className="ops-kpi-val">{avgEngagement}%</p>
+                <p className="ops-kpi-label">참여율</p>
+              </div>
+              <div className="ops-kpi-cell">
+                <p className="ops-kpi-val">{formatCompactNumber(latestFollowers)}</p>
+                <p className="ops-kpi-label">팔로워</p>
+              </div>
+              <div className="ops-kpi-cell">
+                <p className="ops-kpi-val">{totalPosts}</p>
+                <p className="ops-kpi-label">발행 수</p>
+              </div>
+            </div>
+            <div className="ops-kpi-grid">
+              <div className="ops-kpi-cell" style={{ '--kpi-accent': '#6366f1' } as React.CSSProperties}>
+                <p className="ops-kpi-val">{formatCompactNumber(totalSaved)}</p>
+                <p className="ops-kpi-label">저장</p>
+                <p className="ops-kpi-sub">구매 의향 지표</p>
+              </div>
+              <div className="ops-kpi-cell" style={{ '--kpi-accent': '#0066ff' } as React.CSSProperties}>
+                <p className="ops-kpi-val">{formatCompactNumber(totalShares)}</p>
+                <p className="ops-kpi-label">공유</p>
+                <p className="ops-kpi-sub">바이럴 지표</p>
+              </div>
+              <div className="ops-kpi-cell" style={{ '--kpi-accent': '#ffaa00' } as React.CSSProperties}>
+                <p className="ops-kpi-val">{formatCompactNumber(profileViews)}</p>
+                <p className="ops-kpi-label">프로필 방문</p>
+              </div>
+              <div className="ops-kpi-cell" style={{ '--kpi-accent': '#00ff88' } as React.CSSProperties}>
+                <p className="ops-kpi-val">{formatCompactNumber(websiteClicks)}</p>
+                <p className="ops-kpi-label">웹사이트 클릭</p>
+              </div>
+            </div>
+          </>
+        )
+      })()}
+
+      {/* 도달수 추이 */}
       {effectiveReachData.length > 0 && (
-        <div className="card">
-          <p className="section-title mb-3">도달수 추이 (최근 {days}일)</p>
-          <ResponsiveContainer width="100%" height={300}>
+        <div className="ops-zone">
+          <div className="ops-zone-head">
+            <span className="ops-zone-label">Reach Trend</span>
+            <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">최근 {days}일</span>
+          </div>
+          <div style={{ padding: 16 }}>
+          <ResponsiveContainer width="100%" height={220}>
             <LineChart data={effectiveReachData.slice(-days)} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--surface-border)" />
-              <XAxis dataKey="date" tick={{ fontSize: 11, fill: 'var(--text-muted)' }} tickFormatter={(v: string) => v.slice(5)} />
-              <YAxis tick={{ fontSize: 11, fill: 'var(--text-muted)' }} width={50} tickFormatter={formatChartTick} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(201,53,69,0.08)" />
+              <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#7E8A98' }} tickFormatter={(v: string) => v.slice(5)} />
+              <YAxis tick={{ fontSize: 10, fill: '#7E8A98' }} width={50} tickFormatter={formatChartTick} />
               <Tooltip
-                contentStyle={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-border)', borderRadius: 8, fontSize: 12 }}
+                contentStyle={{ backgroundColor: 'rgba(8,10,20,0.94)', border: '1px solid rgba(201,53,69,0.14)', borderRadius: 8, fontSize: 12, color: '#F0ECE8' }} labelStyle={{ color: '#7E8A98' }} itemStyle={{ color: '#B0B8C4' }}
                 formatter={(value) => [formatCompactNumber(Number(value)), '일별 도달']}
               />
-              <Line type="monotone" dataKey="reach" stroke="#00d4ff" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+              <Line type="monotone" dataKey="reach" stroke="#C93545" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
             </LineChart>
           </ResponsiveContainer>
-          <p className="text-[11px] text-[var(--text-muted)] mt-1">
-            * Instagram Login 연동 기준 데이터입니다. Facebook 연동 시 광고 포함 정확한 도달 데이터를 확인할 수 있습니다.
-          </p>
+          <p className="text-[9px] text-[var(--text-disabled)] mt-1">* Instagram Login 연동 기준. Facebook 연동 시 광고 포함 정확한 도달 제공.</p>
+          </div>
         </div>
       )}
 
       {/* 콘텐츠 유형별 성과 비교 */}
       {contentTypeStats.length > 0 && (
-        <div className="card">
-          <p className="section-title mb-3">콘텐츠 유형별 평균 도달</p>
-          <div className="space-y-3">
+        <div className="ops-zone">
+          <div className="ops-zone-head">
+            <span className="ops-zone-label">Content Type Performance</span>
+          </div>
+          <div className="px-4 py-3 space-y-2">
             {(() => {
               const maxReach = Math.max(...contentTypeStats.map(s => s.avgReach), 1)
+              const typeColors: Record<string, string> = { VIDEO: '#0066ff', CAROUSEL_ALBUM: '#ffaa00', IMAGE: '#C93545' }
               return contentTypeStats.map(stat => (
                 <div key={stat.type}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-[var(--text-base)]">{stat.label}</span>
-                    <span className="text-sm font-semibold text-[var(--text-strong)]">
-                      {formatCompactNumber(stat.avgReach)} <span className="text-xs font-normal text-[var(--text-muted)]">({stat.count}건)</span>
+                    <span className="text-[11px] font-medium text-[var(--text-base)]">{stat.label}</span>
+                    <span className="text-[11px] tabular-nums text-[var(--text-strong)]">
+                      {formatCompactNumber(stat.avgReach)} <span className="text-[var(--text-disabled)]">({stat.count}건)</span>
                     </span>
                   </div>
-                  <div className="w-full h-5 bg-[var(--surface-sub)] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${Math.round((stat.avgReach / maxReach) * 100)}%`,
-                        background: stat.type === 'VIDEO' ? '#6aabcc' : stat.type === 'CAROUSEL_ALBUM' ? '#ffaa00' : '#00d4ff',
-                      }}
-                    />
+                  <div className="ops-bar-track" style={{ height: 5 }}>
+                    <div className="ops-bar-fill" style={{ width: `${Math.round((stat.avgReach / maxReach) * 100)}%`, backgroundColor: typeColors[stat.type] || '#C93545' }} />
                   </div>
                 </div>
               ))
@@ -693,55 +880,42 @@ export default function AnalyticsPage() {
         </div>
       )}
 
-      {/* 최적 게시 시간 + 인게이지먼트 요약 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 최적 게시 시간 */}
-        <div className="card">
-          <p className="section-title mb-3">최적 게시 시간</p>
-          {bestTimes.length > 0 ? (
-            <div className="space-y-2">
-              {bestTimes.map((slot, i) => (
-                <div key={i} className="flex items-center gap-3 py-2 border-b border-[var(--surface-border)] last:border-0">
-                  <span className="text-lg font-bold text-[var(--accent)] w-6 text-center">{i + 1}</span>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-[var(--text-strong)]">{slot.day}요일 {slot.hour}</p>
-                    <p className="text-xs text-[var(--text-muted)]">{slot.count}회 게시</p>
-                  </div>
+      {/* 최적 게시 시간 + 인게이지먼트 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <div className="ops-zone">
+          <div className="ops-zone-head">
+            <span className="ops-zone-label">Best Posting Times</span>
+          </div>
+          <div className="ops-zone-body">
+            {bestTimes.length > 0 ? bestTimes.map((slot, i) => (
+              <div key={i} className="ops-row">
+                <span className="text-[14px] font-bold tabular-nums text-[var(--accent-text)] w-5 text-center shrink-0">{i + 1}</span>
+                <div className="flex-1">
+                  <p className="text-[12px] font-medium text-[var(--text-strong)]">{slot.day}요일 {slot.hour}</p>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--text-muted)]">발행된 게시물이 쌓이면 최적 시간대가 표시됩니다.</p>
-          )}
+                <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">{slot.count}회</span>
+              </div>
+            )) : (
+              <div className="px-4 py-3"><p className="text-[11px] text-[var(--text-muted)]">게시물이 쌓이면 표시됩니다.</p></div>
+            )}
+          </div>
         </div>
 
-        {/* 인게이지먼트율 상세 */}
-        <div className="card">
-          <p className="section-title mb-3">인게이지먼트율</p>
-          <div className="flex items-end gap-2 mb-2">
-            <p className="text-3xl font-bold text-[var(--text-strong)]">{avgEngagement}%</p>
-            <p className="text-xs text-[var(--text-muted)] pb-1">평균</p>
+        <div className="ops-zone">
+          <div className="ops-zone-head">
+            <span className="ops-zone-label">Engagement Rate</span>
+            <span className="text-[10px] text-[var(--text-disabled)]">{Number(avgEngagement) >= 3 ? '우수' : Number(avgEngagement) >= 1 ? '양호' : '개선 필요'}</span>
           </div>
-          <div className="mt-3">
-            <div className="flex items-center justify-between text-xs text-[var(--text-muted)] mb-1">
-              <span>업계 평균 (1~3%)</span>
-              <span>{Number(avgEngagement) >= 3 ? '우수' : Number(avgEngagement) >= 1 ? '양호' : '개선 필요'}</span>
-            </div>
-            <div className="w-full h-3 bg-[var(--surface-sub)] rounded-full overflow-hidden relative">
-              {/* Industry range marker 1-3% */}
-              <div className="absolute h-full bg-emerald-200/40 dark:bg-emerald-800/30 rounded-full"
-                style={{ left: '10%', width: '20%' }} />
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${Math.min(Number(avgEngagement) * 10, 100)}%`,
-                  background: Number(avgEngagement) >= 3 ? '#00ff88' : Number(avgEngagement) >= 1 ? '#00d4ff' : '#ffaa00',
-                }}
-              />
-            </div>
-            <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1">
-              <span>0%</span><span>5%</span><span>10%</span>
-            </div>
+          <div className="px-4 py-3">
+            <p className="text-[24px] font-bold tabular-nums text-[var(--text-strong)]">{avgEngagement}% <span className="text-[12px] font-normal text-[var(--text-muted)]">평균</span></p>
+            <div className="mt-3">
+              <div className="ops-bar-track relative" style={{ height: 8 }}>
+                <div className="absolute h-full rounded" style={{ left: '10%', width: '20%', background: 'rgba(0,255,136,0.12)' }} />
+                <div className="ops-bar-fill" style={{ width: `${Math.min(Number(avgEngagement) * 10, 100)}%`, backgroundColor: Number(avgEngagement) >= 3 ? '#00ff88' : Number(avgEngagement) >= 1 ? '#C93545' : '#ffaa00' }} />
+              </div>
+              <div className="flex justify-between text-[9px] text-[var(--text-disabled)] mt-1">
+                <span>0%</span><span>업계 1~3%</span><span>10%</span>
+              </div>
           </div>
           {snapshots.length >= 2 && (() => {
             const recent = snapshots.slice(-Math.ceil(snapshots.length / 2))
@@ -758,12 +932,16 @@ export default function AnalyticsPage() {
           })()}
         </div>
       </div>
+      </div>
 
       {/* Top 게시물 (상세) */}
       {dashTopPosts.length > 0 && (
-        <div className="card">
-          <p className="section-title mb-3">Top 게시물</p>
-          <div className="space-y-2">
+        <div className="ops-zone">
+          <div className="ops-zone-head">
+            <span className="ops-zone-label">Top Posts</span>
+            <span className="text-[10px] tabular-nums text-[var(--text-disabled)]">{dashTopPosts.length}건</span>
+          </div>
+          <div className="ops-zone-body">
             {dashTopPosts.map((post, i) => {
               const typeLabel = post.media_type === 'VIDEO' ? '영상' : post.media_type === 'CAROUSEL_ALBUM' ? '캐러셀' : '이미지'
               const dateStr = (() => {
@@ -771,23 +949,19 @@ export default function AnalyticsPage() {
                 catch { return post.timestamp.slice(5, 10) }
               })()
               return (
-                <div key={post.id} className="flex items-start gap-3 py-3 border-b border-[var(--surface-border)] last:border-0">
-                  <span className="text-sm font-bold text-[var(--accent)] w-5 shrink-0">{i + 1}</span>
+                <div key={post.id} className="ops-row" style={{ alignItems: 'start' }}>
+                  <span className="text-[12px] font-bold tabular-nums text-[var(--accent-text)] w-4 shrink-0">{i + 1}</span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm text-[var(--text-base)] line-clamp-2">{post.caption?.slice(0, 80) || '(캡션 없음)'}{post.caption && post.caption.length > 80 ? '...' : ''}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[11px] px-1.5 py-0.5 rounded bg-[var(--surface-sub)] text-[var(--text-muted)]">{typeLabel}</span>
-                      <span className="text-[11px] text-[var(--text-muted)]">{dateStr}</span>
+                    <p className="text-[12px] text-[var(--text-base)] line-clamp-1">{post.caption?.slice(0, 60) || '(캡션 없음)'}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[9px] px-1 py-0.5 rounded bg-[var(--surface-sub)] text-[var(--text-disabled)]">{typeLabel}</span>
+                      <span className="text-[9px] text-[var(--text-disabled)]">{dateStr}</span>
                     </div>
                   </div>
-                  <div className="text-right shrink-0 space-y-0.5">
-                    <p className="text-sm font-semibold text-[var(--text-strong)]">도달 {formatCompactNumber(post.reach)}</p>
-                    {post.like_count != null && (
-                      <p className="text-[11px] text-[var(--text-muted)]">♥ {post.like_count}{post.comments_count ? ` · 댓글 ${post.comments_count}` : ''}</p>
-                    )}
-                    {post.permalink && (
-                      <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--accent)] hover:underline">보기</a>
-                    )}
+                  <div className="text-right shrink-0">
+                    <p className="text-[11px] font-semibold tabular-nums text-[var(--text-strong)]">도달 {formatCompactNumber(post.reach)}</p>
+                    <p className="text-[9px] text-[var(--text-disabled)]">♥ {post.like_count || 0}</p>
+                    {post.permalink && <a href={post.permalink} target="_blank" rel="noopener noreferrer" className="text-[9px] text-[var(--accent-text)]">보기</a>}
                   </div>
                 </div>
               )
@@ -797,23 +971,27 @@ export default function AnalyticsPage() {
       )}
 
       {/* AI 디스커션 */}
-      <div className="card">
-        <p className="section-title mb-3">AI 디스커션</p>
-        <div className="flex gap-2 mb-3">
-          <input
-            className="input flex-1"
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            placeholder="이번달 가장 효과적인 콘텐츠 타입은?"
-            onKeyDown={e => e.key === 'Enter' && handleChat()}
-          />
-          <button className="button-primary" onClick={handleChat} disabled={chatLoading}>
-            {chatLoading ? '분석 중...' : '질문'}
-          </button>
+      <div className="ops-zone">
+        <div className="ops-zone-head">
+          <span className="ops-zone-label">AI Discussion</span>
         </div>
-        {chatAnswer && (
-          <div className="soft-card p-3 text-sm text-[var(--text-base)] whitespace-pre-wrap">{chatAnswer}</div>
-        )}
+        <div className="px-4 py-3">
+          <div className="flex gap-2">
+            <input
+              className="input flex-1 text-xs"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              placeholder="이번달 가장 효과적인 콘텐츠 타입은?"
+              onKeyDown={e => e.key === 'Enter' && handleChat()}
+            />
+            <button className="button-primary px-3 py-1.5 text-[10px]" onClick={handleChat} disabled={chatLoading}>
+              {chatLoading ? '분석 중...' : '질문'}
+            </button>
+          </div>
+          {chatAnswer && (
+            <div className="mt-3 p-3 rounded bg-[var(--surface-sub)] text-[12px] text-[var(--text-base)] whitespace-pre-wrap leading-5">{chatAnswer}</div>
+          )}
+        </div>
       </div>
 
       {/* 콘텐츠 킷 확인 배너 */}
@@ -868,30 +1046,30 @@ export default function AnalyticsPage() {
               <div className="status-tile">
                 <p className="metric-label">총 도달</p>
                 <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">
-                  {formatCompactNumber(report.summary.totalReach)}
+                  {formatCompactNumber(report.summary?.totalReach)}
                 </p>
               </div>
               <div className="status-tile">
                 <p className="metric-label">평균 참여율</p>
                 <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">
-                  {report.summary.avgEngagementRate}%
+                  {report.summary?.avgEngagementRate}%
                 </p>
               </div>
               <div className="status-tile">
                 <p className="metric-label">추세</p>
                 <p className="mt-2 text-lg font-bold text-[var(--text-strong)]">
-                  {report.summary.trendDirection === 'UP' ? '▲ 상승' : report.summary.trendDirection === 'DOWN' ? '▼ 하락' : '→ 보합'}
+                  {report.summary?.trendDirection === 'UP' ? '▲ 상승' : report.summary?.trendDirection === 'DOWN' ? '▼ 하락' : '→ 보합'}
                 </p>
               </div>
             </div>
 
             {/* Top 게시물 */}
-            {report.topPosts.length > 0 && (
+            {report.topPosts?.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">Top 게시물</p>
                 <div className="space-y-2">
-                  {report.topPosts.map((post, i) => (
-                    <div key={post.mediaId} className="list-card">
+                  {report.topPosts?.map((post, i) => (
+                    <div key={post.mediaId || `top-${i}`} className="list-card">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-[var(--text-strong)]">
                           {post.caption ? post.caption.slice(0, 60) + (post.caption.length > 60 ? '...' : '') : `게시물 #${i + 1}`}
@@ -909,19 +1087,19 @@ export default function AnalyticsPage() {
             )}
 
             {/* 저성과 게시물 진단 */}
-            {report.lowPosts.length > 0 && (
+            {report.lowPosts?.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">저성과 게시물 진단</p>
                 <div className="space-y-2">
-                  {report.lowPosts.map((post, i) => (
-                    <div key={post.mediaId} className="list-card border-l-2 border-[var(--status-warning)]">
+                  {report.lowPosts?.map((post, i) => (
+                    <div key={post.mediaId || `low-${i}`} className="list-card border-l-2 border-[var(--status-warning)]">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-[var(--text-strong)]">
                           {post.caption ? post.caption.slice(0, 60) + (post.caption.length > 60 ? '...' : '') : `게시물 #${i + 1}`}
                         </p>
                         <span className="accent-pill">도달 {formatCompactNumber(post.reach)}</span>
                       </div>
-                      <p className="text-xs text-[var(--accent)] mt-1">💡 {post.improvementTip}</p>
+                      <p className="text-xs text-[var(--accent-text)] mt-1">💡 {post.improvementTip}</p>
                     </div>
                   ))}
                 </div>
@@ -929,7 +1107,7 @@ export default function AnalyticsPage() {
             )}
 
             {/* 추천 콘텐츠 */}
-            {report.recommendations.length > 0 && (
+            {report.recommendations?.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">추천 콘텐츠</p>
                 <div className="space-y-2">
@@ -954,7 +1132,7 @@ export default function AnalyticsPage() {
             )}
 
             {/* 광고 예산 제안 */}
-            {report.adSuggestions.length > 0 && (
+            {report.adSuggestions?.length > 0 && (
               <div>
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">광고 예산 제안</p>
                 <div className="space-y-2">
@@ -979,29 +1157,149 @@ export default function AnalyticsPage() {
               <div>
                 <p className="text-sm font-semibold text-[var(--text-strong)] mb-3">패턴 인사이트</p>
                 <div className="soft-panel space-y-2">
-                  {report.patterns.bestPostingTimes.length > 0 && (
+                  {report.patterns?.bestPostingTimes && (Array.isArray(report.patterns?.bestPostingTimes) ? report.patterns?.bestPostingTimes : [report.patterns?.bestPostingTimes]).length > 0 && (
                     <p className="text-sm text-[var(--text-base)]">
                       <span className="font-medium">최적 시간대:</span>{' '}
-                      {report.patterns.bestPostingTimes.join(', ')}
+                      {(Array.isArray(report.patterns?.bestPostingTimes) ? report.patterns?.bestPostingTimes : [String(report.patterns?.bestPostingTimes)]).join(', ')}
                     </p>
                   )}
-                  {report.patterns.bestContentType && (
+                  {report.patterns?.bestContentType && (
                     <p className="text-sm text-[var(--text-base)]">
                       <span className="font-medium">최적 콘텐츠 유형:</span>{' '}
-                      {report.patterns.bestContentType}
+                      {report.patterns?.bestContentType}
                     </p>
                   )}
-                  {report.patterns.topHashtags.length > 0 && (
+                  {report.patterns?.topHashtags.length > 0 && (
                     <p className="text-sm text-[var(--text-base)]">
                       <span className="font-medium">Top 해시태그:</span>{' '}
-                      {report.patterns.topHashtags.join(' ')}
+                      {Array.isArray(report.patterns?.topHashtags) ? report.patterns?.topHashtags.join(' ') : String(report.patterns?.topHashtags || '')}
                     </p>
                   )}
-                  {report.patterns.audienceInsight && (
+                  {report.patterns?.audienceInsight && (
                     <p className="text-sm text-[var(--text-muted)] mt-1">
-                      {report.patterns.audienceInsight}
+                      {report.patterns?.audienceInsight}
                     </p>
                   )}
+                </div>
+              </div>
+            )}
+
+            {/* ── 채널 건강도 + 주간 포커스 ── */}
+            {(report.channelHealth || report.weeklyFocus) && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {report.channelHealth && (
+                  <div className="ops-zone">
+                    <div className="ops-zone-head">
+                      <span className="ops-zone-label">Channel Health</span>
+                      <span className="text-[18px] font-bold text-[var(--text-strong)]">{(report.channelHealth as any).healthScore ?? '-'}/100</span>
+                    </div>
+                    <div className="px-4 py-3 space-y-2">
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-[var(--text-muted)]">도달 추세</span>
+                        <span className={`font-semibold ${(report.channelHealth as any).reachTrend === 'growing' ? 'text-emerald-400' : (report.channelHealth as any).reachTrend === 'declining' ? 'text-rose-400' : 'text-[var(--text-base)]'}`}>
+                          {(report.channelHealth as any).reachTrend === 'growing' ? '성장' : (report.channelHealth as any).reachTrend === 'declining' ? '하락' : '안정'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-[11px]">
+                        <span className="text-[var(--text-muted)]">참여 추세</span>
+                        <span className={`font-semibold ${(report.channelHealth as any).engagementTrend === 'growing' ? 'text-emerald-400' : (report.channelHealth as any).engagementTrend === 'declining' ? 'text-rose-400' : 'text-[var(--text-base)]'}`}>
+                          {(report.channelHealth as any).engagementTrend === 'growing' ? '성장' : (report.channelHealth as any).engagementTrend === 'declining' ? '하락' : '안정'}
+                        </span>
+                      </div>
+                      {(report.channelHealth as any).followerGrowth && (
+                        <div className="flex justify-between text-[11px]">
+                          <span className="text-[var(--text-muted)]">팔로워 변화</span>
+                          <span className="font-semibold text-[var(--text-strong)]">{(report.channelHealth as any).followerGrowth}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {report.weeklyFocus && (
+                  <div className="ops-zone">
+                    <div className="ops-zone-head">
+                      <span className="ops-zone-label">This Week&apos;s Focus</span>
+                    </div>
+                    <div className="px-4 py-3">
+                      <p className="text-[13px] font-semibold text-[var(--text-strong)] leading-6">{(report as any).weeklyFocus}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* ── 저장/공유/영상 인사이트 ── */}
+            {(report.patterns?.savesInsight || report.patterns?.sharesInsight || report.patterns?.videoInsight) && (
+              <div className="ops-zone">
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Deep Insights</span>
+                </div>
+                <div className="divide-y divide-[var(--surface-border)]">
+                  {report.patterns?.savesInsight && (
+                    <div className="px-4 py-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-[#6366f1] mb-1">저장 패턴</p>
+                      <p className="text-[12px] text-[var(--text-base)] leading-5">{report.patterns?.savesInsight}</p>
+                    </div>
+                  )}
+                  {report.patterns?.sharesInsight && (
+                    <div className="px-4 py-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-[#0066ff] mb-1">공유 패턴</p>
+                      <p className="text-[12px] text-[var(--text-base)] leading-5">{report.patterns?.sharesInsight}</p>
+                    </div>
+                  )}
+                  {report.patterns?.videoInsight && (
+                    <div className="px-4 py-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wider text-[#ffaa00] mb-1">영상 성과</p>
+                      <p className="text-[12px] text-[var(--text-base)] leading-5">{report.patterns?.videoInsight}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* ── 해시태그 효과 분석 ── */}
+            {report.contentAnalysis?.hashtagEffectiveness && report.contentAnalysis.hashtagEffectiveness.length > 0 && (
+              <div className="ops-zone">
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Hashtag Performance</span>
+                </div>
+                <div className="px-4 py-3 space-y-2">
+                  {report.contentAnalysis.hashtagEffectiveness.slice(0, 10).map((h: any) => (
+                    <div key={h.hashtag} className="flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                          h.effectiveness === 'high' ? 'bg-emerald-900/40 text-emerald-300' :
+                          h.effectiveness === 'low' ? 'bg-rose-900/40 text-rose-300' :
+                          'bg-[var(--surface-sub)] text-[var(--text-muted)]'
+                        }`}>{h.effectiveness === 'high' ? '높음' : h.effectiveness === 'low' ? '낮음' : '보통'}</span>
+                        <span className="text-[var(--text-strong)] font-medium">{h.hashtag}</span>
+                      </div>
+                      <span className="text-[var(--text-muted)] tabular-nums">도달 {h.avgReach?.toLocaleString()} · {h.count}회</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── 콘텐츠별 참여율/저장율 ── */}
+            {report.contentAnalysis?.byType && report.contentAnalysis.byType.length > 0 && (
+              <div className="ops-zone">
+                <div className="ops-zone-head">
+                  <span className="ops-zone-label">Content Type Deep Dive</span>
+                </div>
+                <div className="grid gap-px bg-[var(--surface-border)]" style={{ gridTemplateColumns: `repeat(${Math.min(report.contentAnalysis.byType.length, 4)}, 1fr)` }}>
+                  {report.contentAnalysis.byType.map((t: any) => (
+                    <div key={t.type} className="bg-[var(--surface)] p-3 text-center">
+                      <p className="text-[10px] font-bold uppercase text-[var(--text-muted)]">{t.type}</p>
+                      <p className="text-[16px] font-bold text-[var(--text-strong)] mt-1">{t.avgReach?.toLocaleString()}</p>
+                      <p className="text-[9px] text-[var(--text-disabled)]">평균 도달</p>
+                      <div className="mt-2 flex justify-center gap-3 text-[9px]">
+                        <span className="text-emerald-400">참여 {t.avgEngRate}%</span>
+                        <span className="text-[#6366f1]">저장 {t.avgSaves}</span>
+                      </div>
+                      <p className="text-[9px] text-[var(--text-disabled)] mt-1">{t.count}건</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

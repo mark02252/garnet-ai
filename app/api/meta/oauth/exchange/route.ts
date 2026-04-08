@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { InstagramConnectionMode, MetaConnectedInstagramAccount } from '@/lib/meta-connection';
+import { prisma } from '@/lib/prisma';
 
 const requestSchema = z
   .object({
@@ -145,7 +146,11 @@ async function exchangeInstagramLogin(input: {
   const effectiveAppSecret = process.env.META_APP_SECRET || input.appSecret || '';
   // redirect_uri는 OAuth 인증 때와 정확히 일치해야 함
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-  const redirectUri = baseUrl.replace('http://', 'https://') + '/meta/connect';
+  const redirectUri = process.env.META_OAUTH_REDIRECT_URI || baseUrl + '/meta/connect';
+
+  console.log('[OAuth Exchange] redirect_uri:', JSON.stringify(redirectUri), '| code:', input.code.slice(0, 20) + '...');
+  console.log('[OAuth Exchange] client sent redirectUri:', JSON.stringify(input.redirectUri));
+  console.log('[OAuth Exchange] appId:', effectiveAppId.slice(0, 6) + '...');
 
   const body = new URLSearchParams({
     client_id: effectiveAppId,
@@ -170,15 +175,62 @@ async function exchangeInstagramLogin(input: {
     throw new Error(getApiError(shortLived, '인스타그램 액세스 토큰을 받지 못했습니다.'));
   }
 
+  // 단기 토큰 → 장기 토큰 교환 (60일)
+  let finalToken = shortLived.access_token;
+  let expiresIn = typeof shortLived.expires_in === 'number' ? shortLived.expires_in : 3600;
+  let tokenSource: 'oauth_short_lived' | 'oauth_long_lived' = 'oauth_short_lived';
+
+  try {
+    const longLivedRes = await fetch(
+      `https://graph.instagram.com/access_token?grant_type=ig_exchange_token&client_secret=${effectiveAppSecret}&access_token=${encodeURIComponent(shortLived.access_token)}`
+    );
+    if (longLivedRes.ok) {
+      const longLived = await longLivedRes.json() as { access_token?: string; expires_in?: number };
+      if (longLived.access_token) {
+        finalToken = longLived.access_token;
+        expiresIn = longLived.expires_in || 5184000; // 60일
+        tokenSource = 'oauth_long_lived';
+        console.log('[OAuth] Short-lived → Long-lived token exchanged. Expires in:', expiresIn, 'seconds');
+      }
+    }
+  } catch {
+    console.log('[OAuth] Long-lived token exchange failed, using short-lived');
+  }
+
+  // 파일 스토어에도 저장 (서버 재시작 시에도 유지)
+  try {
+    const { saveMetaConnectionToFile } = await import('@/lib/meta-connection-file-store');
+    await saveMetaConnectionToFile({
+      accessToken: finalToken,
+      instagramBusinessAccountId: '',  // 아래 profile에서 채움
+      tokenSource,
+      tokenExpiresIn: expiresIn,
+      lastConnectedAt: new Date().toISOString(),
+    });
+  } catch { /* non-critical */ }
+
   const profile = await fetchApiJson<InstagramProfilePayload>(
-    `https://graph.instagram.com/${input.graphApiVersion}/me?fields=user_id,username,name,profile_picture_url,account_type&access_token=${encodeURIComponent(shortLived.access_token)}`
+    `https://graph.instagram.com/${input.graphApiVersion}/me?fields=user_id,username,name,profile_picture_url,account_type&access_token=${encodeURIComponent(finalToken)}`
   );
+
+  // 파일 스토어에 accountId 업데이트
+  try {
+    const { saveMetaConnectionToFile } = await import('@/lib/meta-connection-file-store');
+    const accounts = buildInstagramAccountsFromProfile(profile);
+    await saveMetaConnectionToFile({
+      accessToken: finalToken,
+      instagramBusinessAccountId: accounts[0]?.instagramBusinessAccountId || profile.user_id?.toString() || '',
+      tokenSource,
+      tokenExpiresIn: expiresIn,
+      lastConnectedAt: new Date().toISOString(),
+    });
+  } catch { /* non-critical */ }
 
   return {
     ok: true,
-    accessToken: shortLived.access_token,
-    expiresIn: typeof shortLived.expires_in === 'number' ? shortLived.expires_in : 3600,
-    tokenSource: 'oauth_short_lived' as const,
+    accessToken: finalToken,
+    expiresIn,
+    tokenSource,
     accounts: buildInstagramAccountsFromProfile(profile)
   };
 }
@@ -305,8 +357,31 @@ export async function POST(req: Request) {
             code: input.code
           });
 
+    // Auto-create persona if none exists for this Instagram account
+    if (result.ok && result.accounts?.length) {
+      try {
+        const account = result.accounts[0];
+        const existing = await prisma.snsPersona.findFirst({
+          where: { instagramHandle: account.username },
+        });
+        if (!existing) {
+          await prisma.snsPersona.create({
+            data: {
+              name: account.username,
+              instagramHandle: account.username,
+              platform: 'INSTAGRAM',
+              learnMode: 'FROM_POSTS',
+            },
+          });
+        }
+      } catch {
+        // Non-critical: persona creation failure shouldn't block OAuth
+      }
+    }
+
     return NextResponse.json(result);
   } catch (error) {
+    console.error('[OAuth Exchange ERROR]', error instanceof Error ? error.message : error);
     return NextResponse.json(
       {
         ok: false,

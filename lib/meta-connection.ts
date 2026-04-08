@@ -10,7 +10,9 @@ export const META_BUSINESS_SCOPES = [
   'instagram_manage_insights',
   'pages_show_list',
   'pages_read_engagement',
-  'business_management'
+  'business_management',
+  'ads_read',
+  'read_insights',
 ] as const;
 
 export type InstagramConnectionMode = 'instagram_login' | 'meta_business';

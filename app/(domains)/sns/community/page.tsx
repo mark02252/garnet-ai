@@ -128,13 +128,15 @@ export default function CommunityPage() {
   return (
     <div className="p-6 max-w-3xl mx-auto space-y-5">
       {/* Hero */}
-      <section className="dashboard-hero">
-        <div>
-          <p className="dashboard-eyebrow">SNS Studio</p>
-          <h1 className="dashboard-title">커뮤니티</h1>
-          <p className="dashboard-copy">AI가 페르소나 스타일에 맞는 댓글 답변을 일괄 생성합니다.</p>
+      <header className="ops-zone">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="ops-zone-label">Community</p>
+            <h1 className="mt-1 text-lg font-bold tracking-tight text-[var(--text-strong)]">커뮤니티</h1>
+            <p className="text-[12px] text-[var(--text-muted)]">AI가 페르소나 스타일에 맞는 댓글 답변을 일괄 생성합니다.</p>
+          </div>
         </div>
-      </section>
+      </header>
 
       {/* 컨트롤 */}
       <div className="soft-card flex flex-col gap-4">
@@ -224,7 +226,7 @@ export default function CommunityPage() {
                     <p className="text-sm text-[var(--text-base)] mb-3 ml-10">{c.text}</p>
                     {replies.has(c.id) && (
                       <div className="ml-10 bg-[var(--surface-sub)] rounded-xl p-3 border border-[var(--border)]">
-                        <p className="text-xs font-semibold text-[var(--accent)] mb-2">AI 답변 초안</p>
+                        <p className="text-xs font-semibold text-[var(--accent-text)] mb-2">AI 답변 초안</p>
                         <textarea
                           className="input w-full text-sm min-h-[60px]"
                           value={replies.get(c.id) || ''}

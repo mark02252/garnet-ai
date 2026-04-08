@@ -475,12 +475,16 @@ model SnsAnalyticsSnapshot {
   personaId   String
   platform    PersonaPlatform @default(INSTAGRAM)
   date        DateTime
-  reach       Int             @default(0)
-  impressions Int             @default(0)
-  engagement  Float           @default(0)
-  followers   Int             @default(0)
-  postCount   Int             @default(0)
-  topPostId   String? // 미사용 — 향후 Top 게시물 ID 저장 예정
+  reach          Int             @default(0)
+  impressions    Int             @default(0)
+  engagement     Float           @default(0)
+  followers      Int             @default(0)
+  postCount      Int             @default(0)
+  saved          Int             @default(0)
+  shares         Int             @default(0)
+  profileViews   Int             @default(0)
+  websiteClicks  Int             @default(0)
+  topPostId      String?
   createdAt   DateTime        @default(now())
 
   persona SnsPersona @relation(fields: [personaId], references: [id], onDelete: Cascade)

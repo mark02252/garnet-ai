@@ -48,6 +48,40 @@ const BUILTIN_JOBS: ScheduledJobConfig[] = [
     handler: (runtime) => lazyJobHandler('runGA4AnalysisJob', runtime)
   },
   {
+    id: 'sns-sync',
+    name: 'Instagram 데이터 동기화',
+    description: '매일 Instagram 게시물, 도달, 팔로워 데이터를 자동 수집합니다.',
+    cron: '30 7 * * *',
+    category: 'collect',
+    enabled: true,
+    handler: async () => {
+      try {
+        const { loadMetaConnectionFromFile } = await import('@/lib/meta-connection-file-store');
+        const { prisma } = await import('@/lib/prisma');
+        const fileData = await loadMetaConnectionFromFile();
+        if (!fileData?.accessToken || !fileData?.instagramBusinessAccountId) {
+          return { ok: false, message: 'Instagram 연동 정보 없음' };
+        }
+        const persona = await prisma.snsPersona.findFirst({ where: { instagramHandle: { not: null } } });
+        if (!persona) return { ok: false, message: '페르소나 없음' };
+
+        const res = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/sns/analytics/sync`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            personaId: persona.id,
+            accessToken: fileData.accessToken,
+            businessAccountId: fileData.instagramBusinessAccountId,
+          }),
+        });
+        const data = await res.json();
+        return { ok: res.ok, message: `동기화 완료: ${data.synced || 0}일 저장, 팔로워 ${data.followers || 0}` };
+      } catch (e) {
+        return { ok: false, message: e instanceof Error ? e.message : 'SNS 동기화 실패' };
+      }
+    }
+  },
+  {
     id: 'urgent-recommendations',
     name: '긴급 추천 알림',
     description: '매시간 긴급 수준의 추천 사항을 점검합니다.',

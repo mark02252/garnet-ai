@@ -203,13 +203,15 @@ function StudioContent() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Hero */}
-      <section className="dashboard-hero">
-        <div>
-          <p className="dashboard-eyebrow">SNS Studio</p>
-          <h1 className="dashboard-title">콘텐츠 제작소</h1>
-          <p className="dashboard-copy">AI가 페르소나 스타일에 맞는 SNS 콘텐츠를 즉시 생성합니다.</p>
+      <header className="ops-zone">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="ops-zone-label">Content Studio</p>
+            <h1 className="mt-1 text-lg font-bold tracking-tight text-[var(--text-strong)]">콘텐츠 제작소</h1>
+            <p className="text-[12px] text-[var(--text-muted)]">AI가 페르소나 스타일에 맞는 SNS 콘텐츠를 즉시 생성합니다.</p>
+          </div>
         </div>
-      </section>
+      </header>
 
       {/* 생성 패널 */}
       <div className="soft-card space-y-4">

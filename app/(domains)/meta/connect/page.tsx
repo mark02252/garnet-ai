@@ -96,9 +96,8 @@ function MetaConnectContent() {
       if (!loaded.value.appId && process.env.NEXT_PUBLIC_META_APP_ID) {
         loaded.value.appId = process.env.NEXT_PUBLIC_META_APP_ID;
       }
-      if (!loaded.value.redirectUri) {
-        loaded.value.redirectUri = `${window.location.origin}/meta/connect`;
-      }
+      // META_OAUTH_REDIRECT_URI 환경변수가 있으면 사용, 없으면 현재 origin 기반
+      loaded.value.redirectUri = process.env.NEXT_PUBLIC_META_OAUTH_REDIRECT_URI || `${window.location.origin}/meta/connect`;
 
       const needsAppSecret = loaded.value.loginMode === 'meta_business';
       if (
@@ -166,6 +165,15 @@ function MetaConnectContent() {
       };
 
       await saveStoredMetaConnectionDraft(nextDraft);
+
+      // 토큰 만료 시간 저장 (meta-token-manager 활용)
+      if (typeof data.expiresIn === 'number' && data.expiresIn > 0) {
+        try {
+          const { setTokenExpiry } = await import('@/lib/meta-token-manager');
+          setTokenExpiry(data.expiresIn);
+        } catch { /* non-critical */ }
+      }
+
       if (cancelled) return;
 
       setAccounts(data.accounts || []);

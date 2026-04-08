@@ -103,8 +103,8 @@ export async function POST(req: NextRequest) {
       })
       topPosts = (filtered.length > 0 ? filtered : allInsights)
         .sort((a, b) => {
-          const scoreA = a.reach > 0 ? a.reach : (a.like_count + a.comments_count) * 100
-          const scoreB = b.reach > 0 ? b.reach : (b.like_count + b.comments_count) * 100
+          const scoreA = a.reach > 0 ? a.reach : a.like_count + a.comments_count
+          const scoreB = b.reach > 0 ? b.reach : b.like_count + b.comments_count
           return scoreB - scoreA
         })
         .slice(0, 10)
@@ -113,6 +113,8 @@ export async function POST(req: NextRequest) {
           reach: p.reach > 0 ? p.reach : p.like_count + p.comments_count,
           caption: p.caption, media_type: p.media_type, permalink: p.permalink,
           like_count: p.like_count, comments_count: p.comments_count,
+          saved: p.saved || 0, shares: p.shares || 0,
+          engagement_rate: p.engagement_rate,
         }))
     }
 
@@ -166,11 +168,15 @@ export async function POST(req: NextRequest) {
       .filter(Boolean)
       .sort((a, b) => (b as Date).getTime() - (a as Date).getTime())[0] || null
 
+    // Aggregate saved/shares from snapshots
+    const totalSaved = snapshotRows.reduce((s, r) => s + ((r as any).saved || 0), 0)
+    const totalShares = snapshotRows.reduce((s, r) => s + ((r as any).shares || 0), 0)
+
     return NextResponse.json({
       kpiGoals, reachDaily, followerTrend, topPosts, currentFollowers,
       todayScheduled, weekScheduled, upcomingPosts: serializedUpcoming,
       lastSyncAt: lastSyncAt ? (lastSyncAt as Date).toISOString() : null,
-      alerts,
+      alerts, totalSaved, totalShares,
     })
   } catch (error) {
     console.error('Dashboard API error:', error)

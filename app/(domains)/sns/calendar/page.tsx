@@ -366,7 +366,7 @@ function CalendarContent() {
         className={`min-h-[72px] p-1 rounded border cursor-pointer hover:bg-[var(--surface-sub)] ${isToday ? 'border-[var(--accent)]' : 'border-[var(--surface-border)]'}`}
         onClick={() => setSelectedDate(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`)}
       >
-        <p className={`text-xs mb-1 ${isToday ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-muted)]'}`}>{day}</p>
+        <p className={`text-xs mb-1 ${isToday ? 'text-[var(--accent-text)] font-bold' : 'text-[var(--text-muted)]'}`}>{day}</p>
         {dayPosts.map(p => (
           <PostPill key={p.id} post={p} compact />
         ))}
@@ -378,7 +378,7 @@ function CalendarContent() {
   function WeekView() {
     const days = getWeekDays()
     return (
-      <div className="card">
+      <div className="ops-zone">
         <div className="flex items-center justify-between mb-3">
           <button className="button-secondary text-xs" onClick={() => setWeekOffset(o => o - 1)}>‹ 이전 주</button>
           <span className="text-sm text-[var(--text-muted)]">
@@ -402,7 +402,7 @@ function CalendarContent() {
                 className={`min-h-[120px] p-2 rounded border cursor-pointer hover:bg-[var(--surface-sub)] ${isToday ? 'border-[var(--accent)]' : 'border-[var(--surface-border)]'}`}
                 onClick={() => setSelectedDate(dateStr)}
               >
-                <p className={`text-xs mb-2 ${isToday ? 'text-[var(--accent)] font-bold' : 'text-[var(--text-muted)]'}`}>
+                <p className={`text-xs mb-2 ${isToday ? 'text-[var(--accent-text)] font-bold' : 'text-[var(--text-muted)]'}`}>
                   {date.getMonth() + 1}/{date.getDate()}
                 </p>
                 {dayPosts.map(p => (
@@ -427,14 +427,14 @@ function CalendarContent() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-5">
       {/* Hero */}
-      <section className="dashboard-hero">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="dashboard-eyebrow">SNS Studio</p>
-            <h1 className="dashboard-title">콘텐츠 캘린더</h1>
-            <p className="dashboard-copy">예약된 게시물을 월간/주간으로 한눈에 관리합니다.</p>
+      <header className="ops-zone">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="ops-zone-label">SNS Calendar</p>
+            <h1 className="mt-1 text-lg font-bold tracking-tight text-[var(--text-strong)]">캘린더</h1>
+            <p className="text-[12px] text-[var(--text-muted)]">예약된 게시물을 월간/주간으로 한눈에 관리합니다.</p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 mt-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Smart schedule toggle */}
             <button
               className={smartScheduleMode ? 'accent-pill text-xs' : 'pill-option text-xs'}
@@ -471,7 +471,7 @@ function CalendarContent() {
             )}
           </div>
         </div>
-      </section>
+      </header>
 
       {/* Status legend */}
       <div className="soft-card flex flex-wrap items-center gap-4 py-3">
@@ -575,7 +575,7 @@ function CalendarContent() {
           </div>
           {/* Optimal time hint */}
           {optimalHint && (
-            <p className="text-xs text-[var(--accent)] mt-2">
+            <p className="text-xs text-[var(--accent-text)] mt-2">
               {'\uD83D\uDCA1'} {optimalHint}
             </p>
           )}
@@ -590,7 +590,7 @@ function CalendarContent() {
 
       {/* Calendar grid */}
       {viewMode === 'month' ? (
-        <div className="card">
+        <div className="ops-zone">
           <div className="grid grid-cols-7 mb-2">
             {DAY_NAMES.map(d => (
               <div key={d} className="text-center text-xs text-[var(--text-muted)] py-2">{d}</div>

@@ -87,16 +87,18 @@ export default function PersonasPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-6">
       {/* Hero */}
-      <section className="dashboard-hero">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="dashboard-eyebrow">SNS Studio</p>
-            <h1 className="dashboard-title">페르소나</h1>
-            <p className="dashboard-copy">채널별 브랜드 목소리를 페르소나로 정의하고 콘텐츠 생성에 적용합니다.</p>
+      <header className="ops-zone">
+        <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="ops-zone-label">Personas</p>
+            <h1 className="mt-1 text-lg font-bold tracking-tight text-[var(--text-strong)]">페르소나</h1>
+            <p className="text-[12px] text-[var(--text-muted)]">채널별 브랜드 목소리를 페르소나로 정의하고 콘텐츠 생성에 적용합니다.</p>
           </div>
-          <Link href="/sns/personas/new" className="button-primary mt-2">+ 새 페르소나</Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Link href="/sns/personas/new" className="button-primary">+ 새 페르소나</Link>
+          </div>
         </div>
-      </section>
+      </header>
 
       {/* Search & Platform Filter */}
       <div className="soft-card space-y-3">

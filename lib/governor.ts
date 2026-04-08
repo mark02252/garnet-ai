@@ -106,19 +106,23 @@ export async function enqueueWithRisk(input: {
   const status: GovernorStatus = input.riskLevel === 'LOW' ? 'PENDING_EXEC' : 'PENDING_APPROVAL';
   const now = new Date().toISOString();
 
-  await prisma.$executeRawUnsafe(
+  const rows = await prisma.$queryRawUnsafe<GovernorActionRow[]>(
     `INSERT INTO "GovernorAction" ("id","kind","payload","status","riskLevel","riskReason","createdAt","updatedAt")
-     VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7,$8)`,
+     VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW(), NOW())
+     RETURNING *`,
     id, input.kind, JSON.stringify(input.payload), status,
-    input.riskLevel, input.riskReason, now, now,
+    input.riskLevel, input.riskReason,
   );
 
-  return {
-    id, kind: input.kind, payload: input.payload, status,
-    riskLevel: input.riskLevel, riskReason: input.riskReason,
-    approvedBy: null, executedAt: null, deletedAt: null,
-    createdAt: now, updatedAt: now,
-  };
+  const row = rows[0];
+  return row
+    ? parseRow(row)
+    : {
+        id, kind: input.kind, payload: input.payload, status,
+        riskLevel: input.riskLevel, riskReason: input.riskReason,
+        approvedBy: null, executedAt: null, deletedAt: null,
+        createdAt: now, updatedAt: now,
+      };
 }
 
 export async function listPending(

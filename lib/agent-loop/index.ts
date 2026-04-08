@@ -10,6 +10,7 @@ import { routeActions } from './executor'
 import { evaluateAndStore } from './evaluator'
 import { notifyUrgent, notifyDailyBriefing, notifyCycleResult } from './notifier'
 import { runWeeklyReview } from './meta-cognition'
+import { registerAgentLoopHandlers } from './handlers'
 import type { CycleType, CycleResult } from './types'
 
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5분 타임아웃
@@ -174,6 +175,7 @@ async function runWeeklyReviewCycle(): Promise<void> {
 
 export function startAgentLoop(): void {
   if (crons.length > 0) return
+  registerAgentLoopHandlers()
   paused = false
 
   crons.push(new Cron('*/15 * * * *', () => { runCycle('urgency-check') }))

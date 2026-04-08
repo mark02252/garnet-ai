@@ -10,6 +10,8 @@ import { routeActions } from './executor'
 import { evaluateAndStore } from './evaluator'
 import { notifyUrgent, notifyDailyBriefing, notifyCycleResult } from './notifier'
 import { runWeeklyReview } from './meta-cognition'
+import { discoverNewCompetitors } from './competitor-discovery'
+import { buildDailyDigest } from '@/lib/intel/digest-builder'
 import { registerAgentLoopHandlers } from './handlers'
 import type { CycleType, CycleResult } from './types'
 
@@ -146,6 +148,15 @@ async function runDailyBriefing(): Promise<void> {
   const result = await runCycle('daily-briefing')
   if (!result) return
 
+  // 마케팅 인텔 다이제스트 생성
+  let digestHeadline = ''
+  try {
+    const digest = await buildDailyDigest()
+    if (digest.ok && typeof digest.message === 'string') {
+      digestHeadline = digest.message
+    }
+  } catch { /* non-critical */ }
+
   const wm = await loadWorldModel()
   const goals = await evaluateGoals(wm)
 
@@ -155,7 +166,7 @@ async function runDailyBriefing(): Promise<void> {
   })
 
   await notifyDailyBriefing({
-    summary: result.summary || '특이사항 없음',
+    summary: [digestHeadline, result.summary].filter(Boolean).join('\n\n') || '특이사항 없음',
     goals,
     todayCycles,
     todayActions: result.actionsCount,
@@ -168,6 +179,13 @@ async function runWeeklyReviewCycle(): Promise<void> {
   await runCycle('weekly-review')
   try {
     await runWeeklyReview()
+  } catch { /* non-critical */ }
+  // 경쟁사 자동 발견
+  try {
+    const discovery = await discoverNewCompetitors()
+    if (discovery.newCompetitors.length > 0) {
+      console.log(`[Agent Loop] Discovered ${discovery.newCompetitors.length} new competitors`)
+    }
   } catch { /* non-critical */ }
 }
 

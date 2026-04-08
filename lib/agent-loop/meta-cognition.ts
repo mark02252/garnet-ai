@@ -6,6 +6,7 @@
 import { prisma } from '@/lib/prisma'
 import { runLLM } from '@/lib/llm'
 import { getTopEpisodes } from '@/lib/memory/episodic-store'
+import { optimizeAllPrompts } from '@/lib/self-improve/prompt-optimizer'
 
 export type MetaCognitionReport = {
   decisionAccuracy: number
@@ -66,7 +67,11 @@ ${recentEpisodes.slice(0, 5).map(e => `- ${e.input.slice(0, 150)}`).join('\n')}
   }
 
   if (decisionAccuracy < 50 && decisionAccuracy > 0) {
-    improvementTriggers.push('\uD310\uB2E8 \uC815\uD655\uB3C4 50% \uBBF8\uB9CC \u2014 \uD504\uB86C\uD504\uD2B8 \uCD5C\uC801\uD654 \uAD8C\uC7A5')
+    improvementTriggers.push('판단 정확도 50% 미만 — 프롬프트 최적화 실행')
+    // 실제 Self-Improvement 트리거
+    try {
+      await optimizeAllPrompts()
+    } catch { /* non-critical */ }
   }
 
   return {

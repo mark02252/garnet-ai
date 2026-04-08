@@ -56,6 +56,18 @@ export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
     take: 10,
   })
 
+  // SNS — 오늘 예정된 게시물
+  const todayEnd = new Date(now)
+  todayEnd.setHours(23, 59, 59, 999)
+  const scheduledPosts = await prisma.snsScheduledPost.findMany({
+    where: {
+      scheduledAt: { gte: now, lte: todayEnd },
+      status: 'PENDING',
+    },
+    include: { draft: { select: { title: true, type: true } } },
+    orderBy: { scheduledAt: 'asc' },
+  })
+
   return {
     ga4: {
       sessions: kpiMap.get('sessions')?.currentValue ?? 0,
@@ -85,7 +97,13 @@ export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
     campaigns: {
       active: recentRuns.length,
       pendingApproval: pendingCount,
-      recentPerformance: [],
+      recentPerformance: [
+        ...scheduledPosts.slice(0, 3).map(sp => ({
+          id: sp.id,
+          name: `[예정 ${sp.scheduledAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}] ${sp.draft?.title || '게시물'}`,
+          score: 0,
+        })),
+      ],
     },
   }
 }
@@ -131,6 +149,34 @@ export async function detectOpenIssues(): Promise<OpenIssue[]> {
           summary: `Instagram 도달 이상 감지: ${a.value} (z=${a.zScore.toFixed(1)})`,
           detectedAt: a.date,
         })
+      }
+    }
+  } catch { /* non-critical */ }
+
+  // 팔로워 급변 탐지 — SnsAnalyticsSnapshot에서 최근 변화
+  try {
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    const snapshots = await prisma.snsAnalyticsSnapshot.findMany({
+      where: { date: { gte: sevenDaysAgo } },
+      orderBy: { date: 'asc' },
+      select: { date: true, followers: true },
+    })
+
+    if (snapshots.length >= 3) {
+      const latest = snapshots[snapshots.length - 1]
+      const previous = snapshots[snapshots.length - 2]
+      if (latest && previous && previous.followers > 0) {
+        const changePercent = ((latest.followers - previous.followers) / previous.followers) * 100
+        // 하루에 3% 이상 급감 시 이슈
+        if (changePercent < -3) {
+          issues.push({
+            id: `follower-drop-${latest.date.toISOString().split('T')[0]}`,
+            type: 'anomaly',
+            severity: changePercent < -10 ? 'critical' : 'high',
+            summary: `팔로워 급감: ${changePercent.toFixed(1)}% (${previous.followers} → ${latest.followers})`,
+            detectedAt: latest.date.toISOString(),
+          })
+        }
       }
     }
   } catch { /* non-critical */ }

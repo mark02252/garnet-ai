@@ -15,11 +15,32 @@ import { discoverNewCompetitors } from './competitor-discovery'
 import { buildDailyDigest } from '@/lib/intel/digest-builder'
 import { registerAgentLoopHandlers } from './handlers'
 import type { CycleType, CycleResult } from './types'
+import * as fs from 'fs'
+import * as path from 'path'
 
 const LOCK_TIMEOUT_MS = 5 * 60 * 1000 // 5분 타임아웃
+const STATE_PATH = path.join(process.cwd(), '.garnet-config', 'agent-loop-state.json')
 
 let crons: Cron[] = []
 let paused = false
+
+// ── 상태 영속화 (Next.js 멀티 Worker 대응) ──
+
+function persistState(running: boolean): void {
+  try {
+    const dir = path.dirname(STATE_PATH)
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
+    fs.writeFileSync(STATE_PATH, JSON.stringify({ running, updatedAt: new Date().toISOString() }))
+  } catch { /* non-critical */ }
+}
+
+function readPersistedState(): boolean {
+  try {
+    if (!fs.existsSync(STATE_PATH)) return false
+    const data = JSON.parse(fs.readFileSync(STATE_PATH, 'utf-8'))
+    return data.running === true
+  } catch { return false }
+}
 
 // ── 동시성 제어 ──
 
@@ -209,6 +230,7 @@ export function startAgentLoop(): void {
   crons.push(new Cron('0 7 * * *', () => { runDailyBriefing() }))
   crons.push(new Cron('0 9 * * 1', () => { runWeeklyReviewCycle() }))
 
+  persistState(true)
   console.log('[Agent Loop] Started — 4 schedules active')
 }
 
@@ -216,21 +238,26 @@ export function stopAgentLoop(): void {
   for (const c of crons) c.stop()
   crons = []
   paused = true
+  persistState(false)
   console.log('[Agent Loop] Stopped')
 }
 
 export function pauseAgentLoop(): void {
   paused = true
+  persistState(false)
   console.log('[Agent Loop] Paused')
 }
 
 export function resumeAgentLoop(): void {
   paused = false
+  persistState(true)
   console.log('[Agent Loop] Resumed')
 }
 
 export function isAgentLoopRunning(): boolean {
-  return crons.length > 0 && !paused
+  // in-memory 상태 우선, 없으면 파일에서 읽기 (다른 Worker에서 시작한 경우)
+  if (crons.length > 0 && !paused) return true
+  return readPersistedState()
 }
 
 export async function triggerCycle(cycleType: CycleType): Promise<CycleResult | null> {

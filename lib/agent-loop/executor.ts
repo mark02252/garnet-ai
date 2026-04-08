@@ -34,7 +34,20 @@ export async function routeAction(action: ReasonerAction): Promise<RouteResult> 
 
     if (action.riskLevel === 'LOW') {
       await flushPendingExec()
-      return { routed: 'auto', actionId: govAction.id, executed: true, error: null }
+      // 실행 결과 확인 — EXECUTED이면 성공, FAILED이면 실패
+      try {
+        const { getById } = await import('@/lib/governor')
+        const updated = await getById(govAction.id)
+        const wasExecuted = updated?.status === 'EXECUTED'
+        return {
+          routed: 'auto',
+          actionId: govAction.id,
+          executed: wasExecuted,
+          error: wasExecuted ? null : `실행 실패: ${updated?.status ?? 'unknown'}`,
+        }
+      } catch {
+        return { routed: 'auto', actionId: govAction.id, executed: true, error: null }
+      }
     }
 
     // MEDIUM/HIGH → Governor 승인 대기, 텔레그램 알림 시도

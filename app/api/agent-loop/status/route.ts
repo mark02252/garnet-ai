@@ -96,7 +96,7 @@ export async function GET() {
         scheduledAt: new Date(now.getTime() + 60 * 60 * 1000).toISOString(),
       },
       today: {
-        autoExecuted: todayCycles.reduce((s, c) => s + c.autoExecuted, 0),
+        autoExecuted: governorRecentRows.filter(r => r.status === 'EXECUTED').length,
         sentToGovernor: governorPendingRows.length,
         totalCycles: todayCycles.length,
       },

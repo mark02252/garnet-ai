@@ -5,6 +5,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { listPending } from '@/lib/governor'
+import { detectAnomalies } from '@/lib/analytics/forecast'
 import type { WorldModelSnapshot, OpenIssue } from './types'
 
 export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
@@ -104,6 +105,35 @@ export async function detectOpenIssues(): Promise<OpenIssue[]> {
       })
     }
   } catch { /* governor table may not exist yet */ }
+
+  // GA4 이상 탐지 — 최근 InstagramReachDaily에서 도달 급변 체크
+  try {
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    const reachData = await prisma.instagramReachDaily.findMany({
+      where: { metricDate: { gte: thirtyDaysAgo } },
+      orderBy: { metricDate: 'asc' },
+    })
+
+    if (reachData.length >= 7) {
+      const dates = reachData.map(r => r.metricDate.toISOString().split('T')[0])
+      const values = reachData.map(r => r.reach)
+      const anomalies = detectAnomalies(dates, values, 2.0)
+
+      // 최근 24시간 내 이상치만
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000)
+      const recentAnomalies = anomalies.filter(a => new Date(a.date) >= oneDayAgo)
+
+      for (const a of recentAnomalies) {
+        issues.push({
+          id: `anomaly-reach-${a.date}`,
+          type: 'anomaly',
+          severity: Math.abs(a.zScore) > 3 ? 'critical' : 'high',
+          summary: `Instagram 도달 이상 감지: ${a.value} (z=${a.zScore.toFixed(1)})`,
+          detectedAt: a.date,
+        })
+      }
+    }
+  } catch { /* non-critical */ }
 
   return issues
 }

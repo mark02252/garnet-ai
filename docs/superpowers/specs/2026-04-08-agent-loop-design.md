@@ -144,8 +144,8 @@ type TrendVector = {
 **갱신 전략:**
 - Scanner 결과가 들어올 때마다 snapshot 업데이트
 - 이전 snapshot과 비교하여 TrendVector 자동 계산
-- 파일 기반 영속화: `.garnet-config/world-model.json`
-- 히스토리: 최근 168개 스냅샷 유지 (7일 × 24시간)
+- DB `WorldModelSnapshot` 테이블이 source of truth. `.garnet-config/world-model.json`은 빠른 읽기 캐시
+- 히스토리 보관: `WHERE createdAt > NOW() - INTERVAL '7 days'` (시간 기반 정리, 카운트 아님)
 
 ### 2. Goal Manager (`goal-manager.ts`)
 
@@ -175,7 +175,7 @@ type GoalState = {
 **데이터 소스:**
 - GA4: `lib/analytics/` — 최신 CollectorRun 결과
 - SNS: `lib/sns/` — Instagram, Twitter 등 최신 메트릭
-- 경쟁사: `lib/collectors/competitor-monitor.ts` — 최신 변화 감지
+- 경쟁사: `lib/competitor-monitor.ts` — 최신 변화 감지
 - Governor: `lib/governor.ts` — 미결 승인 건
 - 캠페인: DB에서 활성 캠페인 + 최근 성과
 
@@ -234,11 +234,17 @@ type ReasonerOutput = {
 }
 ```
 
-**LLM 전략:** 기존 폴백 체인 (Gemma 4 → Groq → Gemini → OpenAI/Claude)
+**LLM 전략:** `lib/llm.ts`의 기존 폴백 체인 사용 (Gemma 4 우선, 런타임 설정에 따라 폴백)
 
 ### 5. Executor (`executor.ts`)
 
 LOW 리스크 액션을 자동 실행. 기존 `governor-executor.ts`의 handler 레지스트리 활용.
+
+**Governor 연동 방식:**
+Reasoner가 결정한 riskLevel을 신뢰하고 Governor scorer를 바이패스한다.
+- LOW → Executor가 직접 실행 (Governor 큐를 거치지 않음)
+- MEDIUM/HIGH → `governor.enqueue()` 호출하여 승인 큐에 등록. 기존 scorer는 실행하지 않고 Reasoner의 riskLevel을 그대로 사용.
+- `governor.ts`에 `enqueueWithRisk(kind, payload, riskLevel)` 헬퍼 추가.
 
 **자동 실행 대상:**
 - 분석 리포트 생성
@@ -261,7 +267,7 @@ LOW 리스크 액션을 자동 실행. 기존 `governor-executor.ts`의 handler 
 **저장 형식:**
 ```typescript
 {
-  category: 'agent_loop_decision',
+  category: 'agent_loop_decision',  // EpisodicEntry.category 유니온에 추가 필요
   input: JSON.stringify({
     worldModelSnapshot: ...,
     goalStates: ...,
@@ -273,6 +279,9 @@ LOW 리스크 액션을 자동 실행. 기존 `governor-executor.ts`의 handler 
   metadata: { cycleId, cycleType, goalAlignment }
 }
 ```
+
+**기존 타입 확장 필요:**
+`lib/memory/episodic-store.ts`의 `EpisodicEntry.category` 유니온에 `'agent_loop_decision'` 추가.
 
 ### 7. Meta-Cognition (`meta-cognition.ts`)
 
@@ -291,7 +300,9 @@ LOW 리스크 액션을 자동 실행. 기존 `governor-executor.ts`의 handler 
 
 ### 8. Notifier (`notifier.ts`)
 
-**Slack 웹훅:**
+기존 알림 인프라를 활용한다. 현재 코드베이스는 Telegram이 주요 알림 채널 (`lib/telegram`).
+
+**Telegram (기존 인프라 활용):**
 - CRITICAL/HIGH 이슈 즉시 발송
 - 일일 브리핑 요약 발송 (07:00)
 - Governor 승인 대기 알림
@@ -361,8 +372,8 @@ app/api/agent-loop/
 
 | 데이터 | 저장 위치 | 근거 |
 |--------|----------|------|
-| World Model (현재 상태) | `.garnet-config/world-model.json` | 빠른 읽기/쓰기, 재시작 복원 |
-| World Model 히스토리 | DB `WorldModelSnapshot` 테이블 | 168개 보관 (7일), 트렌드 계산 |
+| World Model (현재 상태) | DB `WorldModelSnapshot` (source of truth) + `.garnet-config/world-model.json` (캐시) | DB가 정본, 파일은 빠른 읽기용 캐시 |
+| World Model 히스토리 | DB `WorldModelSnapshot` 테이블 | 7일 보관 (시간 기반 정리) |
 | Goal 상태 | DB `GoalState` 테이블 | 진행률 추적 이력 |
 | 루프 실행 로그 | DB `AgentLoopCycle` 테이블 | Meta-Cognition 분석용 |
 | 판단 결과 | `EpisodicMemory` 테이블 (기존) | category: 'agent_loop_decision' |
@@ -375,35 +386,109 @@ model WorldModelSnapshot {
   data      String   // JSON
   cycleType String   // urgency-check | routine-cycle | daily-briefing | weekly-review
   createdAt DateTime @default(now())
+
+  @@index([cycleType])
+  @@index([createdAt])
 }
 
 model GoalState {
   id              String   @id @default(uuid())
   goalName        String
   metric          String
-  targetValue     String
-  currentValue    String?
+  targetValue     String   // 문자열 (e.g. "20%", "1000명"). Goal Manager가 파싱
+  currentValue    String?  // 문자열. 수치 비교는 Goal Manager에서 처리
   progressPercent Float    @default(0)
   onTrack         Boolean  @default(true)
   checkedAt       DateTime @default(now())
+
+  @@index([goalName])
 }
 
 model AgentLoopCycle {
   id            String   @id @default(uuid())
   cycleType     String
-  worldModelId  String?
+  worldModelId  String?  // WorldModelSnapshot.id 참조 (soft reference)
   actionsCount  Int      @default(0)
   autoExecuted  Int      @default(0)
   sentToGovernor Int     @default(0)
   durationMs    Int      @default(0)
   summary       String?
+  error         String?  // 실패 시 에러 메시지
   createdAt     DateTime @default(now())
+
+  @@index([cycleType])
+  @@index([createdAt])
 }
 ```
 
+**Goal Manager의 목표 파싱:**
+`StrategicGoal.target`은 문자열이므로 Goal Manager가 다음 전략으로 처리:
+- 숫자 포함 목표 (e.g. "20%", "1000명"): 정규식으로 수치 추출 → 진행률 계산
+- 정성적 목표 (e.g. "브랜드 인지도 향상"): LLM 기반 정성 평가 (0-100 점수)
+
+## 동시성 제어
+
+4개 주기 + 긴급 트리거가 동시에 발생할 수 있으므로 동시성 제어 필요.
+
+**전략: DB 기반 간단한 뮤텍스**
+```typescript
+// AgentLoopCycle 테이블에 status 필드 추가
+// 새 사이클 시작 전: status='running'인 최근 사이클이 있으면 스킵
+// 사이클 완료 시: status='completed' 또는 'failed'로 업데이트
+// 안전장치: 5분 이상 'running' 상태인 사이클은 타임아웃으로 간주
+```
+
+단, `urgency-check`은 경량(DB 조회만)이므로 뮤텍스 대상에서 제외. `routine-cycle`, `daily-briefing`, `weekly-review`만 상호 배제.
+
+## 부분 실패 처리
+
+파이프라인 단계별 실패 전략:
+| 단계 | 실패 시 동작 |
+|------|------------|
+| Scanner | World Model 갱신 스킵, 이전 상태 유지. AgentLoopCycle에 에러 기록 |
+| Reasoner (LLM 실패) | 사이클 종료, 다음 정규 스케줄에서 재시도 |
+| Executor (개별 액션) | 해당 액션만 실패 처리, 나머지 액션은 계속 실행 |
+| Evaluator | 실행 결과는 유효하나 에피소딕 메모리 저장만 실패. 경고 로그 기록 |
+| Meta-Cognition | 비핵심. 실패해도 루프 운영에 영향 없음. 다음 주 재시도 |
+
 ## 비기능 요구사항
 
-- **LLM:** 기존 폴백 체인 (Gemma 4 최대 활용). 별도 비용 관리 없음
+- **LLM:** `lib/llm.ts` 기존 폴백 체인 (Gemma 4 최대 활용). 별도 비용 관리 없음
 - **비용:** 초기 관리 없이 시작, 필요 시 추후 추가
-- **안정성:** 루프 실패 시 다음 정규 스케줄에서 자동 재시도. 에러 로그만 기록
+- **안정성:** 루프 실패 시 다음 정규 스케줄에서 자동 재시도. AgentLoopCycle에 에러 기록
 - **성능:** 1시간 루틴 사이클 목표 실행 시간 < 30초 (LLM 호출 포함)
+
+## API 응답 타입
+
+```typescript
+// GET /api/agent-loop/status
+type AgentLoopStatusResponse = {
+  status: 'running' | 'paused' | 'error' | 'idle'
+  lastCycle: {
+    id: string
+    cycleType: string
+    completedAt: string
+    actionsCount: number
+    summary: string | null
+  } | null
+  nextScheduled: {
+    cycleType: string
+    scheduledAt: string
+  }
+  today: {
+    autoExecuted: number
+    sentToGovernor: number
+    totalCycles: number
+  }
+  goals: Array<{
+    name: string
+    progressPercent: number
+    onTrack: boolean
+  }>
+  recentDecisions: Array<{
+    time: string
+    summary: string
+    status: 'executed' | 'pending_approval' | 'no_action'
+  }>
+}
+```

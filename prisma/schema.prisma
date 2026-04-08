@@ -772,3 +772,46 @@ model RecommendationLog {
   @@index([source])
   @@index([createdAt])
 }
+
+// ── Agent Loop ──
+
+model WorldModelSnapshot {
+  id        String   @id @default(cuid())
+  data      String   // JSON: WorldModel type
+  cycleType String   // urgency-check | routine-cycle | daily-briefing | weekly-review
+  createdAt DateTime @default(now())
+
+  @@index([cycleType])
+  @@index([createdAt])
+}
+
+model GoalState {
+  id              String   @id @default(cuid())
+  goalName        String
+  metric          String
+  targetValue     String
+  currentValue    String?
+  progressPercent Float    @default(0)
+  onTrack         Boolean  @default(true)
+  checkedAt       DateTime @default(now())
+
+  @@index([goalName])
+}
+
+model AgentLoopCycle {
+  id             String   @id @default(cuid())
+  cycleType      String
+  status         String   @default("running") // running | completed | failed
+  worldModelId   String?
+  actionsCount   Int      @default(0)
+  autoExecuted   Int      @default(0)
+  sentToGovernor Int      @default(0)
+  durationMs     Int      @default(0)
+  summary        String?
+  error          String?
+  createdAt      DateTime @default(now())
+
+  @@index([cycleType])
+  @@index([createdAt])
+  @@index([status])
+}

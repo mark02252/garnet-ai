@@ -1,0 +1,76 @@
+/**
+ * Agent Loop — Executor
+ * Reasoner 액션을 자동 실행(LOW) 또는 Governor 승인 큐(MEDIUM+)로 라우팅
+ */
+
+import { enqueueWithRisk } from '@/lib/governor'
+import { flushPendingExec } from '@/lib/governor-executor'
+import { isTelegramConfigured, sendApprovalRequest } from '@/lib/telegram'
+import type { ReasonerAction } from './types'
+
+export type RouteResult = {
+  routed: 'auto' | 'governor'
+  actionId: string | null
+  executed: boolean
+  error: string | null
+}
+
+export async function routeAction(action: ReasonerAction): Promise<RouteResult> {
+  try {
+    const govAction = await enqueueWithRisk({
+      kind: action.kind,
+      payload: {
+        ...action.payload,
+        _agentLoop: {
+          title: action.title,
+          rationale: action.rationale,
+          expectedEffect: action.expectedEffect,
+          goalAlignment: action.goalAlignment,
+        },
+      },
+      riskLevel: action.riskLevel,
+      riskReason: `Agent Loop Reasoner: ${action.rationale}`,
+    })
+
+    if (action.riskLevel === 'LOW') {
+      await flushPendingExec()
+      return { routed: 'auto', actionId: govAction.id, executed: true, error: null }
+    }
+
+    // MEDIUM/HIGH → Governor 승인 대기, 텔레그램 알림 시도
+    if (isTelegramConfigured()) {
+      await sendApprovalRequest(govAction).catch(() => {})
+    }
+
+    return { routed: 'governor', actionId: govAction.id, executed: false, error: null }
+  } catch (err) {
+    return {
+      routed: action.riskLevel === 'LOW' ? 'auto' : 'governor',
+      actionId: null,
+      executed: false,
+      error: String(err),
+    }
+  }
+}
+
+// Note: LOW risk actions auto-execute via flushPendingExec() which uses governor-executor's handler registry.
+// New action kinds need handlers registered via registerHandler() in governor-executor.ts.
+
+export async function routeActions(actions: ReasonerAction[]): Promise<{
+  autoExecuted: number
+  sentToGovernor: number
+  errors: string[]
+}> {
+  let autoExecuted = 0
+  let sentToGovernor = 0
+  const errors: string[] = []
+
+  for (const action of actions) {
+    const result = await routeAction(action)
+    if (result.routed === 'auto' && result.executed) autoExecuted++
+    if (result.routed === 'governor') sentToGovernor++
+    if (result.error) errors.push(`[${action.kind}] ${result.error}`)
+  }
+
+  return { autoExecuted, sentToGovernor, errors }
+}

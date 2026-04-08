@@ -95,6 +95,32 @@ export async function enqueue(input: {
   return action;
 }
 
+export async function enqueueWithRisk(input: {
+  kind: string;
+  payload: unknown;
+  riskLevel: GovernorRiskLevel;
+  riskReason: string;
+}): Promise<GovernorAction> {
+  await ensureGovernorTable();
+  const id = randomUUID();
+  const status: GovernorStatus = input.riskLevel === 'LOW' ? 'PENDING_EXEC' : 'PENDING_APPROVAL';
+  const now = new Date().toISOString();
+
+  await prisma.$executeRawUnsafe(
+    `INSERT INTO "GovernorAction" ("id","kind","payload","status","riskLevel","riskReason","createdAt","updatedAt")
+     VALUES ($1,$2,$3::jsonb,$4,$5,$6,$7,$8)`,
+    id, input.kind, JSON.stringify(input.payload), status,
+    input.riskLevel, input.riskReason, now, now,
+  );
+
+  return {
+    id, kind: input.kind, payload: input.payload, status,
+    riskLevel: input.riskLevel, riskReason: input.riskReason,
+    approvedBy: null, executedAt: null, deletedAt: null,
+    createdAt: now, updatedAt: now,
+  };
+}
+
 export async function listPending(
   statuses: GovernorStatus[] = ['PENDING_APPROVAL', 'PENDING_SCORE'],
   limit = 40

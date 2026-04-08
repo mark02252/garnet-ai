@@ -7,7 +7,7 @@
 import { prisma } from '@/lib/prisma'
 
 export type EpisodicEntry = {
-  category: 'flow_run' | 'sns_post' | 'campaign' | 'ai_report'
+  category: 'flow_run' | 'sns_post' | 'campaign' | 'ai_report' | 'agent_loop_decision'
   input: string
   output: string
   score?: number

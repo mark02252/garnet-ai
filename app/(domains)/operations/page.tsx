@@ -6,6 +6,7 @@ import { NotionPublishButton } from '@/components/notion-publish-button';
 import { SlackNotifyButton } from '@/components/slack-notify-button';
 import { RecommendationsPanel } from '@/components/recommendations-panel';
 import { GarnetGemLazy } from '@/components/garnet-gem-lazy';
+import { LoopStatusCard } from '@/components/agent-loop/loop-status-card';
 import { getCampaignRooms } from '@/lib/campaign-rooms';
 import { prisma } from '@/lib/prisma';
 import { listSeminarSessions, type SeminarSession } from '@/lib/seminar-storage';
@@ -452,6 +453,9 @@ export default async function OperationsPage() {
           </div>
         </div>
       </header>
+
+      {/* ═══ Agent Loop Status ═══ */}
+      <LoopStatusCard />
 
       {/* ═══ ZONE 2 — KPI Strip ═══ */}
       <div className="ops-kpi-grid">

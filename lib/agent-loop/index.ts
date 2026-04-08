@@ -128,7 +128,7 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     const goals = await evaluateGoals(updatedWm)
 
     // 5. Reasoner
-    const decision = await reason(updatedWm, goals)
+    let decision = await reason(updatedWm, goals)
 
     // 5.5. 복합 이슈 감지 시 자동 회의
     if (needsMeeting(updatedWm, goals) && cycleType === 'routine-cycle') {
@@ -136,6 +136,12 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
         await triggerAutoMeeting(updatedWm, goals)
       } catch { /* non-critical — don't block the cycle */ }
     }
+
+    // 5.7 자기비판 (MEDIUM/HIGH만)
+    try {
+      const { applyCritique } = await import('./reflective-critic')
+      decision = await applyCritique(decision)
+    } catch { /* non-critical */ }
 
     // 6. Executor
     let autoExecuted = 0
@@ -151,6 +157,15 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
 
     // 7. Evaluator
     await evaluateAndStore(cycleId, cycleType, updatedWm, decision, { autoExecuted, sentToGovernor, errors })
+
+    // 7.5 정보 부족 감지 → 질문
+    if (cycleType === 'routine-cycle') {
+      try {
+        const { detectInformationGaps, sendInquiries } = await import('./proactive-inquiry')
+        const gaps = await detectInformationGaps(updatedWm, goals)
+        if (gaps.length > 0) await sendInquiries(gaps)
+      } catch { /* non-critical */ }
+    }
 
     const result: CycleResult = {
       cycleId, cycleType,
@@ -235,16 +250,18 @@ async function runWeeklyReviewCycle(): Promise<void> {
     }
   } catch { /* non-critical */ }
   // Curiosity Engine: 교차 인사이트 + 능력 창발 + 자가 발전 탐색
+  let capabilities: Array<{ name: string; description: string; readiness: number; requiredDomains: string[] }> = []
   try {
     const { synthesizeCrossDomain } = await import('./cross-pollinator')
     const { detectEmergentCapabilities } = await import('./emergence-detector')
     const { scoutSelfImprovements } = await import('./self-improvement-scout')
 
-    const [synthesis, capabilities, selfImprove] = await Promise.all([
+    const [synthesis, caps, selfImprove] = await Promise.all([
       synthesizeCrossDomain(),
       detectEmergentCapabilities(),
       scoutSelfImprovements(),
     ])
+    capabilities = caps
 
     console.log(`[Agent Loop] Evolution: ${synthesis.newInsights} cross-insights, ${capabilities.length} capabilities detected, ${selfImprove.opportunities.length} self-improvements`)
   } catch { /* non-critical */ }
@@ -254,6 +271,18 @@ async function runWeeklyReviewCycle(): Promise<void> {
     const shift = await checkParadigmShift()
     if (shift.shiftsTriggered > 0) {
       console.log(`[Agent Loop] Paradigm shift in: ${shift.domains.join(', ')}`)
+    }
+  } catch { /* non-critical */ }
+  // Self Benchmark + Role Expansion
+  try {
+    const { computeBenchmark } = await import('./self-benchmark')
+    const benchmark = await computeBenchmark()
+    console.log(`[Agent Loop] Benchmark: ${benchmark.totalKnowledge} knowledge, strong: ${benchmark.strongDomains.join(',')}`)
+
+    // Emergence 결과가 있으면 역할 제안
+    const { proposeNewRoles } = await import('./role-manager')
+    if (capabilities.length > 0) {
+      await proposeNewRoles(capabilities)
     }
   } catch { /* non-critical */ }
 }

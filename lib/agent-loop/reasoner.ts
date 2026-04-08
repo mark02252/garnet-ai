@@ -50,6 +50,7 @@ export function buildReasonerPrompt(
   macroSummary?: string,
   causalSummary?: string,
   predictionSummary?: string,
+  rolesSummary?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -118,6 +119,9 @@ ${predictionSummary || '예측 데이터 없음'}
 ## 거시 환경 (시즌/이벤트)
 ${macroSummary || '현재 특별한 시즌 없음'}
 
+## Garnet의 활성 역할
+${rolesSummary || '기본 마케팅 분석가'}
+
 위 상황을 분석하고, 지금 해야 할 액션을 우선순위 순으로 JSON으로 제안하세요.`
 }
 
@@ -170,6 +174,12 @@ export async function reason(
     predictionSummary = await getPredictionSummary()
   } catch { /* goal-predictor not available yet */ }
 
+  let rolesSummary = ''
+  try {
+    const { getActiveRolesSummary } = await import('./role-manager')
+    rolesSummary = getActiveRolesSummary()
+  } catch { /* */ }
+
   const snapshotText = `GA4: 세션 ${worldModel.snapshot.ga4.sessions}, 이탈률 ${worldModel.snapshot.ga4.bounceRate}%, 전환율 ${worldModel.snapshot.ga4.conversionRate}%
 SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldModel.snapshot.sns.followerGrowth}
 경쟁사: 위협 수준 ${worldModel.snapshot.competitors.threatLevel}, 최근 ${worldModel.snapshot.competitors.recentMoves.length}건 변화
@@ -182,6 +192,7 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     macroSummary,
     causalSummary,
     predictionSummary,
+    rolesSummary,
   )
   const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
   let output = parseReasonerResponse(raw)

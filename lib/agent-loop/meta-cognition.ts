@@ -76,6 +76,12 @@ ${recentEpisodes.slice(0, 5).map(e => `- ${e.input.slice(0, 150)}`).join('\n')}
     } catch { /* non-critical */ }
   }
 
+  // Self Benchmark 요약
+  try {
+    const { getBenchmarkSummary } = await import('./self-benchmark')
+    insights.push(await getBenchmarkSummary())
+  } catch { /* non-critical */ }
+
   // Knowledge Store 정리 + 통계
   try {
     await pruneWeakKnowledge()

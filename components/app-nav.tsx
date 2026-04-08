@@ -310,7 +310,7 @@ function NavButton({ item, active }: { item: NavItem; active: boolean }) {
       className={[
         'relative flex h-9 w-full items-center gap-2.5 rounded-[8px] px-2.5 transition-colors',
         active
-          ? 'bg-[var(--accent-soft)] text-[var(--accent)] border border-[var(--surface-border)]'
+          ? 'bg-[var(--accent-soft)] text-[var(--accent-text)] border border-[var(--surface-border)]'
           : 'text-[var(--text-muted)] hover:bg-[var(--surface-sub)] hover:text-[var(--text-base)]'
       ].join(' ')}
     >
@@ -354,10 +354,10 @@ export function AppNav() {
       {/* Logo */}
       <Link
         href="/operations"
-        className="mb-3 flex h-9 items-center gap-2.5 px-2 text-[var(--accent)]"
+        className="mb-3 flex h-9 items-center gap-2.5 px-2 text-[var(--accent-text)]"
         title="Garnet"
       >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--accent-soft)] border border-[var(--surface-border)] text-[12px] font-bold text-[var(--accent)]">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] bg-[var(--accent-soft)] border border-[var(--surface-border)] text-[12px] font-bold text-[var(--accent-text)]">
           ◈
         </span>
         <span className="sidebar-label text-[13px] font-bold text-[var(--text-base)] tracking-[2px]">GARNET</span>

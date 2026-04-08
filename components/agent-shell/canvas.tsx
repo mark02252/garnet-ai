@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { useCanvasStore } from '@/lib/canvas-store';
 import { CanvasPanel } from './canvas-panel';
+import { GarnetGem } from '@/components/garnet-gem';
 
 function ArcReactorIdle() {
   return (
@@ -15,56 +16,12 @@ function ArcReactorIdle() {
         alignItems: 'center',
         justifyContent: 'center',
         flexDirection: 'column',
-        gap: 16,
+        gap: 8,
         pointerEvents: 'none',
       }}
     >
-      {/* Concentric rings */}
-      <div className="arc-reactor-breathe" style={{ position: 'relative', width: 112, height: 112 }}>
-        {/* Outer ring */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            borderRadius: '50%',
-            border: '1px solid rgba(0,191,166,0.15)',
-          }}
-        />
-        {/* Middle ring */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 16,
-            borderRadius: '50%',
-            border: '1px solid rgba(0,191,166,0.3)',
-            boxShadow: '0 0 12px rgba(0,191,166,0.2)',
-          }}
-        />
-        {/* Inner ring */}
-        <div
-          style={{
-            position: 'absolute',
-            inset: 32,
-            borderRadius: '50%',
-            border: '1px solid rgba(0,191,166,0.5)',
-            boxShadow: '0 0 8px rgba(0,191,166,0.4), inset 0 0 8px rgba(0,191,166,0.2)',
-          }}
-        />
-        {/* Center dot */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 8,
-            height: 8,
-            borderRadius: '50%',
-            background: '#00BFA6',
-            boxShadow: '0 0 12px #00BFA6',
-          }}
-        />
-      </div>
+      {/* 3D Garnet Crystal */}
+      <GarnetGem size={1.2} className="h-48 w-48" />
       <p
         style={{
           fontSize: 10,
@@ -119,7 +76,7 @@ export function Canvas() {
             cy="50%"
             r="42%"
             fill="none"
-            stroke="rgba(0,191,166,0.06)"
+            stroke="rgba(201,53,69,0.06)"
             strokeWidth="1"
           />
         </g>
@@ -129,7 +86,7 @@ export function Canvas() {
             cy="50%"
             r="27%"
             fill="none"
-            stroke="rgba(0,191,166,0.04)"
+            stroke="rgba(201,53,69,0.04)"
             strokeWidth="0.5"
           />
         </g>

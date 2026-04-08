@@ -26,13 +26,13 @@ export default function ShellLayout({ children }: { children: React.ReactNode })
         className="shell-mobile-fallback"
         style={{
           height: '100dvh', alignItems: 'center', justifyContent: 'center',
-          flexDirection: 'column', gap: 12, background: '#050810', color: '#6090a8',
+          flexDirection: 'column', gap: 12, background: '#06070C', color: '#7E8A98',
           fontSize: 14, textAlign: 'center', padding: 24
         }}
       >
         <span style={{ fontSize: 32 }}>◈</span>
         <p>Agent Shell은 데스크탑(1024px+)에서 사용하세요.</p>
-        <a href="/operations" style={{ color: '#00BFA6', textDecoration: 'none' }}>
+        <a href="/operations" style={{ color: '#C93545', textDecoration: 'none' }}>
           → 기존 화면으로 이동
         </a>
       </div>

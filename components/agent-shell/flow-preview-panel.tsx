@@ -250,7 +250,7 @@ export default function FlowPreviewPanel({ data, onClose }: Props) {
             disabled={saving}
             style={{
               flex: 1, padding: '6px 0', borderRadius: 6,
-              background: 'var(--accent)', color: '#00201a', border: 'none',
+              background: 'var(--accent)', color: '#ffffff', border: 'none',
               fontSize: 11, fontWeight: 600, cursor: 'pointer', opacity: saving ? 0.5 : 1,
             }}
           >
@@ -284,7 +284,7 @@ export default function FlowPreviewPanel({ data, onClose }: Props) {
         <div style={{ padding: '0 8px' }}>
           <a
             href={`/runs/${completedRunId}/report`}
-            style={{ fontSize: 11, color: '#00BFA6', textDecoration: 'underline' }}
+            style={{ fontSize: 11, color: '#C93545', textDecoration: 'underline' }}
           >
             결과 보기 →
           </a>

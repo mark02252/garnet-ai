@@ -74,7 +74,7 @@ export function CommandBar() {
         justifyContent: 'center',
         background: 'rgba(0,5,15,0.9)',
         backdropFilter: 'blur(20px)',
-        borderTop: '1px solid rgba(0,191,166,0.1)',
+        borderTop: '1px solid rgba(201,53,69,0.1)',
         padding: '0 0 8px',
       }}
     >
@@ -109,7 +109,7 @@ export function CommandBar() {
               position: 'absolute',
               inset: 0,
               borderRadius: 12,
-              background: 'rgba(0,191,166,0.15)',
+              background: 'rgba(201,53,69,0.15)',
               pointerEvents: 'none',
             }}
           />
@@ -121,7 +121,7 @@ export function CommandBar() {
                 width: 16,
                 height: 16,
                 borderRadius: '50%',
-                border: '2px solid rgba(0,191,166,0.15)',
+                border: '2px solid rgba(201,53,69,0.15)',
                 borderTopColor: 'var(--shell-accent)',
                 animation: 'shell-spin 0.8s linear infinite',
                 flexShrink: 0,
@@ -186,8 +186,8 @@ function Chip({ label, onClick }: { label: string; onClick?: () => void }) {
         fontSize: 11,
         padding: '3px 12px',
         borderRadius: 20,
-        border: `1px solid ${hovered ? 'rgba(0,191,166,0.4)' : 'rgba(0,191,166,0.15)'}`,
-        background: hovered ? 'rgba(0,191,166,0.1)' : 'rgba(0,191,166,0.05)',
+        border: `1px solid ${hovered ? 'rgba(201,53,69,0.4)' : 'rgba(201,53,69,0.15)'}`,
+        background: hovered ? 'rgba(201,53,69,0.1)' : 'rgba(201,53,69,0.05)',
         color: hovered ? 'var(--shell-text-primary)' : 'var(--shell-text-muted)',
         cursor: onClick ? 'pointer' : 'default',
         transition: 'all 0.15s',

@@ -48,8 +48,8 @@ export function SystemBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         overflow: 'hidden',
         background: 'rgba(0,8,20,0.9)',
         backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(0,191,166,0.2)',
-        boxShadow: '0 1px 0 rgba(0,191,166,0.1), 0 4px 20px rgba(0,191,166,0.05)',
+        borderBottom: '1px solid rgba(201,53,69,0.2)',
+        boxShadow: '0 1px 0 rgba(201,53,69,0.1), 0 4px 20px rgba(201,53,69,0.05)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -64,7 +64,7 @@ export function SystemBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
           left: 0,
           right: 0,
           height: 2,
-          background: 'linear-gradient(90deg, transparent, rgba(0,191,166,0.6), transparent)',
+          background: 'linear-gradient(90deg, transparent, rgba(201,53,69,0.6), transparent)',
           pointerEvents: 'none',
         }}
       />
@@ -82,7 +82,7 @@ export function SystemBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         >
           ◈ GARNET
         </span>
-        <div style={{ width: 1, height: 16, background: 'rgba(0,191,166,0.2)' }} />
+        <div style={{ width: 1, height: 16, background: 'rgba(201,53,69,0.2)' }} />
         <span
           style={{
             fontSize: 11,
@@ -121,19 +121,19 @@ export function SystemBar({ onOpenPalette }: { onOpenPalette?: () => void }) {
         style={{
           fontSize: 11,
           color: 'var(--shell-text-muted)',
-          background: 'rgba(0,191,166,0.05)',
-          border: '1px solid rgba(0,191,166,0.25)',
+          background: 'rgba(201,53,69,0.05)',
+          border: '1px solid rgba(201,53,69,0.25)',
           borderRadius: 6,
           padding: '2px 8px',
           cursor: 'pointer',
           transition: 'background 0.15s, color 0.15s',
         }}
         onMouseEnter={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,191,166,0.1)';
+          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(201,53,69,0.1)';
           (e.currentTarget as HTMLButtonElement).style.color = 'var(--shell-text-primary)';
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(0,191,166,0.05)';
+          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(201,53,69,0.05)';
           (e.currentTarget as HTMLButtonElement).style.color = 'var(--shell-text-muted)';
         }}
       >

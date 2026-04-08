@@ -6,10 +6,18 @@ import * as path from 'path'
 
 function checkRunning(): boolean {
   try {
-    const statePath = path.join(process.cwd(), '.garnet-config', 'agent-loop-state.json')
-    if (!fs.existsSync(statePath)) return false
-    const data = JSON.parse(fs.readFileSync(statePath, 'utf-8'))
-    return data.running === true
+    // process.cwd()가 다를 수 있으므로 여러 경로 시도
+    const candidates = [
+      path.join(process.cwd(), '.garnet-config', 'agent-loop-state.json'),
+      path.resolve('.garnet-config', 'agent-loop-state.json'),
+    ]
+    for (const p of candidates) {
+      if (fs.existsSync(p)) {
+        const data = JSON.parse(fs.readFileSync(p, 'utf-8'))
+        return data.running === true
+      }
+    }
+    return false
   } catch { return false }
 }
 
@@ -76,7 +84,7 @@ export async function GET() {
 
     return NextResponse.json(response)
   } catch (err) {
-    // DB 에러 등 — 빈 응답 반환
+    console.error('[agent-loop/status] Error:', err)
     return NextResponse.json({
       status: 'idle',
       lastCycle: null,

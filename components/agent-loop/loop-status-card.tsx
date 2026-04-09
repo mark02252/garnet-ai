@@ -60,18 +60,28 @@ export function LoopStatusCard() {
     } catch { /* ignore */ }
   }
 
-  async function handleApproval(id: string, decision: 'APPROVED' | 'REJECTED') {
+  async function handleDecision(id: string, decision: 'APPROVED' | 'REJECTED' | 'DEFERRED', reason?: string) {
     try {
       await fetch(`/api/governor/${id}/decide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision }),
+        body: JSON.stringify({ decision, reason }),
       })
-      // 상태 갱신
+      setDeferringId(null)
       const r = await fetch('/api/agent-loop/status')
       if (r.ok) setData(await r.json())
     } catch { /* ignore */ }
   }
+
+  const [deferringId, setDeferringId] = useState<string | null>(null)
+
+  const deferReasons = [
+    { key: 'no_budget', label: '예산 부족' },
+    { key: 'prerequisite', label: '선행 작업 필요' },
+    { key: 'too_early', label: '시기상조' },
+    { key: 'external_dependency', label: '외부 의존' },
+    { key: 'good_idea_later', label: '나중에 참고' },
+  ]
 
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
@@ -136,16 +146,39 @@ export function LoopStatusCard() {
                 {a.rationale && (
                   <p className="text-[11px] text-zinc-500 leading-relaxed">{a.rationale.slice(0, 150)}{a.rationale.length > 150 ? '...' : ''}</p>
                 )}
-                <div className="flex gap-2 mt-2">
-                  <button
-                    onClick={() => handleApproval(a.id, 'APPROVED')}
-                    className="text-[10px] px-2 py-1 rounded bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
-                  >승인</button>
-                  <button
-                    onClick={() => handleApproval(a.id, 'REJECTED')}
-                    className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition"
-                  >거절</button>
-                </div>
+                {deferringId === a.id ? (
+                  <div className="mt-2">
+                    <p className="text-[10px] text-zinc-500 mb-1.5">보류 이유:</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {deferReasons.map(r => (
+                        <button
+                          key={r.key}
+                          onClick={() => handleDecision(a.id, 'DEFERRED', r.key)}
+                          className="text-[10px] px-2 py-1 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition"
+                        >{r.label}</button>
+                      ))}
+                      <button
+                        onClick={() => setDeferringId(null)}
+                        className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-600 hover:text-zinc-400 transition"
+                      >취소</button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex gap-2 mt-2">
+                    <button
+                      onClick={() => handleDecision(a.id, 'APPROVED')}
+                      className="text-[10px] px-2 py-1 rounded bg-green-900/40 text-green-400 hover:bg-green-900/60 transition"
+                    >승인</button>
+                    <button
+                      onClick={() => setDeferringId(a.id)}
+                      className="text-[10px] px-2 py-1 rounded bg-blue-900/30 text-blue-400 hover:bg-blue-900/50 transition"
+                    >보류</button>
+                    <button
+                      onClick={() => handleDecision(a.id, 'REJECTED')}
+                      className="text-[10px] px-2 py-1 rounded bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition"
+                    >거절</button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

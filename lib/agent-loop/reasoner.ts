@@ -51,6 +51,7 @@ export function buildReasonerPrompt(
   causalSummary?: string,
   predictionSummary?: string,
   rolesSummary?: string,
+  semanticContext?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -109,6 +110,9 @@ ${knowledge.effective.length > 0
 ${knowledge.antiPatterns.length > 0
   ? knowledge.antiPatterns.map(k => `- [${k.domain}] ${k.pattern} → ${k.observation.split('\n')[0]}`).join('\n')
   : '- 없음'}` : ''}
+${semanticContext ? `
+## 현재 상황과 유사한 과거 지식
+${semanticContext}` : ''}
 
 ## 축적된 인과 관계
 ${causalSummary || '아직 축적된 인과 관계 없음'}
@@ -185,6 +189,26 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
 경쟁사: 위협 수준 ${worldModel.snapshot.competitors.threatLevel}, 최근 ${worldModel.snapshot.competitors.recentMoves.length}건 변화
 캠페인: 활성 ${worldModel.snapshot.campaigns.active}건, 승인대기 ${worldModel.snapshot.campaigns.pendingApproval}건`
 
+  // Semantic knowledge search for current situation
+  let semanticContext = ''
+  try {
+    const { searchKnowledgeSemantic } = await import('./knowledge-store')
+    const relevant = await searchKnowledgeSemantic(
+      `${worldModel.snapshot.ga4.sessions} sessions, ${worldModel.snapshot.sns.engagement}% engagement, ${worldModel.snapshot.competitors.threatLevel} threat`,
+      { limit: 5, minSimilarity: 0.4 },
+    )
+    if (relevant.length > 0) {
+      semanticContext = relevant
+        .map(
+          (r) =>
+            `- [${r.domain}, 유사도 ${(r.similarity * 100).toFixed(0)}%] ${r.pattern} → ${r.observation.split('\n')[0]}`,
+        )
+        .join('\n')
+    }
+  } catch {
+    /* Ollama not running */
+  }
+
   const userPrompt = buildReasonerPrompt(
     worldModel, goals, businessContext,
     pastEpisodes.map(e => ({ input: e.input, output: e.output, score: e.score })),
@@ -193,6 +217,7 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     causalSummary,
     predictionSummary,
     rolesSummary,
+    semanticContext,
   )
   const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
   let output = parseReasonerResponse(raw)

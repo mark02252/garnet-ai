@@ -828,6 +828,7 @@ model KnowledgeEntry {
   observedCount Int      @default(1)
   source        String   // "MONOPLEX 2026-Q2", "industry_article", etc
   isAntiPattern Boolean  @default(false)
+  embedding     String?  // JSON array of 768 floats (nomic-embed-text via Ollama)
   relatedIds    String   @default("[]") // JSON
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt

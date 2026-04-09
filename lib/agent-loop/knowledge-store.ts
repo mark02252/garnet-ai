@@ -35,6 +35,20 @@ export async function addKnowledge(entry: NewKnowledge): Promise<string> {
         source: existing.source.includes(entry.source) ? existing.source : `${existing.source}, ${entry.source}`,
       },
     })
+
+    // Generate and store embedding for merged entry
+    try {
+      const { getEmbedding } = await import('./embeddings')
+      const text = `${entry.pattern} ${entry.observation}`
+      const embedding = await getEmbedding(text)
+      if (embedding) {
+        await prisma.knowledgeEntry.update({
+          where: { id: existing.id },
+          data: { embedding: JSON.stringify(embedding) },
+        })
+      }
+    } catch { /* Ollama may not be running */ }
+
     return existing.id
   }
 
@@ -50,6 +64,20 @@ export async function addKnowledge(entry: NewKnowledge): Promise<string> {
       isAntiPattern: entry.isAntiPattern ?? false,
     },
   })
+
+  // Generate and store embedding for new entry
+  try {
+    const { getEmbedding } = await import('./embeddings')
+    const text = `${entry.pattern} ${entry.observation}`
+    const embedding = await getEmbedding(text)
+    if (embedding) {
+      await prisma.knowledgeEntry.update({
+        where: { id: created.id },
+        data: { embedding: JSON.stringify(embedding) },
+      })
+    }
+  } catch { /* Ollama may not be running */ }
+
   return created.id
 }
 
@@ -140,4 +168,128 @@ export async function pruneWeakKnowledge(): Promise<number> {
     where: { confidence: { lt: 0.3 }, observedCount: 1, createdAt: { lt: cutoff } },
   })
   return result.count
+}
+
+/** 의미 기반 지식 검색 (벡터 유사도) */
+export async function searchKnowledgeSemantic(
+  query: string,
+  options?: {
+    domain?: string
+    limit?: number
+    minSimilarity?: number
+  },
+): Promise<
+  Array<{
+    id: string
+    domain: string
+    level: number
+    pattern: string
+    observation: string
+    confidence: number
+    isAntiPattern: boolean
+    similarity: number
+  }>
+> {
+  const { getEmbedding, cosineSimilarity } = await import('./embeddings')
+  const limit = options?.limit ?? 10
+  const minSim = options?.minSimilarity ?? 0.3
+
+  const queryEmbedding = await getEmbedding(query)
+  if (!queryEmbedding) {
+    // Fallback to keyword search if Ollama unavailable
+    return fallbackKeywordSearch(query, options?.domain, limit)
+  }
+
+  // Get all entries with embeddings
+  const where: Record<string, unknown> = { embedding: { not: null } }
+  if (options?.domain) where.domain = options.domain
+
+  const entries = await prisma.knowledgeEntry.findMany({
+    where,
+    select: {
+      id: true,
+      domain: true,
+      level: true,
+      pattern: true,
+      observation: true,
+      confidence: true,
+      isAntiPattern: true,
+      embedding: true,
+    },
+  })
+
+  // Calculate similarities
+  const scored = entries
+    .map((e) => {
+      const emb = JSON.parse(e.embedding!) as number[]
+      const similarity = cosineSimilarity(queryEmbedding, emb)
+      return { ...e, embedding: undefined, similarity }
+    })
+    .filter((e) => e.similarity >= minSim)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit)
+
+  return scored
+}
+
+/** Keyword fallback when Ollama is unavailable */
+async function fallbackKeywordSearch(query: string, domain?: string, limit = 10) {
+  const keywords = query
+    .split(/\s+/)
+    .filter((w) => w.length > 1)
+    .slice(0, 5)
+  const where: Record<string, unknown> = {}
+  if (domain) where.domain = domain
+
+  const entries = await prisma.knowledgeEntry.findMany({
+    where,
+    orderBy: { confidence: 'desc' },
+    take: limit * 3,
+  })
+
+  return entries
+    .map((e) => {
+      const text = `${e.pattern} ${e.observation}`.toLowerCase()
+      const matchCount = keywords.filter((k) => text.includes(k.toLowerCase())).length
+      return {
+        id: e.id,
+        domain: e.domain,
+        level: e.level,
+        pattern: e.pattern,
+        observation: e.observation,
+        confidence: e.confidence,
+        isAntiPattern: e.isAntiPattern,
+        similarity: keywords.length > 0 ? matchCount / keywords.length : 0,
+      }
+    })
+    .filter((e) => e.similarity > 0)
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, limit)
+}
+
+/** 기존 지식에 임베딩 추가 (1회 실행용) */
+export async function backfillEmbeddings(): Promise<{ total: number; embedded: number }> {
+  const { getEmbedding } = await import('./embeddings')
+
+  const entries = await prisma.knowledgeEntry.findMany({
+    where: { embedding: null },
+    select: { id: true, pattern: true, observation: true },
+  })
+
+  let embedded = 0
+  for (const e of entries) {
+    const text = `${e.pattern} ${e.observation}`
+    const emb = await getEmbedding(text)
+    if (emb) {
+      await prisma.knowledgeEntry.update({
+        where: { id: e.id },
+        data: { embedding: JSON.stringify(emb) },
+      })
+      embedded++
+    }
+    // Rate limit: 100ms between calls
+    await new Promise((r) => setTimeout(r, 100))
+  }
+
+  return { total: entries.length, embedded }
 }

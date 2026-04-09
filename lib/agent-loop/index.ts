@@ -331,6 +331,15 @@ async function runWeeklyReviewCycle(): Promise<void> {
       }).catch(() => {})
     }
   } catch { /* non-critical */ }
+
+  // Context Evolution — 비즈니스 목표 자동 진화
+  try {
+    const { evolveContext } = await import('./context-evolver')
+    const evolution = await evolveContext()
+    if (evolution.proposals.length > 0) {
+      console.log(`[Agent Loop] Context evolution: ${evolution.proposals.length} proposals`)
+    }
+  } catch { /* non-critical */ }
 }
 
 // ── 스케줄 관리 ──

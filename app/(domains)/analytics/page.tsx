@@ -95,6 +95,7 @@ type ChartPoint = {
   bandBase: number | null;
   bandWidth: number | null;
   isAnomaly: boolean;
+  isPartial?: boolean;
 };
 
 type ForecastData = {
@@ -263,6 +264,27 @@ const DEMO_USER_TYPE: NewVsReturning[] = [
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+/** 오늘 날짜를 YYYYMMDD 형태로 반환 (KST 기준) */
+function getTodayYMD(): string {
+  const now = new Date();
+  const kst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const y = kst.getFullYear();
+  const m = String(kst.getMonth() + 1).padStart(2, '0');
+  const d = String(kst.getDate()).padStart(2, '0');
+  return `${y}${m}${d}`;
+}
+
+/** YYYYMMDD 또는 YYYY-MM-DD 문자열이 오늘인지 판별 */
+function isToday(dateStr: string): boolean {
+  const normalized = dateStr.replace(/-/g, '');
+  return normalized === getTodayYMD();
+}
+
+/** 당일 데이터를 제외한 "완료된 날짜"만 반환 */
+function excludeToday<T extends { date: string }>(data: T[]): T[] {
+  return data.filter(d => !isToday(d.date));
+}
+
 function fmtDate(dateStr: string): string {
   const m = dateStr.slice(4, 6);
   const d = dateStr.slice(6, 8);
@@ -405,36 +427,52 @@ function ChartTooltip({
   pctMode,
 }: {
   active?: boolean;
-  payload?: Array<{ name: string; value: number; color: string }>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: Array<{ name: string; value: number; color: string; payload?: any }>;
   label?: string;
   pctMode?: boolean;
 }) {
   if (!active || !payload?.length) return null;
+  const isPartial = payload[0]?.payload?.isPartial;
+  // "수집 중" 키에서 "(수집 중)" 접미사 제거하여 표시
+  const cleanName = (name: string) => name.replace(/ \(수집 중\)$/, '');
+  // null 값(당일 분리 키의 반대편)은 숨김
+  const visiblePayload = payload.filter(p => p.value != null);
   return (
     <div
       style={{
         background: 'rgba(8,10,20,0.94)',
-        border: '1px solid rgba(201,53,69,0.14)',
+        border: `1px solid ${isPartial ? 'rgba(255,170,0,0.25)' : 'rgba(201,53,69,0.14)'}`,
         borderRadius: 8,
         padding: '8px 12px',
         boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
         fontSize: 12,
       }}
     >
-      <p style={{ color: '#7E8A98', marginBottom: 6, fontWeight: 600 }}>{label}</p>
-      {payload.map((p) => (
+      <p style={{ color: '#7E8A98', marginBottom: 6, fontWeight: 600 }}>
+        {label}
+        {isPartial && (
+          <span style={{ color: '#ffaa00', fontSize: 10, marginLeft: 6, fontWeight: 500 }}>수집 중</span>
+        )}
+      </p>
+      {visiblePayload.map((p) => (
         <div key={p.name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
           <span
-            style={{ width: 8, height: 8, borderRadius: 2, background: p.color, flexShrink: 0 }}
+            style={{ width: 8, height: 8, borderRadius: 2, background: isPartial ? '#ffaa00' : p.color, flexShrink: 0 }}
           />
-          <span style={{ color: '#7E8A98' }}>{p.name}</span>
-          <span style={{ fontWeight: 700, color: '#F0ECE8', marginLeft: 'auto', paddingLeft: 12 }}>
+          <span style={{ color: '#7E8A98' }}>{cleanName(p.name)}</span>
+          <span style={{ fontWeight: 700, color: isPartial ? '#ffaa00' : '#F0ECE8', marginLeft: 'auto', paddingLeft: 12 }}>
             {pctMode
               ? `${(typeof p.value === 'number' ? p.value : 0).toFixed(1)}%`
               : (typeof p.value === 'number' ? p.value : 0).toLocaleString('ko-KR')}
           </span>
         </div>
       ))}
+      {isPartial && (
+        <p style={{ color: '#7E8A98', fontSize: 10, marginTop: 4, fontStyle: 'italic' }}>
+          하루가 끝나기 전까지 중간 집계입니다
+        </p>
+      )}
     </div>
   );
 }
@@ -448,10 +486,20 @@ type DotProps = {
 };
 
 function CustomAnomalyDot({ cx, cy, payload }: DotProps) {
-  if (!payload?.isAnomaly || cx == null || cy == null) return null;
-  return (
-    <circle cx={cx} cy={cy} r={5} fill="#ff4444" stroke="#ff0000" strokeWidth={2} />
-  );
+  if (cx == null || cy == null || !payload) return null;
+  // 당일 수집 중 — 빈 원으로 표시
+  if (payload.isPartial) {
+    return (
+      <circle cx={cx} cy={cy} r={5} fill="none" stroke="#ffaa00" strokeWidth={2} strokeDasharray="3 2" />
+    );
+  }
+  // 이상치 — 빨간 점
+  if (payload.isAnomaly) {
+    return (
+      <circle cx={cx} cy={cy} r={5} fill="#ff4444" stroke="#ff0000" strokeWidth={2} />
+    );
+  }
+  return null;
 }
 
 // recharts content callback receives active/payload/label separately; typed inline.
@@ -476,15 +524,23 @@ function ForecastTooltip({
         borderRadius: 6,
       }}
     >
-      <p style={{ color: '#B0B8C4', marginBottom: 4 }}>{label}</p>
+      <p style={{ color: '#B0B8C4', marginBottom: 4 }}>
+        {label}
+        {point?.isPartial && (
+          <span style={{ color: '#ffaa00', fontSize: 10, marginLeft: 6 }}>수집 중</span>
+        )}
+      </p>
       {point?.activeUsers != null && (
-        <p style={{ color: '#F0ECE8' }}>방문자: {point.activeUsers.toLocaleString('ko-KR')}명</p>
+        <p style={{ color: point?.isPartial ? '#ffaa00' : '#F0ECE8' }}>
+          방문자: {point.activeUsers.toLocaleString('ko-KR')}명
+          {point?.isPartial && <span style={{ fontSize: 10, color: '#7E8A98', marginLeft: 4 }}>(중간 집계)</span>}
+        </p>
       )}
       {point?.forecastValue != null && (
         <p style={{ color: '#E8707E' }}>예측: {point.forecastValue.toLocaleString('ko-KR')}명</p>
       )}
       {point?.isAnomaly && (
-        <p style={{ color: '#ff4444' }}>⚠️ 이상 트래픽 감지</p>
+        <p style={{ color: '#ff4444' }}>이상 트래픽 감지</p>
       )}
     </div>
   );
@@ -650,7 +706,13 @@ export default function AnalyticsPage() {
       const res = await fetch('/api/ga4/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ startDate: dateRange, endDate: 'today', traffic, channels }),
+        body: JSON.stringify({
+          startDate: dateRange,
+          endDate: 'today',
+          traffic,
+          channels,
+          todayIsPartial: true,
+        }),
       });
       const data = await res.json();
       if (data.insight) setInsight(data.insight);
@@ -658,26 +720,36 @@ export default function AnalyticsPage() {
     finally { setAnalyzing(false); }
   }
 
-  // ── KPI aggregates ────────────────────────────────────────────────────
-  const totalUsers = traffic.reduce((s, d) => s + d.activeUsers, 0);
-  const totalSessions = traffic.reduce((s, d) => s + d.sessions, 0);
-  const totalPageViews = traffic.reduce((s, d) => s + d.screenPageViews, 0);
-  const avgEngagement = calcEngagementAvg(engagement) * 100;
+  // ── KPI aggregates (당일 미완성 데이터 제외) ──────────────────────────
+  const completedTraffic = excludeToday(traffic);
+  const completedEngagement = excludeToday(engagement);
+  const hasTodayData = traffic.length > completedTraffic.length;
 
-  const wowUsers = calcWoW(traffic, 'activeUsers');
-  const wowSessions = calcWoW(traffic, 'sessions');
-  const wowPageViews = calcWoW(traffic, 'screenPageViews');
-  const wowEngagement = calcEngagementWoW(engagement) * 100;
+  const totalUsers = completedTraffic.reduce((s, d) => s + d.activeUsers, 0);
+  const totalSessions = completedTraffic.reduce((s, d) => s + d.sessions, 0);
+  const totalPageViews = completedTraffic.reduce((s, d) => s + d.screenPageViews, 0);
+  const avgEngagement = calcEngagementAvg(completedEngagement) * 100;
+
+  const wowUsers = calcWoW(completedTraffic, 'activeUsers');
+  const wowSessions = calcWoW(completedTraffic, 'sessions');
+  const wowPageViews = calcWoW(completedTraffic, 'screenPageViews');
+  const wowEngagement = calcEngagementWoW(completedEngagement) * 100;
 
   // sparkline data (trim to last 14 for clarity)
   const sparkData = traffic.slice(-14);
 
-  // chart data
-  const trafficChartData = traffic.map(d => ({
-    date: fmtDate(d.date),
-    '활성 사용자': d.activeUsers,
-    '세션': d.sessions,
-  }));
+  // chart data — 당일 데이터는 별도 키로 분리하여 점선 표시
+  const trafficChartData = traffic.map(d => {
+    const partial = isToday(d.date);
+    return {
+      date: fmtDate(d.date),
+      '활성 사용자': partial ? null : d.activeUsers,
+      '세션': partial ? null : d.sessions,
+      '활성 사용자 (수집 중)': partial ? d.activeUsers : null,
+      '세션 (수집 중)': partial ? d.sessions : null,
+      isPartial: partial,
+    };
+  });
 
   const todayStr = new Date().toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
 
@@ -690,7 +762,8 @@ export default function AnalyticsPage() {
           forecastValue: null,
           bandBase: null,
           bandWidth: null,
-          isAnomaly: anomalyDates.has(h.date),
+          isAnomaly: isToday(h.date) ? false : anomalyDates.has(h.date),
+          isPartial: isToday(h.date),
         }));
         const forecastPoints: ChartPoint[] = forecastData.forecast.map((f) => ({
           date: f.date,
@@ -942,6 +1015,30 @@ export default function AnalyticsPage() {
             @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
           `}</style>
 
+          {/* ── 당일 수집 중 안내 ── */}
+          {hasTodayData && !isDemo && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                background: 'rgba(255,170,0,0.06)',
+                border: '1px solid rgba(255,170,0,0.15)',
+                borderRadius: 10,
+                padding: '8px 14px',
+                marginBottom: 16,
+                fontSize: 12,
+                color: '#7E8A98',
+              }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ffaa00', flexShrink: 0, animation: 'pulse 2s infinite' }} />
+              <span>
+                <strong style={{ color: '#ffaa00' }}>오늘 데이터는 현재 수집 중</strong>이므로 KPI·WoW 비교에서 제외됩니다.
+                차트에서 <span style={{ color: '#ffaa00' }}>노란 점선</span>으로 표시됩니다.
+              </span>
+            </div>
+          )}
+
           {/* ════════════════════════════════════════════════════════
               Section 1: KPI Cards
           ════════════════════════════════════════════════════════ */}
@@ -1113,6 +1210,10 @@ export default function AnalyticsPage() {
                       <stop offset="5%" stopColor="#C93545" stopOpacity={0.25} />
                       <stop offset="95%" stopColor="#C93545" stopOpacity={0.01} />
                     </linearGradient>
+                    <linearGradient id="gradUsersPartial" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#ffaa00" stopOpacity={0.15} />
+                      <stop offset="95%" stopColor="#ffaa00" stopOpacity={0.01} />
+                    </linearGradient>
                   </defs>
                   <XAxis
                     dataKey="date"
@@ -1129,6 +1230,7 @@ export default function AnalyticsPage() {
                     width={36}
                   />
                   <Tooltip content={<ChartTooltip />} />
+                  {/* 완료된 날짜 데이터 — 실선 */}
                   <Area
                     type="monotone"
                     dataKey="활성 사용자"
@@ -1137,7 +1239,22 @@ export default function AnalyticsPage() {
                     fill="url(#gradUsers)"
                     dot={false}
                     activeDot={{ r: 4, strokeWidth: 0, fill: '#C93545' }}
+                    connectNulls={false}
                   />
+                  {/* 당일 수집 중 데이터 — 점선 + 노란 계열 */}
+                  {hasTodayData && (
+                    <Area
+                      type="monotone"
+                      dataKey="활성 사용자 (수집 중)"
+                      stroke="#ffaa00"
+                      strokeWidth={2}
+                      strokeDasharray="5 3"
+                      fill="url(#gradUsersPartial)"
+                      dot={{ r: 4, fill: 'none', stroke: '#ffaa00', strokeWidth: 2, strokeDasharray: '3 2' }}
+                      connectNulls={false}
+                      isAnimationActive={false}
+                    />
+                  )}
                 </AreaChart>
               )}
             </ResponsiveContainer>

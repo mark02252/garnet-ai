@@ -80,9 +80,21 @@ export function computeForecast(
   return result;
 }
 
+/** 오늘 날짜인지 판별 (YYYY-MM-DD 또는 YYYYMMDD 형식 지원) */
+function isTodayDate(dateStr: string): boolean {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  const todayISO = `${y}-${m}-${d}`;
+  const todayCompact = `${y}${m}${d}`;
+  return dateStr === todayISO || dateStr === todayCompact;
+}
+
 /**
  * Z-score 이상 감지. |z| > threshold (기본 2.0) 포인트만 반환.
  * stdDev === 0 이면 [] 반환.
+ * 당일(오늘) 데이터는 수집 중이므로 이상치 감지에서 제외합니다.
  */
 export function detectAnomalies(
   dates: string[],
@@ -93,17 +105,25 @@ export function detectAnomalies(
   if (n === 0) return [];
   if (dates.length !== values.length) return [];
 
-  const mean = values.reduce((s, v) => s + v, 0) / n;
-  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / n;
+  // 당일 데이터를 통계 계산과 결과 모두에서 제외
+  const completed = values
+    .map((v, i) => ({ date: dates[i], value: v, index: i }))
+    .filter(d => !isTodayDate(d.date));
+
+  if (completed.length === 0) return [];
+
+  const completedValues = completed.map(d => d.value);
+  const mean = completedValues.reduce((s, v) => s + v, 0) / completedValues.length;
+  const variance = completedValues.reduce((s, v) => s + (v - mean) ** 2, 0) / completedValues.length;
   const stdDev = Math.sqrt(variance);
 
   if (stdDev === 0) return [];
 
-  return values
-    .map((v, i) => ({
-      date: dates[i],
-      value: v,
-      zScore: Math.abs((v - mean) / stdDev),
+  return completed
+    .map((d) => ({
+      date: d.date,
+      value: d.value,
+      zScore: Math.abs((d.value - mean) / stdDev),
     }))
     .filter((p) => p.zScore > threshold);
 }

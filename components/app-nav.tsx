@@ -238,57 +238,95 @@ type NavGroup = {
   items: NavItem[];
 };
 
+function ApprovalsIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M9 12l2 2 4-4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
+    </svg>
+  );
+}
+
+function RolesIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle cx="12" cy="7" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M5 20c0-3.9 3.1-7 7-7s7 3.1 7 7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M17 4l2 2-2 2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" opacity="0.5" />
+    </svg>
+  );
+}
+
+function EvolutionIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path d="M12 20V10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M12 10c0-3.3 2.7-6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <path d="M12 14c0-2.2-1.8-4-4-4s-4 1.8-4 4" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" opacity="0.5" />
+      <circle cx="12" cy="21" r="1.5" fill="currentColor" />
+    </svg>
+  );
+}
+
+function BenchmarkIcon() {
+  return (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <polygon points="12,2 19,8 17,17 7,17 5,8" stroke="currentColor" strokeWidth="1.8" fill="none" strokeLinejoin="round" />
+      <polygon points="12,7 15,10 14,14 10,14 9,10" stroke="currentColor" strokeWidth="1.5" fill="currentColor" opacity="0.2" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 const navGroups: NavGroup[] = [
   {
-    label: '운영',
+    label: '에이전트',
     items: [
-      { href: '/operations', label: '오늘의 브리핑', icon: <BriefingIcon /> },
-    ],
-  },
-  {
-    label: '캠페인',
-    items: [
+      { href: '/operations', label: '브리핑', icon: <BriefingIcon /> },
+      { href: '/knowledge', label: '지식 저장소', icon: <BookOpenIcon /> },
       { href: '/shell', label: '에이전트 셸', icon: <StudioIcon /> },
-      { href: '/campaigns', label: '캠페인 룸', icon: <CampaignIcon /> },
+      { href: '/approvals', label: '승인 대기', icon: <ApprovalsIcon /> },
     ],
   },
   {
-    label: '제작',
+    label: '성장',
     items: [
-      { href: '/seminar', label: '세미나 스튜디오', icon: <SeminarIcon /> },
+      { href: '/benchmark', label: '능력 벤치마크', icon: <BenchmarkIcon /> },
+      { href: '/roles', label: '역할 관리', icon: <RolesIcon /> },
+      { href: '/evolution', label: '진화 로그', icon: <EvolutionIcon /> },
+      { href: '/tech-radar', label: '테크 레이더', icon: <RadarIcon /> },
+    ],
+  },
+  {
+    label: '프로젝트',
+    items: [
+      { href: '/campaigns', label: '프로젝트 룸', icon: <CampaignIcon /> },
       { href: '/flow', label: '플로우 빌더', icon: <FlowBuilderIcon /> },
-      { href: '/datasets', label: '데이터 스튜디오', icon: <DataIcon /> },
-      { href: '/video', label: '영상 스튜디오', icon: <VideoStudioIcon /> },
+      { href: '/seminar', label: '세미나', icon: <SeminarIcon /> },
     ],
   },
   {
-    label: 'SNS 스튜디오',
-    items: [
-      { href: '/dashboard',      label: '마케팅 대시보드', icon: <DashboardIcon /> },
-      { href: '/sns/personas',    label: '페르소나',       icon: <SnsPersonaIcon /> },
-      { href: '/sns/studio',      label: '콘텐츠 제작소',  icon: <SnsStudioIcon /> },
-      { href: '/sns/calendar',    label: '캘린더',         icon: <SnsCalendarIcon /> },
-      { href: '/sns/analytics',   label: '성과 분석',      icon: <SnsAnalyticsIcon /> },
-      { href: '/sns/community',   label: '커뮤니티',       icon: <SnsCommunityIcon /> },
-    ],
-  },
-  {
-    label: '성과',
+    label: '데이터',
     items: [
       { href: '/goals', label: 'KPI 목표', icon: <GoalsIcon /> },
       { href: '/analytics', label: 'GA4 Analytics', icon: <AnalyticsIcon /> },
-      { href: '/intel', label: '마케팅 인텔', icon: <ContentIcon /> },
+      { href: '/intel', label: '인텔리전스', icon: <ContentIcon /> },
       { href: '/intel/watchlist', label: '워치리스트', icon: <SocialIcon /> },
+      { href: '/datasets', label: '데이터셋', icon: <DataIcon /> },
     ],
   },
   {
-    label: '아카이브',
+    label: 'SNS 운영',
     items: [
-      { href: '/learning', label: '플레이북', icon: <PlaybookIcon /> },
+      { href: '/sns/personas', label: '페르소나', icon: <SnsPersonaIcon /> },
+      { href: '/sns/calendar', label: '캘린더', icon: <SnsCalendarIcon /> },
+      { href: '/sns/analytics', label: '성과 분석', icon: <SnsAnalyticsIcon /> },
+    ],
+  },
+  {
+    label: '라이브러리',
+    items: [
       { href: '/history', label: '실행 아카이브', icon: <HistoryIcon /> },
       { href: '/research', label: '리서치 메모리', icon: <BookOpenIcon /> },
-      { href: '/tech-radar', label: '테크 레이더', icon: <RadarIcon /> },
-      { href: '/notifications', label: '알림 인박스', icon: <NotificationIcon /> },
     ],
   },
 ];

@@ -238,18 +238,22 @@ export async function detectOpenIssues(): Promise<OpenIssue[]> {
     }
   } catch { /* non-critical */ }
 
-  // 뒤처진 목표 감지
+  // 뒤처진 목표 감지 (데이터 미수집 0%는 제외)
   try {
     const goals = await prisma.goalState.findMany({
       orderBy: { checkedAt: 'desc' },
       distinct: ['goalName'],
     })
     for (const g of goals) {
-      if (!g.onTrack && g.progressPercent < 30) {
+      // 0%이고 currentValue가 null/0 → 데이터 미수집 상태, "뒤처짐"이 아님
+      if (g.progressPercent === 0 && (!g.currentValue || g.currentValue === 'null' || g.currentValue === '0' || g.currentValue === '0%')) {
+        continue // 데이터 수집 대기 — 이슈로 안 올림
+      }
+      if (!g.onTrack && g.progressPercent < 30 && g.progressPercent > 0) {
         issues.push({
           id: `goal-behind-${g.goalName}`,
           type: 'goal_behind',
-          severity: g.progressPercent === 0 ? 'high' : 'normal',
+          severity: 'normal',
           summary: `목표 뒤처짐: ${g.goalName} (${g.progressPercent}%)`,
           detectedAt: g.checkedAt.toISOString(),
         })

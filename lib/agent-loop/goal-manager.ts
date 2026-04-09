@@ -122,6 +122,15 @@ function extractCurrentValue(
   if (metricLower.includes('팔로워') || metricLower.includes('follower')) {
     return String(snapshot.sns.followerGrowth)
   }
+  if (metricLower.includes('도달') || metricLower.includes('reach')) {
+    // topContent의 평균 metric을 도달로 사용
+    const contents = snapshot.sns.topContent
+    if (contents.length > 0) {
+      const avg = Math.round(contents.reduce((s, c) => s + c.metric, 0) / contents.length)
+      return String(avg)
+    }
+    return '0'
+  }
 
   // 캠페인 관련 지표 매칭
   if (metricLower.includes('캠페인') || metricLower.includes('campaign')) {

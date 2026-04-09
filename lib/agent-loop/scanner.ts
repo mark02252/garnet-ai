@@ -124,7 +124,30 @@ export async function detectOpenIssues(): Promise<OpenIssue[]> {
 
   try {
     const pending = await listPending(['PENDING_APPROVAL'], 10)
+    const threeDaysAgo = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+
     for (const p of pending) {
+      const createdDate = new Date(p.createdAt)
+
+      // 3일 이상 미응답 → 자동 만료 (무시됨으로 학습)
+      if (createdDate < threeDaysAgo) {
+        try {
+          const { markRejected } = await import('@/lib/governor')
+          await markRejected(p.id)
+          const { onActionRejected } = await import('./human-feedback')
+          const meta = typeof p.payload === 'object' && p.payload !== null
+            ? (p.payload as Record<string, unknown>)._agentLoop as Record<string, string> | undefined
+            : undefined
+          await onActionRejected({
+            actionKind: p.kind,
+            title: meta?.title || p.kind,
+            rationale: meta?.rationale || '',
+            reason: 'bad_timing',
+          })
+        } catch { /* non-critical */ }
+        continue // 만료 처리 후 이슈에 안 넣음
+      }
+
       issues.push({
         id: `gov-${p.id}`,
         type: 'approval_pending',

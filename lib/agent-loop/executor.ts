@@ -18,6 +18,18 @@ export type RouteResult = {
 
 export async function routeAction(action: ReasonerAction): Promise<RouteResult> {
   try {
+    // 같은 kind가 이미 PENDING_APPROVAL이면 중복 생성 안 함
+    try {
+      const { prisma } = await import('@/lib/prisma')
+      const existing = await prisma.$queryRawUnsafe<Array<{ count: number }>>(
+        `SELECT COUNT(*)::int as count FROM "GovernorAction" WHERE kind = $1 AND status = 'PENDING_APPROVAL' AND "deletedAt" IS NULL`,
+        action.kind,
+      )
+      if ((existing[0]?.count ?? 0) > 0) {
+        return { routed: 'governor', actionId: null, executed: false, error: null }
+      }
+    } catch { /* proceed anyway */ }
+
     // Confidence 기반 리스크 조정
     let effectiveRiskLevel = action.riskLevel
     try {

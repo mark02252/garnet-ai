@@ -257,28 +257,7 @@ export async function detectOpenIssues(): Promise<OpenIssue[]> {
     }
   } catch { /* non-critical */ }
 
-  // 경쟁사 변화 Slack 알림 (24시간 내 신규 감지만)
-  try {
-    const competitorMoves = await prisma.marketingIntel.findMany({
-      where: {
-        tags: { contains: 'competitor' },
-        createdAt: { gte: new Date(Date.now() - 24 * 60 * 60 * 1000) },
-        NOT: { tags: { contains: 'learned' } },
-      },
-      take: 3,
-    })
-    if (competitorMoves.length > 0) {
-      const { isSlackConfigured, slackCompetitorAlert } = await import('./slack-notifier')
-      if (isSlackConfigured()) {
-        for (const move of competitorMoves.slice(0, 2)) {
-          await slackCompetitorAlert({
-            competitor: move.query,
-            change: move.title,
-          }).catch(() => {})
-        }
-      }
-    }
-  } catch { /* non-critical */ }
+  // 경쟁사 변화는 하루 2회 보고에서 안내 (urgency-check에서 즉시 알림 안 함)
 
   return issues
 }

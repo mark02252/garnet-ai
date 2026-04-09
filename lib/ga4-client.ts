@@ -442,6 +442,74 @@ export async function fetchChannelConversions(startDate: string, endDate: string
   }));
 }
 
+// ── Ecommerce / Purchase ─────────────────────────────────────────────────
+
+export type GA4EcommerceData = {
+  date: string;
+  transactions: number;
+  revenue: number;        // 원 단위
+  purchaseRate: number;   // 구매 전환율 (0-1)
+  avgOrderValue: number;  // 평균 주문 금액
+};
+
+export async function fetchEcommerceData(startDate: string, endDate: string): Promise<GA4EcommerceData[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate, endDate }],
+    dimensions: [{ name: 'date' }],
+    metrics: [
+      { name: 'ecommercePurchases' },
+      { name: 'purchaseRevenue' },
+      { name: 'sessions' },
+    ],
+    orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
+  });
+  return (response.rows || []).map(row => {
+    const transactions = Number(row.metricValues?.[0]?.value || 0);
+    const revenue = Number(row.metricValues?.[1]?.value || 0);
+    const sessions = Number(row.metricValues?.[2]?.value || 0);
+    return {
+      date: row.dimensionValues?.[0]?.value || '',
+      transactions,
+      revenue: Math.round(revenue),
+      purchaseRate: sessions > 0 ? transactions / sessions : 0,
+      avgOrderValue: transactions > 0 ? Math.round(revenue / transactions) : 0,
+    };
+  });
+}
+
+export type GA4EcommerceSummary = {
+  totalTransactions: number;
+  totalRevenue: number;
+  avgPurchaseRate: number;
+  avgOrderValue: number;
+  dailyData: GA4EcommerceData[];
+};
+
+export async function fetchEcommerceSummary(days = 30): Promise<GA4EcommerceSummary> {
+  const endDate = 'today';
+  const startDate = `${days}daysAgo`;
+  const data = await fetchEcommerceData(startDate, endDate);
+
+  const totalTransactions = data.reduce((s, d) => s + d.transactions, 0);
+  const totalRevenue = data.reduce((s, d) => s + d.revenue, 0);
+  const totalSessions = data.reduce((s, d) => {
+    // purchaseRate = transactions/sessions → sessions = transactions/purchaseRate
+    return s + (d.purchaseRate > 0 ? d.transactions / d.purchaseRate : 0);
+  }, 0);
+
+  return {
+    totalTransactions,
+    totalRevenue,
+    avgPurchaseRate: totalSessions > 0 ? totalTransactions / totalSessions : 0,
+    avgOrderValue: totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0,
+    dailyData: data,
+  };
+}
+
 // ── Cohort Retention ──────────────────────────────────────────────────────
 
 export type GA4CohortRetention = {

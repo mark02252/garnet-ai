@@ -42,16 +42,35 @@ export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
     }
   } catch { /* non-critical */ }
 
+  // 전자상거래 데이터 (결제 전환율)
   try {
-    const convRes = await fetch(`http://localhost:3000/api/ga4/channel-conv`)
-    if (convRes.ok) {
-      const conv = await convRes.json() as { data?: Array<{ conversionRate?: number }> }
-      if (conv.data?.length) {
-        const totalRate = conv.data.reduce((s, c) => s + (c.conversionRate ?? 0), 0)
-        ga4ConversionRate = conv.data.length > 0 ? totalRate / conv.data.length : 0
+    const ecomRes = await fetch(`http://localhost:3000/api/ga4/ecommerce`)
+    if (ecomRes.ok) {
+      const ecom = await ecomRes.json() as {
+        configured?: boolean
+        totalTransactions?: number
+        totalRevenue?: number
+        avgPurchaseRate?: number
+      }
+      if (ecom.configured && ecom.avgPurchaseRate) {
+        ga4ConversionRate = Math.round(ecom.avgPurchaseRate * 10000) / 100 // 소수점 2자리 %
       }
     }
   } catch { /* non-critical */ }
+
+  // 폴백: 전자상거래 데이터 없으면 channel-conv에서
+  if (ga4ConversionRate === 0) {
+    try {
+      const convRes = await fetch(`http://localhost:3000/api/ga4/channel-conv`)
+      if (convRes.ok) {
+        const conv = await convRes.json() as { data?: Array<{ conversionRate?: number }> }
+        if (conv.data?.length) {
+          const totalRate = conv.data.reduce((s, c) => s + (c.conversionRate ?? 0), 0)
+          ga4ConversionRate = conv.data.length > 0 ? totalRate / conv.data.length : 0
+        }
+      }
+    } catch { /* non-critical */ }
+  }
 
   // SNS — SnsAnalyticsSnapshot 최신
   const latestSns = await prisma.snsAnalyticsSnapshot.findFirst({

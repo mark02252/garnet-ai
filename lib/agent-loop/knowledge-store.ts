@@ -78,6 +78,21 @@ export async function addKnowledge(entry: NewKnowledge): Promise<string> {
     }
   } catch { /* Ollama may not be running */ }
 
+  // 중요 지식 발견 시 Slack 알림 (Principle level만 — 희귀하고 가치 높음)
+  if (entry.level === 3 && !entry.isAntiPattern) {
+    try {
+      const { isSlackConfigured, slackKnowledgeDiscovery } = await import('./slack-notifier')
+      if (isSlackConfigured()) {
+        await slackKnowledgeDiscovery({
+          domain: entry.domain,
+          pattern: entry.pattern,
+          observation: entry.observation,
+          confidence: 0.4,
+        }).catch(() => {})
+      }
+    } catch { /* non-critical */ }
+  }
+
   return created.id
 }
 

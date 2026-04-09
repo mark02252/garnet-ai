@@ -234,6 +234,24 @@ async function runDailyBriefing(): Promise<void> {
     todayActions: result.actionsCount,
   })
 
+  // 목표 달성 위험 Slack 알림 (daily-briefing이므로 하루 1회)
+  try {
+    const { predictGoals } = await import('./goal-predictor')
+    const predictions = await predictGoals()
+    const atRisk = predictions.filter(p => p.urgency === 'will_miss' || p.urgency === 'at_risk')
+    if (atRisk.length > 0) {
+      const { isSlackConfigured, slackGoalRiskAlert } = await import('./slack-notifier')
+      if (isSlackConfigured()) {
+        await slackGoalRiskAlert({
+          goals: atRisk.map(g => ({
+            name: g.goalName, percent: g.currentPercent,
+            predicted: g.predictedPercent, urgency: g.urgency,
+          })),
+        }).catch(() => {})
+      }
+    }
+  } catch { /* non-critical */ }
+
   await pruneOldSnapshots()
 }
 
@@ -283,6 +301,34 @@ async function runWeeklyReviewCycle(): Promise<void> {
     const { proposeNewRoles } = await import('./role-manager')
     if (capabilities.length > 0) {
       await proposeNewRoles(capabilities)
+    }
+  } catch { /* non-critical */ }
+
+  // 주간 Slack 리포트
+  try {
+    const { isSlackConfigured, slackWeeklyReport } = await import('./slack-notifier')
+    if (isSlackConfigured()) {
+      const { computeBenchmark } = await import('./self-benchmark')
+      const bm = await computeBenchmark()
+
+      const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      const weekCycles = await prisma.agentLoopCycle.count({ where: { createdAt: { gte: oneWeekAgo } } })
+      const weekActions = await prisma.agentLoopCycle.aggregate({
+        where: { createdAt: { gte: oneWeekAgo } },
+        _sum: { autoExecuted: true },
+      })
+      const oldKnowledge = await prisma.knowledgeEntry.count({ where: { createdAt: { lt: oneWeekAgo } } })
+
+      await slackWeeklyReport({
+        totalKnowledge: bm.totalKnowledge,
+        newKnowledge: bm.totalKnowledge - oldKnowledge,
+        growthRate: bm.growthRate,
+        strongDomains: bm.strongDomains,
+        weakDomains: bm.weakDomains,
+        decisionAccuracy: 0,
+        cyclesRun: weekCycles,
+        actionsExecuted: weekActions._sum?.autoExecuted || 0,
+      }).catch(() => {})
     }
   } catch { /* non-critical */ }
 }

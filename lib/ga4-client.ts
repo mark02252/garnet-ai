@@ -461,22 +461,22 @@ export async function fetchEcommerceData(startDate: string, endDate: string): Pr
     dateRanges: [{ startDate, endDate }],
     dimensions: [{ name: 'date' }],
     metrics: [
-      { name: 'ecommercePurchases' },
-      { name: 'purchaseRevenue' },
-      { name: 'sessions' },
+      { name: 'totalPurchasers' },     // 실제 구매자 수 (유니크)
+      { name: 'purchaseRevenue' },      // 구매 수익
+      { name: 'totalUsers' },           // 전체 사용자
     ],
     orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
   });
   return (response.rows || []).map(row => {
-    const transactions = Number(row.metricValues?.[0]?.value || 0);
+    const purchasers = Number(row.metricValues?.[0]?.value || 0);
     const revenue = Number(row.metricValues?.[1]?.value || 0);
-    const sessions = Number(row.metricValues?.[2]?.value || 0);
+    const totalUsers = Number(row.metricValues?.[2]?.value || 0);
     return {
       date: row.dimensionValues?.[0]?.value || '',
-      transactions,
+      transactions: purchasers,  // 실제 구매자 수
       revenue: Math.round(revenue),
-      purchaseRate: sessions > 0 ? transactions / sessions : 0,
-      avgOrderValue: transactions > 0 ? Math.round(revenue / transactions) : 0,
+      purchaseRate: totalUsers > 0 ? purchasers / totalUsers : 0, // 구매자/전체사용자
+      avgOrderValue: purchasers > 0 ? Math.round(revenue / purchasers) : 0,
     };
   });
 }

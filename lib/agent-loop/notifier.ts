@@ -1,21 +1,30 @@
 /**
  * Agent Loop — Notifier
- * Telegram을 통한 긴급 알림, 데일리 브리핑, 사이클 에러 알림
+ * Telegram + Slack 이중 알림
  */
 
 import { isTelegramConfigured, sendMessage } from '@/lib/telegram'
+import { isSlackConfigured, slackUrgentAlert, slackDailyBriefing, slackApprovalRequest } from './slack-notifier'
 import type { OpenIssue, CycleResult, GoalProgress } from './types'
 
 export async function notifyUrgent(issues: OpenIssue[]): Promise<void> {
   const urgent = issues.filter(i => i.severity === 'critical' || i.severity === 'high')
-  if (urgent.length === 0 || !isTelegramConfigured()) return
+  if (urgent.length === 0) return
 
-  const emoji: Record<string, string> = { critical: '\u{1F6A8}', high: '\u26A0\uFE0F', normal: '\u2139\uFE0F', low: '\u{1F4CB}' }
-  const text = `*Agent Loop \u2014 \uAE34\uAE09 \uC54C\uB9BC*\n\n${urgent.map(i =>
-    `${emoji[i.severity]} [${i.type}] ${i.summary}`
-  ).join('\n')}`
+  const emoji: Record<string, string> = { critical: '🚨', high: '⚠️', normal: 'ℹ️', low: '📋' }
 
-  await sendMessage(text, { parseMode: 'Markdown' }).catch(() => {})
+  // Telegram
+  if (isTelegramConfigured()) {
+    const text = `*Agent Loop — 긴급 알림*\n\n${urgent.map(i =>
+      `${emoji[i.severity]} [${i.type}] ${i.summary}`
+    ).join('\n')}`
+    await sendMessage(text, { parseMode: 'Markdown' }).catch(() => {})
+  }
+
+  // Slack
+  if (isSlackConfigured()) {
+    await slackUrgentAlert(urgent.map(i => ({ severity: i.severity, summary: i.summary }))).catch(() => {})
+  }
 }
 
 export async function notifyDailyBriefing(params: {
@@ -24,19 +33,45 @@ export async function notifyDailyBriefing(params: {
   todayCycles: number
   todayActions: number
 }): Promise<void> {
-  if (!isTelegramConfigured()) return
-
   const goalsText = params.goals.length > 0
-    ? params.goals.map(g => `  ${g.onTrack ? '\u2705' : '\u274C'} ${g.goal.goal}: ${g.progressPercent}%`).join('\n')
-    : '  \uC124\uC815\uB41C \uBAA9\uD45C \uC5C6\uC74C'
+    ? params.goals.map(g => `  ${g.onTrack ? '✅' : '❌'} ${g.goal.goal}: ${g.progressPercent}%`).join('\n')
+    : '  설정된 목표 없음'
 
-  const text = `*\u{1F305} Garnet \uB370\uC77C\uB9AC \uBE0C\uB9AC\uD551*\n\n${params.summary}\n\n*\uBAA9\uD45C \uC9C4\uD589\uB960*\n${goalsText}\n\n*\uC5B4\uC81C \uD65C\uB3D9:* ${params.todayCycles}\uD68C \uC0AC\uC774\uD074, ${params.todayActions}\uAC74 \uC561\uC158`
+  // Telegram
+  if (isTelegramConfigured()) {
+    const text = `*🌅 Garnet 데일리 브리핑*\n\n${params.summary}\n\n*목표 진행률*\n${goalsText}\n\n*어제 활동:* ${params.todayCycles}회 사이클, ${params.todayActions}건 액션`
+    await sendMessage(text, { parseMode: 'Markdown' }).catch(() => {})
+  }
 
-  await sendMessage(text, { parseMode: 'Markdown' }).catch(() => {})
+  // Slack
+  if (isSlackConfigured()) {
+    await slackDailyBriefing({
+      summary: params.summary,
+      goals: params.goals.map(g => ({ name: g.goal.goal, percent: g.progressPercent, onTrack: g.onTrack })),
+      todayCycles: params.todayCycles,
+      todayActions: params.todayActions,
+    }).catch(() => {})
+  }
 }
 
 export async function notifyCycleResult(result: CycleResult): Promise<void> {
-  if (result.error && isTelegramConfigured()) {
-    await sendMessage(`\u26A0\uFE0F Agent Loop \uC5D0\uB7EC\n\n${result.error}`, { parseMode: 'Markdown' }).catch(() => {})
+  if (!result.error) return
+
+  if (isTelegramConfigured()) {
+    await sendMessage(`⚠️ Agent Loop 에러\n\n${result.error}`, { parseMode: 'Markdown' }).catch(() => {})
+  }
+}
+
+/** 승인 요청 알림 (Executor에서 호출) */
+export async function notifyApprovalRequest(params: {
+  title: string
+  rationale: string
+  riskLevel: string
+  expectedEffect?: string
+  goalAlignment?: string
+}): Promise<void> {
+  // Slack
+  if (isSlackConfigured()) {
+    await slackApprovalRequest(params).catch(() => {})
   }
 }

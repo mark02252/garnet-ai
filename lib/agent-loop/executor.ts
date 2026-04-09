@@ -89,10 +89,20 @@ export async function routeAction(action: ReasonerAction): Promise<RouteResult> 
       }
     }
 
-    // MEDIUM/HIGH → Governor 승인 대기, 텔레그램 알림 시도
+    // MEDIUM/HIGH → Governor 승인 대기, Telegram + Slack 알림
     if (isTelegramConfigured()) {
       await sendApprovalRequest(govAction).catch(() => {})
     }
+    try {
+      const { notifyApprovalRequest } = await import('./notifier')
+      await notifyApprovalRequest({
+        title: action.title,
+        rationale: action.rationale,
+        riskLevel: action.riskLevel,
+        expectedEffect: action.expectedEffect,
+        goalAlignment: action.goalAlignment,
+      })
+    } catch { /* non-critical */ }
 
     return { routed: 'governor', actionId: govAction.id, executed: false, error: null }
   } catch (err) {

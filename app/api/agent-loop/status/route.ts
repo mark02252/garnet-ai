@@ -80,7 +80,9 @@ export async function GET() {
       }),
     ])
 
-    const hasError = lastCycle?.status === 'failed'
+    // 최근 3건 중 가장 최근 성공이 있으면 에러 아님 (이전 실패는 무시)
+    const recentStatuses = (recentDecisions || []).slice(0, 3).map(c => c.status)
+    const hasError = lastCycle?.status === 'failed' && !recentStatuses.includes('completed')
 
     const response: AgentLoopStatusResponse = {
       status: running ? (hasError ? 'error' : 'running') : (todayCycles.length > 0 ? 'idle' : 'idle'),

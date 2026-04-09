@@ -172,8 +172,8 @@ export async function updateStatus(
   if (patch.riskLevel !== undefined) { sets.push(`"riskLevel" = $${i++}`); params.push(patch.riskLevel); }
   if (patch.riskReason !== undefined) { sets.push(`"riskReason" = $${i++}`); params.push(patch.riskReason); }
   if (patch.approvedBy !== undefined) { sets.push(`"approvedBy" = $${i++}`); params.push(patch.approvedBy); }
-  if (patch.executedAt !== undefined) { sets.push(`"executedAt" = $${i++}`); params.push(patch.executedAt); }
-  if (patch.deletedAt !== undefined)  { sets.push(`"deletedAt" = $${i++}`);  params.push(patch.deletedAt);  }
+  if (patch.executedAt !== undefined) { sets.push(`"executedAt" = $${i}::timestamptz`); i++; params.push(patch.executedAt); }
+  if (patch.deletedAt !== undefined)  { sets.push(`"deletedAt" = $${i}::timestamptz`);  i++; params.push(patch.deletedAt);  }
   await prisma.$executeRawUnsafe(
     `UPDATE "GovernorAction" SET ${sets.join(', ')} WHERE "id" = $1`,
     ...params
@@ -205,6 +205,18 @@ export async function decideAction(
 
   if (decision === 'REJECTED') {
     await markRejected(id);
+    // Agent Loop Human Feedback 학습
+    try {
+      const { onActionRejected } = await import('@/lib/agent-loop/human-feedback');
+      const meta = typeof action.payload === 'object' && action.payload !== null
+        ? (action.payload as Record<string, unknown>)._agentLoop as Record<string, string> | undefined
+        : undefined;
+      await onActionRejected({
+        actionKind: action.kind,
+        title: meta?.title || action.kind,
+        rationale: meta?.rationale || '',
+      });
+    } catch { /* non-critical */ }
     return;
   }
 

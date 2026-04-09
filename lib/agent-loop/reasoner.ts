@@ -9,7 +9,7 @@ import { retrieveSimilarEpisodes } from '@/lib/memory/episodic-store'
 import { getKnowledgeForReasoner } from './knowledge-store'
 import type { WorldModel, GoalProgress, ReasonerOutput, ReasonerAction } from './types'
 
-const SYSTEM_PROMPT = `당신은 Garnet Agent Loop의 추론 엔진입니다. 마케팅 전문가로서 현재 상황을 분석하고 최적의 액션을 결정합니다.
+const SYSTEM_PROMPT = `당신은 Garnet의 추론 엔진입니다. 비즈니스 전략, 마케팅, 데이터 분석, 경쟁 정보, 운영 등 다영역에 걸쳐 현재 상황을 분석하고 최적의 액션을 결정합니다. 활성화된 역할에 따라 판단 범위가 확장됩니다.
 
 규칙:
 1. 반드시 JSON만 출력하세요. 코드블록(\`\`\`)으로 감싸지 마세요.
@@ -124,7 +124,7 @@ ${predictionSummary || '예측 데이터 없음'}
 ${macroSummary || '현재 특별한 시즌 없음'}
 
 ## Garnet의 활성 역할
-${rolesSummary || '기본 마케팅 분석가'}
+${rolesSummary || '기본 비즈니스 분석가'}
 
 위 상황을 분석하고, 지금 해야 할 액션을 우선순위 순으로 JSON으로 제안하세요.`
 }

@@ -138,6 +138,78 @@ export async function slackDailyBriefing(params: {
   })
 }
 
+/** 종합 보고 (하루 2회 — 아침 + 저녁) */
+export async function slackDailyReport(params: {
+  period: 'morning' | 'evening'
+  summary: string
+  autoExecuted: Array<{ title: string; result: string }>
+  pendingApprovals: Array<{ title: string; riskLevel: string; rationale: string }>
+  knowledgeLearned: number
+  goalsProgress: Array<{ name: string; percent: number; onTrack: boolean }>
+}): Promise<void> {
+  const icon = params.period === 'morning' ? '🌅' : '🌙'
+  const label = params.period === 'morning' ? '오전 보고' : '저녁 보고'
+
+  const blocks: Array<Record<string, unknown>> = [
+    { type: 'header', text: { type: 'plain_text', text: `${icon} Garnet ${label}`, emoji: true } },
+    { type: 'section', text: { type: 'mrkdwn', text: params.summary.slice(0, 300) } },
+  ]
+
+  // 자동 실행된 것
+  if (params.autoExecuted.length > 0) {
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*자동 처리 완료 (${params.autoExecuted.length}건)*\n${params.autoExecuted.map(a => `✅ ${a.title}`).join('\n')}`,
+      },
+    })
+  }
+
+  // 승인 대기
+  if (params.pendingApprovals.length > 0) {
+    const approvalLines = params.pendingApprovals.map(a => {
+      const emoji = a.riskLevel === 'HIGH' ? '🔴' : '🟡'
+      return `${emoji} *${a.title}*\n    ${a.rationale.slice(0, 100)}`
+    }).join('\n\n')
+
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*승인이 필요한 제안 (${params.pendingApprovals.length}건)*\n\n${approvalLines}` },
+    })
+    blocks.push({
+      type: 'actions',
+      elements: [{
+        type: 'button',
+        text: { type: 'plain_text', text: `승인 인박스에서 확인 (${params.pendingApprovals.length}건)` },
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/approvals`,
+      }],
+    })
+  }
+
+  // 목표
+  if (params.goalsProgress.length > 0) {
+    blocks.push({
+      type: 'section',
+      text: {
+        type: 'mrkdwn',
+        text: `*목표*\n${params.goalsProgress.map(g => `${g.onTrack ? '✅' : '⚠️'} ${g.name}: ${g.percent}%`).join('\n')}`,
+      },
+    })
+  }
+
+  // 학습
+  if (params.knowledgeLearned > 0) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `📚 새로 학습한 지식: ${params.knowledgeLearned}건` }],
+    })
+  }
+
+  blocks.push({ type: 'divider' })
+  await send({ blocks })
+}
+
 /** 자동 회의 결과 */
 export async function slackMeetingResult(params: {
   topic: string
@@ -159,6 +231,111 @@ export async function slackMeetingResult(params: {
           { type: 'mrkdwn', text: `참여: ${params.agents.join(', ')}${params.judgeScore ? ` | 점수: ${params.judgeScore}/100` : ''}` },
         ],
       },
+      { type: 'divider' },
+    ],
+  })
+}
+
+/** 경쟁사 변화 감지 */
+export async function slackCompetitorAlert(params: {
+  competitor: string
+  change: string
+  suggestedAction?: string
+}): Promise<void> {
+  await send({
+    blocks: [
+      { type: 'header', text: { type: 'plain_text', text: '🏢 경쟁사 변화 감지', emoji: true } },
+      { type: 'section', text: { type: 'mrkdwn', text: `*${params.competitor}*\n${params.change.slice(0, 200)}` } },
+      ...(params.suggestedAction ? [{
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: `💡 대응 제안: ${params.suggestedAction.slice(0, 150)}` }],
+      }] : []),
+      { type: 'divider' },
+    ],
+  })
+}
+
+/** 목표 달성 위험 경고 */
+export async function slackGoalRiskAlert(params: {
+  goals: Array<{ name: string; percent: number; predicted: number; urgency: string }>
+}): Promise<void> {
+  const atRisk = params.goals.filter(g => g.urgency === 'will_miss' || g.urgency === 'at_risk')
+  if (atRisk.length === 0) return
+
+  const lines = atRisk.map(g => {
+    const icon = g.urgency === 'will_miss' ? '🔴' : '🟡'
+    return `${icon} *${g.name}*: 현재 ${g.percent}% → 예측 ${g.predicted}%`
+  }).join('\n')
+
+  await send({
+    blocks: [
+      { type: 'header', text: { type: 'plain_text', text: '🎯 목표 달성 위험', emoji: true } },
+      { type: 'section', text: { type: 'mrkdwn', text: lines } },
+      {
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: '현재 추세가 지속되면 목표 달성이 어렵습니다. 전략 조정이 필요합니다.' }],
+      },
+      { type: 'divider' },
+    ],
+  })
+}
+
+/** 중요 지식 발견 */
+export async function slackKnowledgeDiscovery(params: {
+  domain: string
+  pattern: string
+  observation: string
+  confidence: number
+}): Promise<void> {
+  await send({
+    blocks: [
+      { type: 'header', text: { type: 'plain_text', text: '📚 새 비즈니스 인사이트', emoji: true } },
+      { type: 'section', text: { type: 'mrkdwn', text: `*[${params.domain}]* ${params.pattern.slice(0, 100)}` } },
+      { type: 'section', text: { type: 'mrkdwn', text: params.observation.split('\n')[0].slice(0, 200) } },
+      {
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: `신뢰도: ${(params.confidence * 100).toFixed(0)}%` }],
+      },
+      { type: 'divider' },
+    ],
+  })
+}
+
+/** 주간 성장 리포트 */
+export async function slackWeeklyReport(params: {
+  totalKnowledge: number
+  newKnowledge: number
+  growthRate: number
+  strongDomains: string[]
+  weakDomains: string[]
+  decisionAccuracy: number
+  cyclesRun: number
+  actionsExecuted: number
+  topInsight?: string
+}): Promise<void> {
+  await send({
+    blocks: [
+      { type: 'header', text: { type: 'plain_text', text: '📊 Garnet 주간 성장 리포트', emoji: true } },
+      {
+        type: 'section',
+        fields: [
+          { type: 'mrkdwn', text: `*총 지식*\n${params.totalKnowledge}건 (+${params.newKnowledge})` },
+          { type: 'mrkdwn', text: `*성장률*\n${params.growthRate > 0 ? '+' : ''}${params.growthRate}%` },
+          { type: 'mrkdwn', text: `*판단 정확도*\n${params.decisionAccuracy.toFixed(0)}%` },
+          { type: 'mrkdwn', text: `*사이클*\n${params.cyclesRun}회 / ${params.actionsExecuted}건 실행` },
+        ],
+      },
+      {
+        type: 'section',
+        text: {
+          type: 'mrkdwn',
+          text: `*강한 영역:* ${params.strongDomains.join(', ') || '아직 없음'}\n*학습 필요:* ${params.weakDomains.join(', ') || '없음'}`,
+        },
+      },
+      ...(params.topInsight ? [{
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: `💡 이번 주 핵심 인사이트: ${params.topInsight.slice(0, 150)}` }],
+      }] : []),
       { type: 'divider' },
     ],
   })

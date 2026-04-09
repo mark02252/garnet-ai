@@ -89,20 +89,24 @@ export async function routeAction(action: ReasonerAction): Promise<RouteResult> 
       }
     }
 
-    // MEDIUM/HIGH → Governor 승인 대기, Telegram + Slack 알림
-    if (isTelegramConfigured()) {
-      await sendApprovalRequest(govAction).catch(() => {})
+    // MEDIUM/HIGH → Governor 승인 대기
+    // HIGH만 즉시 알림, MEDIUM은 하루 2회 보고에서 일괄 안내
+    if (effectiveRiskLevel === 'HIGH') {
+      if (isTelegramConfigured()) {
+        await sendApprovalRequest(govAction).catch(() => {})
+      }
+      try {
+        const { notifyApprovalRequest } = await import('./notifier')
+        await notifyApprovalRequest({
+          title: action.title,
+          rationale: action.rationale,
+          riskLevel: action.riskLevel,
+          expectedEffect: action.expectedEffect,
+          goalAlignment: action.goalAlignment,
+        })
+      } catch { /* non-critical */ }
     }
-    try {
-      const { notifyApprovalRequest } = await import('./notifier')
-      await notifyApprovalRequest({
-        title: action.title,
-        rationale: action.rationale,
-        riskLevel: action.riskLevel,
-        expectedEffect: action.expectedEffect,
-        goalAlignment: action.goalAlignment,
-      })
-    } catch { /* non-critical */ }
+    // MEDIUM은 조용히 큐에만 등록 → daily-briefing/evening-report에서 일괄 안내
 
     return { routed: 'governor', actionId: govAction.id, executed: false, error: null }
   } catch (err) {

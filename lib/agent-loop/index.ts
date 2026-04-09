@@ -255,6 +255,67 @@ async function runDailyBriefing(): Promise<void> {
   await pruneOldSnapshots()
 }
 
+async function runEveningReport(): Promise<void> {
+  try {
+    const oneDayAgo = new Date(Date.now() - 12 * 60 * 60 * 1000) // 오늘 오전부터
+
+    // 오늘 자동실행된 것
+    const executed = await prisma.$queryRawUnsafe<Array<{ kind: string; payload: string }>>(
+      `SELECT kind, payload FROM "GovernorAction" WHERE status = 'EXECUTED' AND "createdAt" >= $1 AND "deletedAt" IS NULL ORDER BY "createdAt" DESC LIMIT 10`,
+      oneDayAgo.toISOString(),
+    ).catch(() => [])
+
+    // 승인 대기 중인 것
+    const pending = await prisma.$queryRawUnsafe<Array<{ kind: string; payload: string; riskLevel: string }>>(
+      `SELECT kind, payload, "riskLevel" FROM "GovernorAction" WHERE status = 'PENDING_APPROVAL' AND "deletedAt" IS NULL ORDER BY "createdAt" DESC LIMIT 10`,
+    ).catch(() => [])
+
+    // 오늘 학습한 지식
+    const newKnowledge = await prisma.knowledgeEntry.count({
+      where: { createdAt: { gte: oneDayAgo } },
+    })
+
+    // 목표
+    const goals = await prisma.goalState.findMany({
+      orderBy: { checkedAt: 'desc' },
+      distinct: ['goalName'],
+      take: 10,
+    })
+
+    const extractTitle = (payload: string | Record<string, unknown>): string => {
+      try {
+        const p = typeof payload === 'string' ? JSON.parse(payload) : payload
+        return (p as Record<string, unknown>)?._agentLoop
+          ? ((p as Record<string, unknown>)._agentLoop as Record<string, string>).title
+          : String((p as Record<string, unknown>).kind || '액션')
+      } catch { return '액션' }
+    }
+
+    const { isSlackConfigured, slackDailyReport } = await import('./slack-notifier')
+    if (isSlackConfigured()) {
+      await slackDailyReport({
+        period: 'evening',
+        summary: `오늘 Garnet은 ${executed.length}건을 자동 처리하고, ${newKnowledge}건의 새 지식을 학습했습니다.${pending.length > 0 ? ` ${pending.length}건의 제안이 승인을 기다리고 있습니다.` : ''}`,
+        autoExecuted: executed.map(e => ({ title: extractTitle(e.payload), result: '완료' })),
+        pendingApprovals: pending.map(p => ({
+          title: extractTitle(p.payload),
+          riskLevel: p.riskLevel || 'MEDIUM',
+          rationale: '',
+        })),
+        knowledgeLearned: newKnowledge,
+        goalsProgress: goals.map(g => ({ name: g.goalName, percent: g.progressPercent, onTrack: g.onTrack })),
+      }).catch(() => {})
+    }
+
+    // Telegram도
+    const { isTelegramConfigured, sendMessage } = await import('@/lib/telegram')
+    if (isTelegramConfigured()) {
+      const text = `🌙 *Garnet 저녁 보고*\n\n자동 처리: ${executed.length}건\n승인 대기: ${pending.length}건\n새 지식: ${newKnowledge}건\n\n${pending.length > 0 ? '승인이 필요한 제안이 있습니다.' : '특별한 조치 필요 없음.'}`
+      await sendMessage(text, { parseMode: 'Markdown' }).catch(() => {})
+    }
+  } catch { /* non-critical */ }
+}
+
 async function runWeeklyReviewCycle(): Promise<void> {
   await runCycle('weekly-review')
   try {
@@ -352,6 +413,7 @@ export function startAgentLoop(): void {
   crons.push(new Cron('*/15 * * * *', () => { runCycle('urgency-check') }))
   crons.push(new Cron('0 * * * *', () => { runCycle('routine-cycle') }))
   crons.push(new Cron('0 7 * * *', () => { runDailyBriefing() }))
+  crons.push(new Cron('0 18 * * *', () => { runEveningReport() }))
   crons.push(new Cron('0 9 * * 1', () => { runWeeklyReviewCycle() }))
 
   persistState(true)

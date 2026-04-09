@@ -110,32 +110,84 @@ export async function slackUrgentAlert(issues: Array<{
   })
 }
 
-/** 데일리 브리핑 */
+/** 데일리 브리핑 (매출 + 트래픽 + 목표 + 인사이트) */
 export async function slackDailyBriefing(params: {
   summary: string
   goals: Array<{ name: string; percent: number; onTrack: boolean }>
   todayCycles: number
   todayActions: number
+  ecommerce?: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number }
+  traffic?: { sessions: number; changePercent: number }
+  newKnowledge?: number
+  pendingApprovals?: number
+  topInsight?: string
 }): Promise<void> {
-  const goalsText = params.goals.length > 0
-    ? params.goals.map(g => `${g.onTrack ? '✅' : '❌'} ${g.name}: ${g.percent}%`).join('\n')
-    : '설정된 목표 없음'
+  const today = new Date().toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'long' })
 
-  await send({
-    blocks: [
-      {
-        type: 'header',
-        text: { type: 'plain_text', text: '🌅 Garnet 데일리 브리핑', emoji: true },
-      },
-      { type: 'section', text: { type: 'mrkdwn', text: params.summary } },
-      { type: 'section', text: { type: 'mrkdwn', text: `*목표 진행률*\n${goalsText}` } },
-      {
-        type: 'context',
-        elements: [{ type: 'mrkdwn', text: `사이클 ${params.todayCycles}회 | 액션 ${params.todayActions}건` }],
-      },
-      { type: 'divider' },
-    ],
+  const blocks: Array<Record<string, unknown>> = [
+    { type: 'header', text: { type: 'plain_text', text: `🌅 Garnet 데일리 브리핑 — ${today}`, emoji: true } },
+  ]
+
+  // 매출
+  if (params.ecommerce && params.ecommerce.revenue > 0) {
+    blocks.push({
+      type: 'section',
+      fields: [
+        { type: 'mrkdwn', text: `*💰 매출*\n₩${params.ecommerce.revenue.toLocaleString()}` },
+        { type: 'mrkdwn', text: `*👤 구매자*\n${params.ecommerce.purchasers}명 (인당 ₩${params.ecommerce.avgOrder.toLocaleString()})` },
+      ],
+    })
+  }
+
+  // 트래픽
+  if (params.traffic) {
+    const changeStr = params.traffic.changePercent > 0 ? `+${params.traffic.changePercent.toFixed(1)}%` : `${params.traffic.changePercent.toFixed(1)}%`
+    blocks.push({
+      type: 'section',
+      fields: [
+        { type: 'mrkdwn', text: `*📊 세션*\n${params.traffic.sessions.toLocaleString()} (${changeStr})` },
+        { type: 'mrkdwn', text: `*🛒 전환율*\n${params.ecommerce ? `${(params.ecommerce.conversionRate * 100).toFixed(1)}%` : 'N/A'}` },
+      ],
+    })
+  }
+
+  // 목표
+  if (params.goals.length > 0) {
+    const goalsText = params.goals.map(g => `${g.onTrack ? '✅' : '⚠️'} ${g.name}: ${g.percent}%`).join('\n')
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*🎯 목표*\n${goalsText}` } })
+  }
+
+  // 인사이트
+  if (params.topInsight) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `💡 ${params.topInsight}` }],
+    })
+  }
+
+  // Garnet 활동
+  const activityParts = [`사이클 ${params.todayCycles}회`, `액션 ${params.todayActions}건`]
+  if (params.newKnowledge) activityParts.push(`새 지식 +${params.newKnowledge}건`)
+  if (params.pendingApprovals) activityParts.push(`승인 대기 ${params.pendingApprovals}건`)
+
+  blocks.push({
+    type: 'context',
+    elements: [{ type: 'mrkdwn', text: `🤖 ${activityParts.join(' | ')}` }],
   })
+
+  if (params.pendingApprovals && params.pendingApprovals > 0) {
+    blocks.push({
+      type: 'actions',
+      elements: [{
+        type: 'button',
+        text: { type: 'plain_text', text: `승인 인박스 (${params.pendingApprovals}건)` },
+        url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/approvals`,
+      }],
+    })
+  }
+
+  blocks.push({ type: 'divider' })
+  await send({ blocks })
 }
 
 /** 종합 보고 (하루 2회 — 아침 + 저녁) */

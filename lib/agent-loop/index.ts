@@ -227,11 +227,63 @@ async function runDailyBriefing(): Promise<void> {
     where: { createdAt: { gte: oneDayAgo } },
   })
 
+  // 매출 + 트래픽 데이터 수집
+  let ecommerce: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number } | undefined
+  let traffic: { sessions: number; changePercent: number } | undefined
+  let pendingApprovals = 0
+  let newKnowledge = 0
+  let topInsight = ''
+
+  try {
+    const ecomRes = await fetch('http://localhost:3000/api/ga4/ecommerce')
+    if (ecomRes.ok) {
+      const ecom = await ecomRes.json() as { totalTransactions?: number; totalRevenue?: number; avgOrderValue?: number; avgPurchaseRate?: number; dailyData?: Array<{ transactions: number; revenue: number }> }
+      // 어제 하루 데이터만
+      const yesterday = ecom.dailyData?.slice(-1)[0]
+      if (yesterday && yesterday.revenue > 0) {
+        ecommerce = {
+          revenue: yesterday.revenue,
+          purchasers: yesterday.transactions,
+          avgOrder: yesterday.transactions > 0 ? Math.round(yesterday.revenue / yesterday.transactions) : 0,
+          conversionRate: ecom.avgPurchaseRate ?? 0,
+        }
+      }
+    }
+  } catch { /* non-critical */ }
+
+  try {
+    traffic = { sessions: wm.snapshot.ga4.sessions, changePercent: 0 }
+    const sessionTrend = wm.trends.find(t => t.metric === 'ga4.sessions')
+    if (sessionTrend) traffic.changePercent = sessionTrend.direction === 'up' ? sessionTrend.magnitude : -sessionTrend.magnitude
+  } catch { /* */ }
+
+  try {
+    const pending = await prisma.$queryRawUnsafe<Array<{ count: number }>>(`SELECT COUNT(*)::int as count FROM "GovernorAction" WHERE status = 'PENDING_APPROVAL' AND "deletedAt" IS NULL`)
+    pendingApprovals = pending[0]?.count ?? 0
+  } catch { /* */ }
+
+  try {
+    newKnowledge = await prisma.knowledgeEntry.count({ where: { createdAt: { gte: oneDayAgo } } })
+  } catch { /* */ }
+
+  try {
+    const topK = await prisma.knowledgeEntry.findFirst({
+      where: { level: 3, createdAt: { gte: oneDayAgo }, isAntiPattern: false },
+      orderBy: { confidence: 'desc' },
+    })
+    if (topK) topInsight = `${topK.pattern}: ${topK.observation.split('\n')[0].slice(0, 100)}`
+  } catch { /* */ }
+
   await notifyDailyBriefing({
     summary: [digestHeadline, result.summary].filter(Boolean).join('\n\n') || '특이사항 없음',
     goals,
     todayCycles,
     todayActions: result.actionsCount,
+    ecommerce,
+    traffic,
+    newKnowledge,
+    pendingApprovals,
+    topInsight,
   })
 
   // 목표 달성 위험 Slack 알림 (daily-briefing이므로 하루 1회)

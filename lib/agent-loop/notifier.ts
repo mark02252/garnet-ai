@@ -69,14 +69,25 @@ export async function notifyDailyBriefing(params: {
   goals: GoalProgress[]
   todayCycles: number
   todayActions: number
+  ecommerce?: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number }
+  traffic?: { sessions: number; changePercent: number }
+  newKnowledge?: number
+  pendingApprovals?: number
+  topInsight?: string
 }): Promise<void> {
   const goalsText = params.goals.length > 0
     ? params.goals.map(g => `  ${g.onTrack ? '✅' : '❌'} ${g.goal.goal}: ${g.progressPercent}%`).join('\n')
     : '  설정된 목표 없음'
 
   if (isTelegramConfigured()) {
-    const text = `*🌅 Garnet 데일리 브리핑*\n\n${params.summary}\n\n*목표 진행률*\n${goalsText}\n\n*어제 활동:* ${params.todayCycles}회 사이클, ${params.todayActions}건 액션`
-    await sendMessage(text, { parseMode: 'Markdown' }).catch(() => {})
+    const parts = [`*🌅 Garnet 데일리 브리핑*\n`]
+    if (params.ecommerce && params.ecommerce.revenue > 0) {
+      parts.push(`💰 매출 ₩${params.ecommerce.revenue.toLocaleString()} (${params.ecommerce.purchasers}명, 인당 ₩${params.ecommerce.avgOrder.toLocaleString()})`)
+    }
+    parts.push(params.summary)
+    parts.push(`*목표*\n${goalsText}`)
+    parts.push(`🤖 사이클 ${params.todayCycles}회 | 액션 ${params.todayActions}건${params.newKnowledge ? ` | 지식 +${params.newKnowledge}` : ''}`)
+    await sendMessage(parts.join('\n\n'), { parseMode: 'Markdown' }).catch(() => {})
   }
 
   if (isSlackConfigured()) {
@@ -85,6 +96,11 @@ export async function notifyDailyBriefing(params: {
       goals: params.goals.map(g => ({ name: g.goal.goal, percent: g.progressPercent, onTrack: g.onTrack })),
       todayCycles: params.todayCycles,
       todayActions: params.todayActions,
+      ecommerce: params.ecommerce,
+      traffic: params.traffic,
+      newKnowledge: params.newKnowledge,
+      pendingApprovals: params.pendingApprovals,
+      topInsight: params.topInsight,
     }).catch(() => {})
   }
 }

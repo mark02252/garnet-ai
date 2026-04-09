@@ -12,23 +12,46 @@ export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
   const now = new Date()
   const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000)
 
-  // GA4 — KpiGoal에서 주요 지표 최신값
-  const kpiGoals = await prisma.kpiGoal.findMany({
-    where: { metric: { in: ['sessions', 'bounce_rate', 'conversion_rate'] } },
-    orderBy: { createdAt: 'desc' },
-  })
-  const kpiMap = new Map(kpiGoals.map(k => [k.metric, k]))
+  // GA4 — API에서 직접 최신 데이터 가져오기
+  let ga4Sessions = 0
+  let ga4BounceRate = 0
+  let ga4ConversionRate = 0
+  let ga4TopChannels: Array<{ name: string; sessions: number }> = []
 
-  // KpiGoal이 비어있으면 InstagramReachAnalysisRun에서 데이터 보충
-  if (kpiGoals.length === 0) {
-    const reachAnalysis = await prisma.instagramReachAnalysisRun.findFirst({
-      orderBy: { createdAt: 'desc' },
-    })
-    if (reachAnalysis) {
-      // reach 데이터를 sessions 대용으로 사용
-      kpiMap.set('sessions', { metric: 'sessions', currentValue: reachAnalysis.averageReach } as any)
+  try {
+    const engRes = await fetch(`http://localhost:3000/api/ga4/engagement`)
+    if (engRes.ok) {
+      const eng = await engRes.json() as { data?: Array<{ engagementRate?: number; bounceRate?: number }> }
+      if (eng.data?.length) {
+        const latest = eng.data[eng.data.length - 1]
+        ga4BounceRate = (latest.bounceRate ?? 0) * 100
+      }
     }
-  }
+  } catch { /* non-critical */ }
+
+  try {
+    const trafRes = await fetch(`http://localhost:3000/api/ga4/report`)
+    if (trafRes.ok) {
+      const traf = await trafRes.json() as { traffic?: Array<{ sessions?: number }>; channels?: Array<{ channel?: string; sessions?: number }> }
+      if (traf.traffic?.length) {
+        ga4Sessions = traf.traffic.reduce((s, t) => s + (t.sessions ?? 0), 0)
+      }
+      if (traf.channels?.length) {
+        ga4TopChannels = traf.channels.slice(0, 5).map(c => ({ name: c.channel ?? '', sessions: c.sessions ?? 0 }))
+      }
+    }
+  } catch { /* non-critical */ }
+
+  try {
+    const convRes = await fetch(`http://localhost:3000/api/ga4/channel-conv`)
+    if (convRes.ok) {
+      const conv = await convRes.json() as { data?: Array<{ conversionRate?: number }> }
+      if (conv.data?.length) {
+        const totalRate = conv.data.reduce((s, c) => s + (c.conversionRate ?? 0), 0)
+        ga4ConversionRate = conv.data.length > 0 ? totalRate / conv.data.length : 0
+      }
+    }
+  } catch { /* non-critical */ }
 
   // SNS — SnsAnalyticsSnapshot 최신
   const latestSns = await prisma.snsAnalyticsSnapshot.findFirst({
@@ -81,10 +104,10 @@ export async function buildSnapshotFromDb(): Promise<WorldModelSnapshot> {
 
   return {
     ga4: {
-      sessions: kpiMap.get('sessions')?.currentValue ?? 0,
-      bounceRate: kpiMap.get('bounce_rate')?.currentValue ?? 0,
-      conversionRate: kpiMap.get('conversion_rate')?.currentValue ?? 0,
-      topChannels: [],
+      sessions: ga4Sessions,
+      bounceRate: Math.round(ga4BounceRate * 10) / 10,
+      conversionRate: Math.round(ga4ConversionRate * 1000) / 1000,
+      topChannels: ga4TopChannels,
       trend: 'stable',
     },
     sns: {

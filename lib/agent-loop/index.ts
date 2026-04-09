@@ -453,6 +453,15 @@ async function runWeeklyReviewCycle(): Promise<void> {
       console.log(`[Agent Loop] Context evolution: ${evolution.proposals.length} proposals`)
     }
   } catch { /* non-critical */ }
+
+  // Goal Planner — 데이터 기반 단기/중기/장기 목표 자동 산출
+  try {
+    const { updateGoalsFromPlan } = await import('./goal-planner')
+    const plan = await updateGoalsFromPlan()
+    if (plan.updated) {
+      console.log(`[Agent Loop] Goal plans: ${plan.plans.length} timeframes`)
+    }
+  } catch { /* non-critical */ }
 }
 
 // ── 스케줄 관리 ──

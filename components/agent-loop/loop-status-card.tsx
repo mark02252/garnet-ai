@@ -6,6 +6,7 @@ import type { AgentLoopStatusResponse } from '@/lib/agent-loop/types'
 export function LoopStatusCard() {
   const [data, setData] = useState<AgentLoopStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
+  const [deferringId, setDeferringId] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/agent-loop/status')
@@ -72,8 +73,6 @@ export function LoopStatusCard() {
       if (r.ok) setData(await r.json())
     } catch { /* ignore */ }
   }
-
-  const [deferringId, setDeferringId] = useState<string | null>(null)
 
   const deferReasons = [
     { key: 'no_budget', label: '예산 부족' },

@@ -30,40 +30,65 @@ export async function slackApprovalRequest(params: {
   goalAlignment?: string
 }): Promise<void> {
   const riskEmoji = params.riskLevel === 'HIGH' ? '🔴' : '🟡'
-  await send({
-    blocks: [
-      {
-        type: 'header',
-        text: { type: 'plain_text', text: `${riskEmoji} 승인 요청`, emoji: true },
-      },
-      {
-        type: 'section',
-        text: {
-          type: 'mrkdwn',
-          text: `*${params.title}*\n\n${params.rationale}`,
+
+  // 자기비판 부분 분리
+  const parts = params.rationale.split(/\[자기비판\]|\[자기비평\]/)
+  const mainRationale = parts[0].replace(/^\[검토됨\]\s*/, '').trim()
+  const selfCritique = parts[1]?.trim()
+
+  // 핵심 근거만 150자로 요약
+  const shortRationale = mainRationale.length > 150
+    ? mainRationale.slice(0, 147) + '...'
+    : mainRationale
+
+  const blocks: Array<Record<string, unknown>> = [
+    {
+      type: 'header',
+      text: { type: 'plain_text', text: `${riskEmoji} 승인 요청`, emoji: true },
+    },
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*${params.title.replace(/^\[검토됨\]\s*/, '')}*` },
+    },
+    {
+      type: 'section',
+      text: { type: 'mrkdwn', text: shortRationale },
+    },
+  ]
+
+  // 자기비판이 있으면 별도 블록
+  if (selfCritique) {
+    blocks.push({
+      type: 'context',
+      elements: [{ type: 'mrkdwn', text: `🔍 _검토: ${selfCritique.slice(0, 120)}_` }],
+    })
+  }
+
+  // 예상 효과 + 목표를 한 줄로
+  const metaLine = [
+    params.expectedEffect ? `📈 ${params.expectedEffect.slice(0, 80)}` : '',
+    params.goalAlignment ? `🎯 ${params.goalAlignment}` : '',
+  ].filter(Boolean).join('  |  ')
+
+  if (metaLine) {
+    blocks.push({ type: 'context', elements: [{ type: 'mrkdwn', text: metaLine }] })
+  }
+
+  blocks.push(
+    {
+      type: 'actions',
+      elements: [
+        {
+          type: 'button',
+          text: { type: 'plain_text', text: '승인 인박스에서 확인' },
+          url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/approvals`,
         },
-      },
-      ...(params.expectedEffect ? [{
-        type: 'context',
-        elements: [{ type: 'mrkdwn', text: `📈 예상 효과: ${params.expectedEffect}` }],
-      }] : []),
-      ...(params.goalAlignment ? [{
-        type: 'context',
-        elements: [{ type: 'mrkdwn', text: `🎯 관련 목표: ${params.goalAlignment}` }],
-      }] : []),
-      {
-        type: 'actions',
-        elements: [
-          {
-            type: 'button',
-            text: { type: 'plain_text', text: '승인 인박스에서 확인' },
-            url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/approvals`,
-          },
-        ],
-      },
-      { type: 'divider' },
-    ],
-  })
+      ],
+    },
+    { type: 'divider' },
+  )
+
+  await send({ blocks })
 }
 
 /** 긴급 알림 */

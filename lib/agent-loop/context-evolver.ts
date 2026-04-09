@@ -85,11 +85,63 @@ export async function evolveContext(): Promise<{
   const ctx = loadBusinessContext()
   if (!ctx) return { proposals: [], archived: [], updated: false }
 
+  const { prisma } = await import('@/lib/prisma')
   const trackability = assessGoalTrackability(ctx)
   const knowledgeStats = await getKnowledgeStats()
   const proposals: ContextUpdateProposal[] = []
   const archived: string[] = []
   let updated = false
+
+  // 0. 목표 달성 체크 — 100% 달성 시 축하 + 다음 목표 제안
+  const goalStates = await prisma.goalState.findMany({
+    orderBy: { checkedAt: 'desc' },
+    distinct: ['goalName'],
+  })
+
+  for (const gs of goalStates) {
+    if (gs.progressPercent >= 100) {
+      const matchingGoal = ctx.strategicGoals.find(g => g.goal === gs.goalName)
+      if (!matchingGoal) continue
+
+      // 축하 알림
+      if (isSlackConfigured()) {
+        await slackEvolutionAlert({
+          type: 'emergence',
+          title: `🎉 목표 달성: ${gs.goalName}`,
+          description: `목표 "${matchingGoal.target}"을 달성했습니다! 다음 단계 목표를 자동 제안합니다.`,
+        }).catch(() => {})
+      }
+      if (isTelegramConfigured()) {
+        await sendMessage(
+          `🎉 *목표 달성!*\n\n*${gs.goalName}*\n목표: ${matchingGoal.target} → 100% 달성\n\n다음 단계 목표를 제안합니다.`,
+          { parseMode: 'Markdown' },
+        ).catch(() => {})
+      }
+
+      // 다음 단계 목표 제안 (현재 target의 1.5배)
+      const currentTarget = matchingGoal.target
+      const numMatch = currentTarget.match(/(\d[\d,]*)/)
+      if (numMatch) {
+        const currentNum = parseInt(numMatch[1].replace(/,/g, ''))
+        const nextNum = Math.round(currentNum * 1.5)
+        const nextTarget = currentTarget.replace(numMatch[1], nextNum.toLocaleString())
+        proposals.push({
+          type: 'modify_goal',
+          description: `"${gs.goalName}" 100% 달성! 다음 목표: ${nextTarget} (1.5배 상향)`,
+          details: { goalName: gs.goalName, currentTarget, nextTarget, priority: matchingGoal.priority },
+        })
+
+        // 자동 업데이트 (사용자 승인 없이 — 달성한 목표를 상향하는 건 안전)
+        matchingGoal.target = nextTarget
+        updated = true
+      }
+    }
+  }
+
+  if (updated) {
+    ctx.lastUpdated = new Date().toISOString()
+    saveBusinessContext(ctx)
+  }
 
   // 1. 추적 불가능한 목표를 "비즈니스 맥락"으로 이동 (삭제가 아니라 맥락화)
   const untrackable = trackability.filter(t => !t.trackable)

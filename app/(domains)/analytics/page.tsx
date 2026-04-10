@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import { EcommerceSection } from '@/components/analytics/ecommerce-section';
 import {
   AreaChart,
   Area,
@@ -1038,6 +1039,11 @@ export default function AnalyticsPage() {
               </span>
             </div>
           )}
+
+          {/* ════════════════════════════════════════════════════════
+              Section 0: Ecommerce
+          ════════════════════════════════════════════════════════ */}
+          <EcommerceSection />
 
           {/* ════════════════════════════════════════════════════════
               Section 1: KPI Cards

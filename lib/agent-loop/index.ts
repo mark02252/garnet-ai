@@ -294,13 +294,31 @@ async function runDailyBriefing(): Promise<void> {
     newKnowledge = await prisma.knowledgeEntry.count({ where: { createdAt: { gte: oneDayAgo } } })
   } catch { /* */ }
 
+  // LLM으로 오늘의 핵심 인사이트 생성
   try {
-    const topK = await prisma.knowledgeEntry.findFirst({
-      where: { level: 3, createdAt: { gte: oneDayAgo }, isAntiPattern: false },
-      orderBy: { confidence: 'desc' },
-    })
-    if (topK) topInsight = `${topK.pattern}: ${topK.observation.split('\n')[0].slice(0, 100)}`
-  } catch { /* */ }
+    const { runLLM } = await import('@/lib/llm')
+    const dataContext = [
+      ecommerce ? `매출 ₩${ecommerce.revenue.toLocaleString()}, 구매자 ${ecommerce.purchasers}명, 인당 ₩${ecommerce.avgOrder.toLocaleString()}, 전환율 ${(ecommerce.conversionRate*100).toFixed(1)}%` : '',
+      traffic ? `세션 ${traffic.sessions.toLocaleString()}, 활성사용자 ${traffic.activeUsers ?? '?'}, 신규 ${traffic.newUsers ?? '?'} / 재방문 ${traffic.returningUsers ?? '?'}, ARPU ₩${traffic.arpu ?? '?'}` : '',
+      `목표: ${goals.map(g => `${g.goal.goal} ${g.progressPercent}%`).join(', ')}`,
+    ].filter(Boolean).join('\n')
+
+    const raw = await runLLM(
+      '비즈니스 데이터 분석가. 핵심 인사이트를 한국어 1-2문장으로. 숫자의 의미와 다음 액션 방향을 포함.',
+      `오늘의 비즈니스 데이터:\n${dataContext}\n\n이 데이터에서 가장 중요한 인사이트 1-2문장:`,
+      0.3, 200,
+    )
+    topInsight = raw.replace(/```[^`]*```/g, '').replace(/\n/g, ' ').trim().slice(0, 200)
+  } catch {
+    // 폴백: Knowledge Store에서
+    try {
+      const topK = await prisma.knowledgeEntry.findFirst({
+        where: { level: 3, createdAt: { gte: oneDayAgo }, isAntiPattern: false },
+        orderBy: { confidence: 'desc' },
+      })
+      if (topK) topInsight = `${topK.pattern}: ${topK.observation.split('\n')[0].slice(0, 100)}`
+    } catch { /* */ }
+  }
 
   await notifyDailyBriefing({
     summary: [digestHeadline, result.summary].filter(Boolean).join('\n\n') || '특이사항 없음',

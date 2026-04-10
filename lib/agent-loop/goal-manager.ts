@@ -117,7 +117,16 @@ async function extractCurrentValue(
 
   // SNS 관련 지표 매칭
   if (metricLower.includes('참여') || metricLower.includes('engagement')) {
-    return String(snapshot.sns.engagement)
+    // engagement는 절대값 → reach로 나누어 참여율(%) 계산
+    try {
+      const { prisma: db } = await import('@/lib/prisma')
+      const latest = await db.snsAnalyticsSnapshot.findFirst({ orderBy: { date: 'desc' }, select: { engagement: true, reach: true } })
+      if (latest && latest.reach > 0) {
+        const rate = (latest.engagement / latest.reach) * 100
+        return `${rate.toFixed(1)}%`
+      }
+    } catch { /* fallback */ }
+    return `${snapshot.sns.engagement}%`
   }
   if (metricLower.includes('팔로워') || metricLower.includes('follower')) {
     return String(snapshot.sns.followerGrowth)

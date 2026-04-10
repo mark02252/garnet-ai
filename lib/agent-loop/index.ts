@@ -229,7 +229,7 @@ async function runDailyBriefing(): Promise<void> {
 
   // 매출 + 트래픽 데이터 수집
   let ecommerce: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number } | undefined
-  let traffic: { sessions: number; changePercent: number } | undefined
+  let traffic: { sessions: number; changePercent: number; activeUsers?: number; newUsers?: number; returningUsers?: number; arpu?: number } | undefined
   let pendingApprovals = 0
   let newKnowledge = 0
   let topInsight = ''
@@ -255,6 +255,34 @@ async function runDailyBriefing(): Promise<void> {
     traffic = { sessions: wm.snapshot.ga4.sessions, changePercent: 0 }
     const sessionTrend = wm.trends.find(t => t.metric === 'ga4.sessions')
     if (sessionTrend) traffic.changePercent = sessionTrend.direction === 'up' ? sessionTrend.magnitude : -sessionTrend.magnitude
+
+    // 활성 사용자 + 신규/재방문 + ARPU
+    try {
+      const stickyRes = await fetch('http://localhost:3000/api/ga4/stickiness')
+      if (stickyRes.ok) {
+        const sticky = await stickyRes.json() as { data?: Array<{ dau?: number }> }
+        const latest = sticky.data?.[sticky.data.length - 1]
+        if (latest?.dau) traffic.activeUsers = latest.dau
+      }
+    } catch { /* */ }
+
+    try {
+      const userRes = await fetch('http://localhost:3000/api/ga4/user-type')
+      if (userRes.ok) {
+        const users = await userRes.json() as { data?: Array<{ userType?: string; users?: number }> }
+        if (users.data) {
+          const newU = users.data.find(u => u.userType === 'New')
+          const retU = users.data.find(u => u.userType === 'Returning')
+          traffic.newUsers = newU?.users ?? 0
+          traffic.returningUsers = retU?.users ?? 0
+        }
+      }
+    } catch { /* */ }
+
+    // ARPU
+    if (ecommerce && traffic.activeUsers && traffic.activeUsers > 0) {
+      traffic.arpu = Math.round(ecommerce.revenue / traffic.activeUsers)
+    }
   } catch { /* */ }
 
   try {

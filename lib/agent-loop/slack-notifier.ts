@@ -117,7 +117,7 @@ export async function slackDailyBriefing(params: {
   todayCycles: number
   todayActions: number
   ecommerce?: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number }
-  traffic?: { sessions: number; changePercent: number }
+  traffic?: { sessions: number; changePercent: number; activeUsers?: number; newUsers?: number; returningUsers?: number; arpu?: number }
   newKnowledge?: number
   pendingApprovals?: number
   topInsight?: string
@@ -139,7 +139,7 @@ export async function slackDailyBriefing(params: {
     })
   }
 
-  // 트래픽
+  // 트래픽 + 사용자
   if (params.traffic) {
     const changeStr = params.traffic.changePercent > 0 ? `+${params.traffic.changePercent.toFixed(1)}%` : `${params.traffic.changePercent.toFixed(1)}%`
     blocks.push({
@@ -149,6 +149,25 @@ export async function slackDailyBriefing(params: {
         { type: 'mrkdwn', text: `*🛒 전환율*\n${params.ecommerce ? `${(params.ecommerce.conversionRate * 100).toFixed(1)}%` : 'N/A'}` },
       ],
     })
+    // 활성 사용자 + 신규/재방문 + ARPU
+    const userFields: Array<{ type: string; text: string }> = []
+    if (params.traffic.activeUsers) {
+      userFields.push({ type: 'mrkdwn', text: `*👥 활성 사용자*\n${params.traffic.activeUsers.toLocaleString()}` })
+    }
+    if (params.traffic.newUsers != null && params.traffic.returningUsers != null) {
+      const total = params.traffic.newUsers + params.traffic.returningUsers
+      const newPct = total > 0 ? Math.round(params.traffic.newUsers / total * 100) : 0
+      userFields.push({ type: 'mrkdwn', text: `*🆕 신규/재방문*\n${params.traffic.newUsers} / ${params.traffic.returningUsers} (신규 ${newPct}%)` })
+    }
+    if (params.traffic.arpu) {
+      userFields.push({ type: 'mrkdwn', text: `*💵 ARPU*\n₩${params.traffic.arpu.toLocaleString()}` })
+    }
+    if (userFields.length > 0) {
+      blocks.push({ type: 'section', fields: userFields.slice(0, 2) }) // Slack 최대 2 fields
+      if (userFields.length > 2) {
+        blocks.push({ type: 'section', fields: userFields.slice(2) })
+      }
+    }
   }
 
   // 목표

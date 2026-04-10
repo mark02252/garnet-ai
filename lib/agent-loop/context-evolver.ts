@@ -77,6 +77,67 @@ export function assessGoalTrackability(ctx: BusinessContext): GoalTrackability[]
  * 데이터 기반으로 새 목표를 제안하거나 기존 목표 수정을 제안
  * weekly-review에서 호출
  */
+/**
+ * 목표 달성 체크 — 100% 달성 시 자동 상향 + 축하 알림
+ * routine-cycle에서도 호출 가능 (주간 리뷰 안 기다림)
+ */
+export async function checkAndEscalateGoals(): Promise<{ escalated: string[] }> {
+  const ctx = loadBusinessContext()
+  if (!ctx) return { escalated: [] }
+
+  const { prisma } = await import('@/lib/prisma')
+  const goalStates = await prisma.goalState.findMany({
+    orderBy: { checkedAt: 'desc' },
+    distinct: ['goalName'],
+  })
+
+  const escalated: string[] = []
+
+  for (const gs of goalStates) {
+    if (gs.progressPercent >= 100) {
+      const matchingGoal = ctx.strategicGoals.find(g => g.goal === gs.goalName)
+      if (!matchingGoal) continue
+
+      const currentTarget = matchingGoal.target
+      const numMatch = currentTarget.match(/(\d[\d,]*)/)
+      if (!numMatch) continue
+
+      const currentNum = parseInt(numMatch[1].replace(/,/g, ''))
+      const nextNum = Math.round(currentNum * 1.5)
+      const nextTarget = currentTarget.replace(numMatch[1], nextNum.toLocaleString())
+
+      // 이미 상향된 건지 체크 (같은 목표 중복 상향 방지)
+      if (matchingGoal.target === nextTarget) continue
+
+      // 자동 상향
+      matchingGoal.target = nextTarget
+      escalated.push(`${gs.goalName}: ${currentTarget} → ${nextTarget}`)
+
+      // 축하 알림
+      if (isSlackConfigured()) {
+        await slackEvolutionAlert({
+          type: 'emergence',
+          title: `🎉 목표 달성: ${gs.goalName}`,
+          description: `목표 "${currentTarget}" 달성! 다음 목표: ${nextTarget} (1.5배 상향)`,
+        }).catch(() => {})
+      }
+      if (isTelegramConfigured()) {
+        await sendMessage(
+          `🎉 *목표 달성!*\n\n*${gs.goalName}*\n${currentTarget} → *${nextTarget}* 상향`,
+          { parseMode: 'Markdown' },
+        ).catch(() => {})
+      }
+    }
+  }
+
+  if (escalated.length > 0) {
+    ctx.lastUpdated = new Date().toISOString()
+    saveBusinessContext(ctx)
+  }
+
+  return { escalated }
+}
+
 export async function evolveContext(): Promise<{
   proposals: ContextUpdateProposal[]
   archived: string[]
@@ -92,56 +153,7 @@ export async function evolveContext(): Promise<{
   const archived: string[] = []
   let updated = false
 
-  // 0. 목표 달성 체크 — 100% 달성 시 축하 + 다음 목표 제안
-  const goalStates = await prisma.goalState.findMany({
-    orderBy: { checkedAt: 'desc' },
-    distinct: ['goalName'],
-  })
-
-  for (const gs of goalStates) {
-    if (gs.progressPercent >= 100) {
-      const matchingGoal = ctx.strategicGoals.find(g => g.goal === gs.goalName)
-      if (!matchingGoal) continue
-
-      // 축하 알림
-      if (isSlackConfigured()) {
-        await slackEvolutionAlert({
-          type: 'emergence',
-          title: `🎉 목표 달성: ${gs.goalName}`,
-          description: `목표 "${matchingGoal.target}"을 달성했습니다! 다음 단계 목표를 자동 제안합니다.`,
-        }).catch(() => {})
-      }
-      if (isTelegramConfigured()) {
-        await sendMessage(
-          `🎉 *목표 달성!*\n\n*${gs.goalName}*\n목표: ${matchingGoal.target} → 100% 달성\n\n다음 단계 목표를 제안합니다.`,
-          { parseMode: 'Markdown' },
-        ).catch(() => {})
-      }
-
-      // 다음 단계 목표 제안 (현재 target의 1.5배)
-      const currentTarget = matchingGoal.target
-      const numMatch = currentTarget.match(/(\d[\d,]*)/)
-      if (numMatch) {
-        const currentNum = parseInt(numMatch[1].replace(/,/g, ''))
-        const nextNum = Math.round(currentNum * 1.5)
-        const nextTarget = currentTarget.replace(numMatch[1], nextNum.toLocaleString())
-        proposals.push({
-          type: 'modify_goal',
-          description: `"${gs.goalName}" 100% 달성! 다음 목표: ${nextTarget} (1.5배 상향)`,
-          details: { goalName: gs.goalName, currentTarget, nextTarget, priority: matchingGoal.priority },
-        })
-
-        // 자동 업데이트 (사용자 승인 없이 — 달성한 목표를 상향하는 건 안전)
-        matchingGoal.target = nextTarget
-        updated = true
-      }
-    }
-  }
-
-  if (updated) {
-    ctx.lastUpdated = new Date().toISOString()
-    saveBusinessContext(ctx)
-  }
+  // 0. 목표 달성 체크는 checkAndEscalateGoals()로 분리됨 (routine-cycle에서 호출)
 
   // 1. 추적 불가능한 목표를 "비즈니스 맥락"으로 이동 (삭제가 아니라 맥락화)
   const untrackable = trackability.filter(t => !t.trackable)

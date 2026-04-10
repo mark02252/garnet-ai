@@ -158,11 +158,20 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     // 7. Evaluator
     await evaluateAndStore(cycleId, cycleType, updatedWm, decision, { autoExecuted, sentToGovernor, errors })
 
-    // 7.3 routine-cycle마다 기사 소량 학습 (5건씩)
+    // 7.3 routine-cycle마다 기사 소량 학습 + 목표 달성 체크
     if (cycleType === 'routine-cycle') {
       try {
         const { learnFromArticles } = await import('./article-learner')
-        await learnFromArticles(168) // 7일 이내 미학습 기사 중 5건 배치 (함수 내부에서 take 30이지만 빠르게 처리)
+        await learnFromArticles(168)
+      } catch { /* non-critical */ }
+
+      // 목표 100% 달성 시 자동 상향
+      try {
+        const { checkAndEscalateGoals } = await import('./context-evolver')
+        const escalation = await checkAndEscalateGoals()
+        if (escalation.escalated.length > 0) {
+          console.log(`[Agent Loop] Goals escalated: ${escalation.escalated.join(', ')}`)
+        }
       } catch { /* non-critical */ }
     }
 

@@ -78,8 +78,8 @@ export function assessGoalTrackability(ctx: BusinessContext): GoalTrackability[]
  * weekly-review에서 호출
  */
 /**
- * 목표 달성 체크 — 100% 달성 시 자동 상향 + 축하 알림
- * routine-cycle에서도 호출 가능 (주간 리뷰 안 기다림)
+ * 목표 달성 체크 — 100% 달성 시 Goal Planner로 다음 목표 산출
+ * routine-cycle에서 호출
  */
 export async function checkAndEscalateGoals(): Promise<{ escalated: string[] }> {
   const ctx = loadBusinessContext()
@@ -91,43 +91,77 @@ export async function checkAndEscalateGoals(): Promise<{ escalated: string[] }> 
     distinct: ['goalName'],
   })
 
+  const achieved = goalStates.filter(gs => gs.progressPercent >= 100)
+  if (achieved.length === 0) return { escalated: [] }
+
   const escalated: string[] = []
 
-  for (const gs of goalStates) {
-    if (gs.progressPercent >= 100) {
+  // Goal Planner에게 데이터 기반 다음 목표를 물어봄
+  try {
+    const { planGoals } = await import('./goal-planner')
+    const plans = await planGoals()
+    const shortTermPlan = plans.find(p => p.timeframe === 'short')
+
+    for (const gs of achieved) {
       const matchingGoal = ctx.strategicGoals.find(g => g.goal === gs.goalName)
       if (!matchingGoal) continue
 
       const currentTarget = matchingGoal.target
-      const numMatch = currentTarget.match(/(\d[\d,]*)/)
-      if (!numMatch) continue
 
-      const currentNum = parseInt(numMatch[1].replace(/,/g, ''))
-      const nextNum = Math.round(currentNum * 1.5)
-      const nextTarget = currentTarget.replace(numMatch[1], nextNum.toLocaleString())
+      // Goal Planner의 단기 계획에서 같은 metric 찾기
+      const plannedGoal = shortTermPlan?.goals.find(g =>
+        g.metric.toLowerCase().includes(matchingGoal.metric.toLowerCase().slice(0, 4)) ||
+        g.name.includes(gs.goalName.slice(0, 6))
+      )
 
-      // 이미 상향된 건지 체크 (같은 목표 중복 상향 방지)
+      let nextTarget: string
+      let rationale: string
+
+      if (plannedGoal) {
+        // Goal Planner가 산출한 현실적 목표 사용
+        nextTarget = `${plannedGoal.target}${plannedGoal.unit}`
+        rationale = plannedGoal.rationale
+      } else {
+        // 폴백: LLM에게 직접 물어봄
+        try {
+          const { runLLM } = await import('@/lib/llm')
+          const raw = await runLLM(
+            '데이터 기반 목표 설정 전문가. 현실적인 수치만. JSON만 출력.',
+            `목표 "${gs.goalName}"이 ${currentTarget}을 달성했습니다. 현재값: ${gs.currentValue}. 다음 현실적 목표를 설정하세요. JSON: {"nextTarget":"값","rationale":"근거"}`,
+            0.3, 300,
+          )
+          const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
+          nextTarget = parsed.nextTarget || currentTarget
+          rationale = parsed.rationale || '데이터 기반 산출'
+        } catch {
+          continue // 산출 실패 시 상향 안 함
+        }
+      }
+
+      // 같은 목표 중복 상향 방지
       if (matchingGoal.target === nextTarget) continue
 
-      // 자동 상향
+      const prevTarget = matchingGoal.target
       matchingGoal.target = nextTarget
-      escalated.push(`${gs.goalName}: ${currentTarget} → ${nextTarget}`)
+      escalated.push(`${gs.goalName}: ${prevTarget} → ${nextTarget}`)
 
-      // 축하 알림
+      // 알림
       if (isSlackConfigured()) {
         await slackEvolutionAlert({
           type: 'emergence',
           title: `🎉 목표 달성: ${gs.goalName}`,
-          description: `목표 "${currentTarget}" 달성! 다음 목표: ${nextTarget} (1.5배 상향)`,
+          description: `"${prevTarget}" 달성! 다음 목표: ${nextTarget}\n근거: ${rationale}`,
         }).catch(() => {})
       }
       if (isTelegramConfigured()) {
         await sendMessage(
-          `🎉 *목표 달성!*\n\n*${gs.goalName}*\n${currentTarget} → *${nextTarget}* 상향`,
+          `🎉 *목표 달성!*\n\n*${gs.goalName}*\n${prevTarget} → *${nextTarget}*\n_${rationale}_`,
           { parseMode: 'Markdown' },
         ).catch(() => {})
       }
     }
+  } catch {
+    // Goal Planner 실패 시 상향 안 함 (무리한 상향보다 나음)
   }
 
   if (escalated.length > 0) {

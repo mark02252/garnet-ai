@@ -97,10 +97,10 @@ export function computeGoalProgress(
 
 // ── Extract Current Value from World Model ──
 
-function extractCurrentValue(
+async function extractCurrentValue(
   goal: StrategicGoal,
   worldModel: WorldModel
-): string | null {
+): Promise<string | null> {
   const metricLower = goal.metric.toLowerCase()
   const snapshot = worldModel.snapshot
 
@@ -123,11 +123,16 @@ function extractCurrentValue(
     return String(snapshot.sns.followerGrowth)
   }
   if (metricLower.includes('도달') || metricLower.includes('reach')) {
-    // topContent의 평균 metric을 도달로 사용
+    // DB에서 직접 조회 (topContent가 비어있을 수 있음)
+    try {
+      const { prisma: db } = await import('@/lib/prisma')
+      const reachData = await db.instagramReachDaily.findFirst({ orderBy: { metricDate: 'desc' } })
+      if (reachData?.reach) return String(reachData.reach)
+    } catch { /* fallback */ }
+    // 폴백: topContent
     const contents = snapshot.sns.topContent
     if (contents.length > 0) {
-      const avg = Math.round(contents.reduce((s, c) => s + c.metric, 0) / contents.length)
-      return String(avg)
+      return String(Math.round(contents.reduce((s: number, c: { metric: number }) => s + c.metric, 0) / contents.length))
     }
     return '0'
   }
@@ -151,7 +156,7 @@ export async function evaluateGoals(worldModel: WorldModel): Promise<GoalProgres
   const results: GoalProgress[] = []
 
   for (const goal of ctx.strategicGoals) {
-    const currentValue = extractCurrentValue(goal, worldModel)
+    const currentValue = await extractCurrentValue(goal, worldModel)
     const progress = computeGoalProgress(goal, currentValue)
     results.push(progress)
 

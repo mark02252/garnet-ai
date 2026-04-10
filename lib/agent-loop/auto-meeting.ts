@@ -23,16 +23,31 @@ type MeetingResult = {
 
 /**
  * 이슈의 복잡도를 판단하여 회의가 필요한지 결정
- * 복합 이슈 = 2개 이상 카테고리의 이슈가 동시에 존재
+ * 매우 엄격한 조건 + 하루 1회 제한
  */
-export function needsMeeting(worldModel: WorldModel, goals: GoalProgress[]): boolean {
-  const issueTypes = new Set(worldModel.openIssues.map(i => i.type))
-  const behindGoals = goals.filter(g => !g.onTrack).length
+export function needsMeeting(worldModel: WorldModel, _goals: GoalProgress[]): boolean {
+  // 하루 1회 제한
+  try {
+    const fs = require('fs') as typeof import('fs')
+    const path = require('path') as typeof import('path')
+    const flagPath = path.join(process.cwd(), '.garnet-config', `meeting-${new Date().toISOString().split('T')[0]}.flag`)
+    if (fs.existsSync(flagPath)) return false
+  } catch { /* */ }
 
-  // 조건: 2개 이상 이슈 유형 OR 심각한 이슈 + 뒤처진 목표
-  if (issueTypes.size >= 2) return true
-  if (worldModel.openIssues.some(i => i.severity === 'critical') && behindGoals > 0) return true
-  if (behindGoals >= 2) return true
+  // CRITICAL 이슈가 2개 이상이고 서로 다른 유형일 때만
+  const criticalIssues = worldModel.openIssues.filter(i => i.severity === 'critical')
+  const criticalTypes = new Set(criticalIssues.map(i => i.type))
+
+  if (criticalIssues.length >= 2 && criticalTypes.size >= 2) {
+    // 플래그 파일 생성 (하루 1회)
+    try {
+      const fs = require('fs') as typeof import('fs')
+      const path = require('path') as typeof import('path')
+      const flagPath = path.join(process.cwd(), '.garnet-config', `meeting-${new Date().toISOString().split('T')[0]}.flag`)
+      fs.writeFileSync(flagPath, new Date().toISOString())
+    } catch { /* */ }
+    return true
+  }
 
   return false
 }

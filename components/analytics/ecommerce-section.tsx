@@ -87,24 +87,34 @@ export function EcommerceSection() {
       {/* 일별 매출 바 차트 */}
       {daysWithRevenue.length > 0 && (
         <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 12, padding: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div style={{ fontSize: 11, color: '#7E8A98', marginBottom: 12 }}>일별 매출</div>
-          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 2, height: 80 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <span style={{ fontSize: 11, color: '#7E8A98' }}>일별 매출</span>
+            <span style={{ fontSize: 10, color: '#555' }}>최고 ₩{maxRevenue.toLocaleString()}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 120 }}>
             {data.dailyData.slice(-14).map((d, i) => {
               const height = maxRevenue > 0 ? (d.revenue / maxRevenue) * 100 : 0
               const date = d.date.slice(6, 8)
+              const formatRevenue = (v: number) => v >= 1000000 ? `${(v/10000).toFixed(0)}만` : v >= 10000 ? `${(v/10000).toFixed(1)}만` : v > 0 ? `${(v/1000).toFixed(0)}K` : ''
               return (
-                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  {d.revenue > 0 && (
+                    <span style={{ fontSize: 8, color: '#C93545', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                      {formatRevenue(d.revenue)}
+                    </span>
+                  )}
                   <div
                     style={{
                       width: '100%',
-                      height: `${Math.max(height, 2)}%`,
+                      height: `${Math.max(height, d.revenue > 0 ? 8 : 2)}%`,
                       background: d.revenue > 0 ? '#C93545' : 'rgba(255,255,255,0.05)',
-                      borderRadius: 2,
-                      minHeight: 2,
+                      borderRadius: 3,
+                      minHeight: d.revenue > 0 ? 8 : 2,
+                      transition: 'height 0.3s',
                     }}
-                    title={`${d.date}: ₩${d.revenue.toLocaleString()}`}
+                    title={`${d.date.slice(4,6)}/${date}: ₩${d.revenue.toLocaleString()} (${d.transactions}명)`}
                   />
-                  <span style={{ fontSize: 8, color: '#555', marginTop: 4 }}>{date}</span>
+                  <span style={{ fontSize: 8, color: d.revenue > 0 ? '#999' : '#444', marginTop: 2 }}>{date}</span>
                 </div>
               )
             })}

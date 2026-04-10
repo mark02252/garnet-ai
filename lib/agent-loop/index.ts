@@ -158,6 +158,14 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     // 7. Evaluator
     await evaluateAndStore(cycleId, cycleType, updatedWm, decision, { autoExecuted, sentToGovernor, errors })
 
+    // 7.3 routine-cycle마다 기사 소량 학습 (5건씩)
+    if (cycleType === 'routine-cycle') {
+      try {
+        const { learnFromArticles } = await import('./article-learner')
+        await learnFromArticles(168) // 7일 이내 미학습 기사 중 5건 배치 (함수 내부에서 take 30이지만 빠르게 처리)
+      } catch { /* non-critical */ }
+    }
+
     // 7.5 정보 부족 감지 → 질문
     if (cycleType === 'routine-cycle') {
       try {

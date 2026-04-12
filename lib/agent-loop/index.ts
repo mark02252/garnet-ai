@@ -255,8 +255,10 @@ async function runDailyBriefing(): Promise<void> {
     const ecomRes = await fetch('http://localhost:3000/api/ga4/ecommerce')
     if (ecomRes.ok) {
       const ecom = await ecomRes.json() as { totalTransactions?: number; totalRevenue?: number; avgOrderValue?: number; avgPurchaseRate?: number; dailyData?: Array<{ transactions: number; revenue: number }> }
-      // 어제 하루 데이터만
-      const yesterday = ecom.dailyData?.slice(-1)[0]
+      // 어제 하루 데이터 (마지막은 오늘이므로 뒤에서 두 번째)
+      const yesterday = ecom.dailyData && ecom.dailyData.length >= 2
+        ? ecom.dailyData[ecom.dailyData.length - 2]
+        : undefined
       if (yesterday && yesterday.revenue > 0) {
         ecommerce = {
           revenue: yesterday.revenue,

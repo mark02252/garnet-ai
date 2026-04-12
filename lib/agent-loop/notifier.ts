@@ -101,7 +101,7 @@ export async function notifyDailyBriefing(params: {
       newKnowledge: params.newKnowledge,
       pendingApprovals: params.pendingApprovals,
       topInsight: params.topInsight,
-    }).catch(() => {})
+    }).catch((err) => { console.error('[notifier] slackDailyBriefing 실패:', err) })
   }
 }
 

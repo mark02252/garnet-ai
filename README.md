@@ -1,36 +1,43 @@
-# Garnet (macOS Desktop)
+# Garnet
 
-Electron + Next.js 기반의 올인원 AI 마케팅 운영 앱입니다.
-브리핑, 전략 실행, 승인, 학습 자산화, 데이터 분석을 하나의 워크스페이스에서 이어갈 수 있습니다.
+자율 학습하는 개인 AGI 에이전트 시스템.
+마케팅을 첫 번째 도메인으로 24시간 자율 운영하며, 스스로 지식을 축적하고 판단을 개선합니다.
 
-현재 제품 상태와 최근 구조 개편 요약은 [/Users/rnr/Documents/New project/docs/PROJECT_CONTEXT.md](/Users/rnr/Documents/New%20project/docs/PROJECT_CONTEXT.md) 에 정리되어 있습니다.
+> 전체 로드맵: [`docs/GARNET_ROADMAP.md`](docs/GARNET_ROADMAP.md)
+> 제품 상태: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
 
 ## 핵심 기능
-- AI 아바타 회의 실행: 웹 리서치 → 5역할 회의 → PM 결정 → 최종 산출물 → 메모리 로그
-- 도메인 라우팅: 자동 추천 또는 수동 고정(마케팅/단가조달/운영확장/재무/범용)
-- 멀티모달 첨부: CSV/XLSX/JSON/TXT/PDF/DOCX/이미지(OCR) 텍스트 추출 후 회의 컨텍스트 반영
-- 이미지 OCR 큐: OCR 작업을 비동기 큐 + 재시도로 처리하여 대기/실패 상태를 안정적으로 관리
-- 도메인 에이전트 풀 편집: 설정 화면에서 도메인별 specialist 프로필을 직접 커스터마이징
-- 히스토리 검색: 키워드/태그/날짜 필터
-- 실행 보고서 PDF 저장: 실행 상세에서 `PDF 보고서` 버튼으로 인쇄/저장
-- 데이터 실험실: CSV/XLSX/JSON/TEXT 데이터셋 입력 및 저장
-- AI 데이터 분석: 저장된 데이터셋에 대해 구조화된 마케팅 분석 생성
-- 학습 아카이브: 과거 대화를 \"이럴 때 이렇게 답변\" 카드로 축적/검색/편집
-- 학습 대시보드: 학습 카드 상태, 태그, 최근 업데이트 패턴 확인
-- 올나잇 세미나 워룸: 24시간(설정 시간) 라운드 기반 자동 회의, 라운드 로그 누적, 아침 브리핑 자동 생성
-- 인스타그램 도달 자동 에이전트: Meta API로 일별 도달 수집, 추세/이상치 분석, 실행 이력 저장
-- SNS 인사이트 보드: 현재는 개발 예정 카테고리로 보류 중인 소셜 연동 실험 화면
-- 현재 운영 저장: SQLite + Prisma, Supabase 협업 백엔드 스캐폴드 추가
+
+### Agent Loop (v0.6.0+, 36개 모듈)
+- **자율 순환 루프:** 환경 인식(Scanner) → LLM 추론(Reasoner) → 실행/승인(Executor) → 학습
+- **다중 주기:** 15분(긴급 감지) / 1시간(루틴 분석) / 7시(데일리 브리핑) / 18시(저녁 보고) / 월 9시(주간 리뷰)
+- **4단계 진화 엔진:**
+  - Phase 1: Knowledge Engine — 실행 결과 측정, 지식 축적, 인간 피드백 학습
+  - Phase 2: Curiosity Engine — 기사 학습, 거시 환경 추적, 교차 도메인 인사이트
+  - Phase 3: Causal Reasoning — 인과 모델, 신뢰도 평가, 목표 예측, 전략 변이
+  - Phase 4: Reflective Roles — 자기 비판, 역량 벤치마크, 능동 질문, 역할 확장
+- **리스크 기반 자율:** LOW 자동 실행, MEDIUM+ Governor 승인 대기
+- **알림:** Telegram(주력) + Slack 데일리 브리핑
+
+### 마케팅 OS 기반
+- GA4 성과 분석 (이커머스 매출, 트래픽, 채널, 코호트 리텐션)
+- Instagram 연동 (OAuth + 인사이트 + 도달 자동 분석)
+- SNS 성과 분석 (저장/공유/팔로워/도달)
+- Flow Builder (에이전트 파이프라인 비주얼 에디터)
+- Agent Shell (자연어 → Flow 자동 설계/실행)
+- 세미나 (멀티라운드 AI 토론)
+- 캠페인 룸 + 승인 인박스
+- 마케팅 인텔리전스 (5개 플랫폼 자동 수집 + AI 분석)
 
 ## 기술 스택
-- Electron + Next.js (App Router, TypeScript)
+- Next.js (App Router, TypeScript) + Tauri v2 데스크톱
 - TailwindCSS
-- Prisma + SQLite
-- Supabase local scaffold (Auth / Postgres / Storage / Realtime 준비)
-- OpenAI / Gemini / Groq / Local(OpenAI 호환) / OpenClaw
-- MCP SDK (`@modelcontextprotocol/sdk`) for local tool/resource/prompt exposure
+- Prisma + PostgreSQL (Supabase)
+- LLM: Gemini (기본) / Groq / OpenAI / Claude 폴백 체인
+- GA4 Data API (`@google-analytics/data`)
+- MCP SDK (`@modelcontextprotocol/sdk`)
 - Serper.dev 검색 API
-- electron-builder (.dmg)
+- Telegram Bot API + Slack Webhook
 
 ## 환경 변수
 `.env` 파일 예시:
@@ -242,57 +249,29 @@ npm run mcp:server
 npm run dist:publish
 ```
 
-## 라우트
-- `/operations`: 오늘의 브리핑
-- `/social`: 개발 예정인 SNS 인사이트 실험 화면
-- `/campaigns`: 캠페인 룸
-- `/campaigns/[id]`: 캠페인 상세
-- `/settings`: 관리자/운영 설정
-- `/api/supabase/bootstrap`: Supabase 이전용 로컬 운영 데이터 export
-- `/dashboard`: 대화 학습 아카이브 대시보드
-- `/learning`: 학습 카드 검색/편집/동기화
-- `/`: AI 회의 실행
-- `/datasets`: 데이터 입력/AI 분석 워크벤치
-- `/seminar`: 올나잇 세미나 워룸
-- `/history`: 실행 히스토리
-- `/runs/[id]`: 실행 상세
-- `/api/attachments/extract/status/[jobId]`: 이미지 OCR 큐 상태 조회
+## 주요 라우트
 
-### 인스타그램 연결 구조
-- `설정 및 복구`: 관리자용 App ID, Secret, Redirect URI, 기본 계정 관리
-- `SNS 인사이트`: 현재는 개발 예정 화면으로 남아 있으며, 실험용 연결과 과거 분석 데이터만 확인
-- 현재 연결 방식은 `Meta 공식 인증창 + 비즈니스 연결 흐름`
-- 제품 목적상 다음 우선 방향은 `Instagram Login` 기반 단일 계정 연결이며, Meta 비즈니스 연결은 보조 흐름으로 유지할 예정
+### 에이전트
+- `/operations` — 오늘의 브리핑 (홈)
+- `/approvals` — 승인 인박스
+- `/knowledge` — 지식 저장소
+- `/benchmark` — 역량 벤치마크
+- `/evolution` — 진화 로그
+- `/roles` — 역할 관리
 
-### 인스타그램 도달 자동 에이전트 API
-- 사전 준비:
-  - 인스타그램이 비즈니스/크리에이터 계정이어야 함
-  - Meta 앱 토큰에 인사이트 조회 권한(`instagram_manage_insights` 등)이 포함되어야 함
-- `POST /api/instagram/reach/agent`
-  - Meta API에서 일별 도달 데이터를 수집하고 추세 분석 실행
-  - Body(옵션): `{ "lookbackDays": 30 }`
-  - `INSTAGRAM_AGENT_SECRET`가 설정된 경우 헤더 `x-agent-secret` 또는 `Authorization: Bearer <secret>` 필요
-- `GET /api/instagram/reach/agent?days=30`
-  - 최근 N일 도달 시계열과 최신 분석 결과 조회
+### 프로젝트
+- `/campaigns` — 캠페인 룸
+- `/flow` — Flow Builder
+- `/shell` — Agent Shell
+- `/seminar` — 세미나 워룸
 
-예시:
+### 데이터
+- `/analytics` — GA4 분석 대시보드
+- `/social` — SNS 성과 분석
+- `/datasets` — 데이터 실험실
 
-```bash
-curl -X POST http://localhost:3000/api/instagram/reach/agent \
-  -H "Content-Type: application/json" \
-  -H "x-agent-secret: ${INSTAGRAM_AGENT_SECRET}" \
-  -d '{"lookbackDays":30}'
-```
-
-### 매일 자동 실행 (macOS cron 예시)
-매일 오전 9시에 자동 실행:
-
-```bash
-0 9 * * * curl -s -X POST http://localhost:3000/api/instagram/reach/agent -H "x-agent-secret: YOUR_SECRET" > /tmp/ig-reach-agent.log 2>&1
-```
-
-## 참고
-- 검색 API 실패 시에도 회의는 계속 진행됩니다.
-- 일부 환경에서 `prisma migrate`가 실패할 수 있어, 현재 프로젝트는 로컬 DB를 직접 초기화한 상태입니다.
-- Gemini 한도와 무관하게 웹서치만 점검하려면 `POST /api/search/test`를 사용하세요.
-- 올나잇 세미나는 앱이 실행 중이고 Mac이 절전 상태가 아닐 때 자동 라운드가 진행됩니다.
+### API
+- `/api/agent-loop/control` — Agent Loop 제어 (시작/중지/트리거)
+- `/api/agent-loop/status` — Agent Loop 상태 조회
+- `/api/ga4/ecommerce` — GA4 이커머스 데이터
+- `/api/cron/daily-briefing` — 데일리 브리핑 트리거

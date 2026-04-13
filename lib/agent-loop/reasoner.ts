@@ -4,6 +4,7 @@
  */
 
 import { runLLM } from '@/lib/llm'
+import { prisma } from '@/lib/prisma'
 import { getBusinessContextPrompt } from '@/lib/business-context'
 import { retrieveSimilarEpisodes } from '@/lib/memory/episodic-store'
 import { getKnowledgeForReasoner } from './knowledge-store'
@@ -52,6 +53,7 @@ export function buildReasonerPrompt(
   predictionSummary?: string,
   rolesSummary?: string,
   semanticContext?: string,
+  reflectionContext?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -125,6 +127,7 @@ ${macroSummary || '현재 특별한 시즌 없음'}
 
 ## Garnet의 활성 역할
 ${rolesSummary || '기본 비즈니스 분석가'}
+${reflectionContext ? `\n${reflectionContext}` : ''}
 
 위 상황을 분석하고, 지금 해야 할 액션을 우선순위 순으로 JSON으로 제안하세요.`
 }
@@ -142,6 +145,34 @@ export function parseReasonerResponse(raw: string): ReasonerOutput {
     return parsed
   } catch {
     return { situationSummary: raw.slice(0, 200), actions: [], noActionReason: 'LLM 응답 파싱 실패' }
+  }
+}
+
+async function getReflectionContext(): Promise<string> {
+  try {
+    const recentLessons = await prisma.knowledgeEntry.findMany({
+      where: { source: { contains: 'cycle_reflector' }, level: 2 },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+    })
+    const principles = await prisma.knowledgeEntry.findMany({
+      where: { source: { contains: 'cycle_reflector' }, level: 3 },
+      orderBy: { updatedAt: 'desc' },
+      take: 5,
+    })
+
+    const parts: string[] = []
+    if (recentLessons.length > 0) {
+      parts.push('## 최근 사이클 교훈')
+      parts.push(recentLessons.map(l => `- [${l.domain}] ${l.pattern}: ${l.observation.split('\n')[0]}`).join('\n'))
+    }
+    if (principles.length > 0) {
+      parts.push('## 확립된 원칙 (3회 이상 검증)')
+      parts.push(principles.map(p => `- [${p.domain}] ${p.pattern}: ${p.observation.split('\n')[0]}`).join('\n'))
+    }
+    return parts.join('\n\n')
+  } catch {
+    return ''
   }
 }
 
@@ -209,6 +240,8 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     /* Ollama not running */
   }
 
+  const reflectionContext = await getReflectionContext()
+
   const userPrompt = buildReasonerPrompt(
     worldModel, goals, businessContext,
     pastEpisodes.map(e => ({ input: e.input, output: e.output, score: e.score })),
@@ -218,6 +251,7 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     predictionSummary,
     rolesSummary,
     semanticContext,
+    reflectionContext,
   )
   const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
   let output = parseReasonerResponse(raw)

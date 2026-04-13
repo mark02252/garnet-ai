@@ -293,6 +293,7 @@ const navGroups: NavGroup[] = [
       { href: '/benchmark', label: '능력 벤치마크', icon: <BenchmarkIcon /> },
       { href: '/roles', label: '역할 관리', icon: <RolesIcon /> },
       { href: '/evolution', label: '진화 로그', icon: <EvolutionIcon /> },
+      { href: '/self-improve', label: '자기 개선', icon: <EvolutionIcon /> },
       { href: '/tech-radar', label: '테크 레이더', icon: <RadarIcon /> },
     ],
   },

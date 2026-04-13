@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { EcommerceSection } from '@/components/analytics/ecommerce-section';
+import { FunnelSection } from '@/components/analytics/funnel-section';
 import {
   AreaChart,
   Area,
@@ -1044,6 +1045,11 @@ export default function AnalyticsPage() {
               Section 0: Ecommerce
           ════════════════════════════════════════════════════════ */}
           <EcommerceSection />
+
+          {/* ════════════════════════════════════════════════════════
+              Section 0.5: Purchase Funnel
+          ════════════════════════════════════════════════════════ */}
+          <FunnelSection />
 
           {/* ════════════════════════════════════════════════════════
               Section 1: KPI Cards

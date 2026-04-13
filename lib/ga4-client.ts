@@ -510,6 +510,71 @@ export async function fetchEcommerceSummary(days = 30): Promise<GA4EcommerceSumm
   };
 }
 
+// ── Ecommerce Funnel ─────────────────────────────────────────────────────
+
+export type GA4FunnelStage = {
+  eventName: string;
+  label: string;
+  count: number;
+  dropRate: number;   // 이전 단계 대비 이탈률 (0~1)
+  continueRate: number; // 이전 단계 대비 진행률 (0~1)
+};
+
+const FUNNEL_DEFINITION: Array<{ eventName: string; label: string }> = [
+  { eventName: 'view_item_list', label: '영화 목록 조회' },
+  { eventName: 'view_item', label: '예매 페이지 진입' },
+  { eventName: 'begin_checkout', label: '상영시간 선택' },
+  { eventName: 'add_shipping_info', label: '좌석 확정' },
+  { eventName: 'add_payment_info', label: '결제수단 선택' },
+  { eventName: 'purchase', label: '결제 완료' },
+];
+
+export async function fetchEcommerceFunnel(days = 7): Promise<GA4FunnelStage[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
+    dimensions: [{ name: 'eventName' }],
+    metrics: [{ name: 'eventCount' }],
+    dimensionFilter: {
+      filter: {
+        fieldName: 'eventName',
+        inListFilter: {
+          values: FUNNEL_DEFINITION.map(f => f.eventName),
+        },
+      },
+    },
+  });
+
+  const counts: Record<string, number> = {};
+  for (const row of response.rows || []) {
+    const name = row.dimensionValues?.[0]?.value || '';
+    counts[name] = Number(row.metricValues?.[0]?.value || 0);
+  }
+
+  const stages: GA4FunnelStage[] = [];
+  let prevCount = 0;
+  for (let i = 0; i < FUNNEL_DEFINITION.length; i++) {
+    const def = FUNNEL_DEFINITION[i];
+    const count = counts[def.eventName] || 0;
+    const continueRate = i === 0 ? 1 : (prevCount > 0 ? count / prevCount : 0);
+    const dropRate = 1 - continueRate;
+    stages.push({
+      eventName: def.eventName,
+      label: def.label,
+      count,
+      continueRate,
+      dropRate,
+    });
+    if (count > 0) prevCount = count;
+  }
+
+  return stages;
+}
+
 // ── Cohort Retention ──────────────────────────────────────────────────────
 
 export type GA4CohortRetention = {

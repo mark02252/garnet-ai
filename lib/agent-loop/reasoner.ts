@@ -8,36 +8,13 @@ import { prisma } from '@/lib/prisma'
 import { getBusinessContextPrompt } from '@/lib/business-context'
 import { retrieveSimilarEpisodes } from '@/lib/memory/episodic-store'
 import { getKnowledgeForReasoner } from './knowledge-store'
+import { loadReasonerPrompt } from './prompt-manager'
 import type { WorldModel, GoalProgress, ReasonerOutput, ReasonerAction } from './types'
 
-const SYSTEM_PROMPT = `당신은 Garnet의 추론 엔진입니다. 비즈니스 전략, 마케팅, 데이터 분석, 경쟁 정보, 운영 등 다영역에 걸쳐 현재 상황을 분석하고 최적의 액션을 결정합니다. 활성화된 역할에 따라 판단 범위가 확장됩니다.
-
-규칙:
-1. 반드시 JSON만 출력하세요. 코드블록(\`\`\`)으로 감싸지 마세요.
-2. **반드시 1개 이상의 액션을 제안하세요.** 아무리 상황이 어려워도 할 수 있는 것이 있습니다.
-3. 각 액션의 riskLevel은 반드시 LOW, MEDIUM, HIGH 중 하나입니다.
-4. LOW: 데이터 분석, 리포트 생성, 내부 메모리 갱신 등
-5. MEDIUM: 콘텐츠 발행, 외부 API 호출, Flow 실행 등
-6. HIGH: 예산 변경, 캠페인 중단, 대량 발행 등
-7. 이전에 제안한 것과 같은 제목은 피하되, 같은 방향이라도 더 구체적인 실행안이면 제안하세요.
-8. 데이터가 부족하면 "데이터 수집"이 아니라, 부족한 데이터를 채우기 위한 구체적 방법을 제안하세요.
-
-출력 형식:
-{
-  "situationSummary": "현재 상황 1-2문장 요약",
-  "actions": [
-    {
-      "kind": "report_generation | playbook_update | content_publish | budget_adjust | flow_trigger | alert",
-      "title": "액션 제목",
-      "rationale": "근거",
-      "expectedEffect": "예상 효과",
-      "riskLevel": "LOW | MEDIUM | HIGH",
-      "goalAlignment": "기여하는 전략 목표",
-      "payload": {}
-    }
-  ],
-  "noActionReason": "액션 불필요 시 이유"
-}`
+/** Reasoner 시스템 프롬프트 — prompt-manager에서 동적 로드 (자동 최적화 대상) */
+function getSystemPrompt(): string {
+  return loadReasonerPrompt()
+}
 
 export function buildReasonerPrompt(
   worldModel: WorldModel,
@@ -253,7 +230,7 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     semanticContext,
     reflectionContext,
   )
-  const raw = await runLLM(SYSTEM_PROMPT, userPrompt, 0.3, 2000)
+  const raw = await runLLM(getSystemPrompt(), userPrompt, 0.3, 2000)
   let output = parseReasonerResponse(raw)
 
   // 진화적 전략 변이 (10% 확률)

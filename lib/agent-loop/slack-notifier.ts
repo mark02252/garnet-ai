@@ -118,6 +118,9 @@ export async function slackDailyBriefing(params: {
   todayActions: number
   ecommerce?: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number }
   traffic?: { sessions: number; changePercent: number; activeUsers?: number; newUsers?: number; returningUsers?: number; arpu?: number }
+  funnel?: Array<{ label: string; count: number; dropRate: number }>
+  movieRevenueTop?: Array<{ itemName: string; revenue: number; purchased: number }>
+  theaterRevenueTop?: Array<{ theaterCode: string; revenue: number; purchased: number }>
   newKnowledge?: number
   pendingApprovals?: number
   topInsight?: string
@@ -170,8 +173,68 @@ export async function slackDailyBriefing(params: {
     }
   }
 
+  // 구매 여정 이탈 분석 (funnel)
+  if (params.funnel && params.funnel.some(s => s.count > 0)) {
+    blocks.push({ type: 'divider' })
+    const circleNums = ['①', '②', '③', '④', '⑤', '⑥']
+    const funnelLines = params.funnel.map((s, i) => {
+      const num = circleNums[i] || `${i + 1}.`
+      const dropPct = (s.dropRate * 100).toFixed(0)
+      const warn = s.dropRate > 0.5 && i > 0 ? ' ⚠️' : ''
+      const dropStr = i > 0 && s.count > 0 ? `  (${dropPct}% 이탈${warn})` : ''
+      return `${num} ${s.label.padEnd(14, ' ')} ${s.count.toLocaleString().padStart(6)}회${dropStr}`
+    }).join('\n')
+    blocks.push({
+      type: 'section',
+      text: { type: 'mrkdwn', text: `*🛒 구매 여정 이탈 분석*\n\`\`\`${funnelLines}\`\`\`` },
+    })
+
+    // 주요 이탈 지점 자동 감지
+    const bigDrops = params.funnel
+      .map((s, i) => ({ label: s.label, drop: s.dropRate, idx: i }))
+      .filter(d => d.idx > 0 && d.drop > 0.5)
+      .sort((a, b) => b.drop - a.drop)
+      .slice(0, 2)
+    if (bigDrops.length > 0) {
+      blocks.push({
+        type: 'context',
+        elements: [{ type: 'mrkdwn', text: `🎯 *주요 이탈 지점:* ${bigDrops.map(d => d.label).join(', ')}` }],
+      })
+    }
+  }
+
+  // 영화별 매출 TOP
+  if (params.movieRevenueTop && params.movieRevenueTop.length > 0) {
+    blocks.push({ type: 'divider' })
+    const top3 = params.movieRevenueTop.slice(0, 3)
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: '*🎬 영화별 매출 TOP 3 (지난 7일)*' } })
+    const fields = top3.map((m, i) => ({
+      type: 'mrkdwn',
+      text: `*${i + 1}. ${m.itemName}*\n₩${m.revenue.toLocaleString()} (${m.purchased}매)`,
+    }))
+    // Slack 필드 2개씩 표시
+    for (let i = 0; i < fields.length; i += 2) {
+      blocks.push({ type: 'section', fields: fields.slice(i, i + 2) })
+    }
+  }
+
+  // 지점별 매출 TOP
+  if (params.theaterRevenueTop && params.theaterRevenueTop.length > 0) {
+    blocks.push({ type: 'divider' })
+    const top3 = params.theaterRevenueTop.slice(0, 3)
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: '*🏢 지점별 매출 TOP 3*' } })
+    const fields = top3.map((t, i) => ({
+      type: 'mrkdwn',
+      text: `*${i + 1}. ${t.theaterCode}*\n₩${t.revenue.toLocaleString()}`,
+    }))
+    for (let i = 0; i < fields.length; i += 2) {
+      blocks.push({ type: 'section', fields: fields.slice(i, i + 2) })
+    }
+  }
+
   // 목표
   if (params.goals.length > 0) {
+    blocks.push({ type: 'divider' })
     const goalsText = params.goals.map(g => `${g.onTrack ? '✅' : '⚠️'} ${g.name}: ${g.percent}%`).join('\n')
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*🎯 목표*\n${goalsText}` } })
   }
@@ -194,16 +257,23 @@ export async function slackDailyBriefing(params: {
     elements: [{ type: 'mrkdwn', text: `🤖 ${activityParts.join(' | ')}` }],
   })
 
+  // 액션 버튼
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  const actionButtons: Array<Record<string, unknown>> = [
+    {
+      type: 'button',
+      text: { type: 'plain_text', text: '📊 대시보드 열기' },
+      url: `${appUrl}/analytics`,
+    },
+  ]
   if (params.pendingApprovals && params.pendingApprovals > 0) {
-    blocks.push({
-      type: 'actions',
-      elements: [{
-        type: 'button',
-        text: { type: 'plain_text', text: `승인 인박스 (${params.pendingApprovals}건)` },
-        url: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/approvals`,
-      }],
+    actionButtons.push({
+      type: 'button',
+      text: { type: 'plain_text', text: `✅ 승인 인박스 (${params.pendingApprovals}건)` },
+      url: `${appUrl}/approvals`,
     })
   }
+  blocks.push({ type: 'actions', elements: actionButtons })
 
   blocks.push({ type: 'divider' })
   await send({ blocks })

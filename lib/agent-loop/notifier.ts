@@ -71,6 +71,9 @@ export async function notifyDailyBriefing(params: {
   todayActions: number
   ecommerce?: { revenue: number; purchasers: number; avgOrder: number; conversionRate: number }
   traffic?: { sessions: number; changePercent: number }
+  funnel?: Array<{ label: string; count: number; dropRate: number }>
+  movieRevenueTop?: Array<{ itemName: string; revenue: number; purchased: number }>
+  theaterRevenueTop?: Array<{ theaterCode: string; revenue: number; purchased: number }>
   newKnowledge?: number
   pendingApprovals?: number
   topInsight?: string
@@ -98,6 +101,9 @@ export async function notifyDailyBriefing(params: {
       todayActions: params.todayActions,
       ecommerce: params.ecommerce,
       traffic: params.traffic,
+      funnel: params.funnel,
+      movieRevenueTop: params.movieRevenueTop,
+      theaterRevenueTop: params.theaterRevenueTop,
       newKnowledge: params.newKnowledge,
       pendingApprovals: params.pendingApprovals,
       topInsight: params.topInsight,

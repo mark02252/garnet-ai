@@ -575,6 +575,83 @@ export async function fetchEcommerceFunnel(days = 7): Promise<GA4FunnelStage[]> 
   return stages;
 }
 
+// ── Per-Movie Revenue ────────────────────────────────────────────────────
+
+export type GA4MovieRevenue = {
+  itemName: string;
+  itemId: string;
+  purchased: number;
+  revenue: number;
+};
+
+/** 영화별 매출 상위 N개 (itemName 기준, 표준 이커머스 디멘션) */
+export async function fetchMovieRevenueTop(days = 7, limit = 10): Promise<GA4MovieRevenue[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+
+  const [response] = await client.runReport({
+    property: `properties/${creds.propertyId}`,
+    dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
+    dimensions: [{ name: 'itemName' }, { name: 'itemId' }],
+    metrics: [{ name: 'itemsPurchased' }, { name: 'itemRevenue' }],
+    orderBys: [{ metric: { metricName: 'itemRevenue' }, desc: true }],
+    limit,
+  });
+
+  return (response.rows || [])
+    .map(row => ({
+      itemName: row.dimensionValues?.[0]?.value || '(없음)',
+      itemId: row.dimensionValues?.[1]?.value || '',
+      purchased: Number(row.metricValues?.[0]?.value || 0),
+      revenue: Math.round(Number(row.metricValues?.[1]?.value || 0)),
+    }))
+    .filter(m => m.revenue > 0);
+}
+
+// ── Per-Theater Revenue ──────────────────────────────────────────────────
+
+export type GA4TheaterRevenue = {
+  theaterCode: string;
+  purchased: number;
+  revenue: number;
+};
+
+/**
+ * 지점별 매출 상위 N개 (customEvent:theater_code 기준)
+ * GA4에 theater_code가 Custom Dimension으로 등록되어야 조회 가능
+ */
+export async function fetchTheaterRevenueTop(days = 7, limit = 10): Promise<GA4TheaterRevenue[]> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+
+  try {
+    const [response] = await client.runReport({
+      property: `properties/${creds.propertyId}`,
+      dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
+      dimensions: [{ name: 'customEvent:theater_code' }],
+      metrics: [{ name: 'eventCount' }, { name: 'eventValue' }],
+      dimensionFilter: {
+        filter: { fieldName: 'eventName', stringFilter: { value: 'purchase', matchType: 'EXACT' } },
+      },
+      orderBys: [{ metric: { metricName: 'eventValue' }, desc: true }],
+      limit,
+    });
+
+    return (response.rows || [])
+      .map(row => ({
+        theaterCode: row.dimensionValues?.[0]?.value || '(없음)',
+        purchased: Number(row.metricValues?.[0]?.value || 0),
+        revenue: Math.round(Number(row.metricValues?.[1]?.value || 0)),
+      }))
+      .filter(t => t.theaterCode && t.theaterCode !== '(not set)');
+  } catch {
+    // Custom Dimension 미등록 시 빈 배열
+    return [];
+  }
+}
+
 // ── Cohort Retention ──────────────────────────────────────────────────────
 
 export type GA4CohortRetention = {

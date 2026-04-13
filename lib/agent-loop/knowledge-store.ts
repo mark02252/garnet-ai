@@ -308,3 +308,26 @@ export async function backfillEmbeddings(): Promise<{ total: number; embedded: n
 
   return { total: entries.length, embedded }
 }
+
+/**
+ * cycle_reflector가 3회 이상 관찰한 패턴을 Level 3(Principle)으로 승격
+ */
+export async function promoteRepeatedLessons(): Promise<number> {
+  const candidates = await prisma.knowledgeEntry.findMany({
+    where: {
+      source: { contains: 'cycle_reflector' },
+      level: 2,
+      observedCount: { gte: 3 },
+    },
+  })
+
+  let promoted = 0
+  for (const entry of candidates) {
+    await prisma.knowledgeEntry.update({
+      where: { id: entry.id },
+      data: { level: 3 },
+    })
+    promoted++
+  }
+  return promoted
+}

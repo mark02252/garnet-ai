@@ -175,6 +175,34 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
       } catch { /* non-critical */ }
     }
 
+    // 7.3 사이클 리플렉션 — 교훈 추출 + Knowledge Store 저장
+    if (cycleType === 'routine-cycle' && decision.actions.length > 0) {
+      try {
+        const { reflectOnCycle, storeLessons } = await import('./cycle-reflector')
+        const { promoteRepeatedLessons } = await import('./knowledge-store')
+        const reflection = await reflectOnCycle({
+          cycleId,
+          worldModelSummary: decision.situationSummary || '',
+          reasonerSummary: decision.actions.map(a => `${a.title}: ${a.rationale}`).join('; ').slice(0, 300),
+          actions: decision.actions.map(a => ({
+            title: a.title,
+            riskLevel: a.riskLevel,
+            status: a.riskLevel === 'LOW' ? 'EXECUTED' : 'PENDING_APPROVAL',
+            rationale: a.rationale || '',
+          })),
+          goalChanges: goals.map(g => ({
+            goal: g.goal.goal,
+            before: g.progressPercent,
+            after: g.progressPercent,
+          })),
+        })
+        if (reflection && reflection.lessons.length > 0) {
+          await storeLessons(reflection.lessons)
+          await promoteRepeatedLessons()
+        }
+      } catch { /* non-critical */ }
+    }
+
     // 7.5 정보 부족 감지 → 질문
     if (cycleType === 'routine-cycle') {
       try {

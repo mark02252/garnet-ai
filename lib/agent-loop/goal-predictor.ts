@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { recordAndCalibrate, getCalibratedBias, recordPrediction } from './prediction-calibrator'
 type GoalPrediction = {
   goalName: string
   currentPercent: number
@@ -53,7 +54,16 @@ export async function predictGoals(): Promise<GoalPrediction[]> {
     // deadline 파싱 (GoalState에는 없으므로 targetValue에서 추정 or 기본 30일)
     const daysRemaining = 30 // 기본값, BusinessContext deadline이 있으면 사용
 
-    const predictedPercent = Math.min(100, goal.progressPercent + velocity * daysRemaining)
+    // 보정: 이전 예측 vs 현재 실제값 비교 → bias 갱신
+    recordAndCalibrate(goal.goalName, goal.progressPercent)
+
+    const rawPrediction = goal.progressPercent + velocity * daysRemaining
+    const bias = getCalibratedBias(goal.goalName)
+    const predictedPercent = Math.min(100, Math.max(0, rawPrediction - bias))
+
+    // 이번 예측값 기록 (다음 사이클에서 실제값과 비교용)
+    recordPrediction(goal.goalName, Math.round(predictedPercent))
+
     const willMeet = predictedPercent >= 95 // 95% 이상이면 달성 가능
     const shortfall = Math.max(0, 100 - predictedPercent)
 

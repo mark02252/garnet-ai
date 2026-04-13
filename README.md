@@ -6,6 +6,16 @@
 > 전체 로드맵: [`docs/GARNET_ROADMAP.md`](docs/GARNET_ROADMAP.md)
 > 제품 상태: [`docs/PROJECT_CONTEXT.md`](docs/PROJECT_CONTEXT.md)
 
+## Screenshots
+
+| Agent Loop — 자율 운영 | 진화 로그 — 학습 과정 |
+|:---:|:---:|
+| ![Agent Loop](docs/screenshots/01-agent-loop.png) | ![Evolution](docs/screenshots/02-evolution.png) |
+
+| 자기 개선 — 사이클 교훈 | GA4 분석 — 실데이터 |
+|:---:|:---:|
+| ![Self-Improve](docs/screenshots/03-self-improve.png) | ![Analytics](docs/screenshots/04-analytics.png) |
+
 ## 핵심 기능
 
 ### Agent Loop (v0.6.0+, 36개 모듈)

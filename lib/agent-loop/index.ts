@@ -497,6 +497,15 @@ async function runWeeklyReviewCycle(): Promise<void> {
       console.log(`[Agent Loop] Paradigm shift in: ${shift.domains.join(', ')}`)
     }
   } catch { /* non-critical */ }
+  // 프롬프트 자동 최적화 (주간)
+  try {
+    const { evolveReasonerPrompt } = await import('./prompt-evolver')
+    const evolution = await evolveReasonerPrompt()
+    if (evolution.improved) {
+      console.log(`[Agent Loop] Prompt evolution: ${evolution.reason} (submitted to Governor: ${evolution.submittedToGovernor})`)
+    }
+  } catch { /* non-critical */ }
+
   // Self Benchmark + Role Expansion
   try {
     const { computeBenchmark } = await import('./self-benchmark')

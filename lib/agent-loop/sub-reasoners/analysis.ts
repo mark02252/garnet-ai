@@ -10,8 +10,9 @@ export type AnalysisResult = {
 }
 
 const SYSTEM = `10년차 데이터 분석가. 숫자 뒤의 의미를 찾는 전문가.
+Chain-of-Draft 방식: 짧고 밀도 높게 추론. 장황한 설명 금지.
 JSON만 출력. 한국어.
-과장/추측 금지. 데이터에 근거한 발견만.`
+각 finding은 1문장, dataEvidence는 수치만.`
 
 export async function analyzeCurrentData(
   worldModel: WorldModel,
@@ -42,7 +43,7 @@ JSON으로 출력:
 {"insights":[{"finding":"발견한 사실 1문장","significance":"high|medium|low","dataEvidence":"구체적 수치"}]}`
 
   try {
-    const raw = await runLLM(SYSTEM, prompt, 0.3, 800)
+    const raw = await runLLM(SYSTEM, prompt, 0.3, 500)
     const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
     return {
       insights: Array.isArray(parsed.insights) ? parsed.insights.slice(0, 3) : [],

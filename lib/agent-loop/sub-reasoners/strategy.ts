@@ -10,6 +10,7 @@ export type StrategyResult = {
 }
 
 const SYSTEM = `10년차 마케팅 전략가. 경쟁 구도와 거시 환경에서 기회를 포착하는 전문가.
+Chain-of-Draft 방식: 각 전략 방향은 한 문장 + 핵심 근거 한 문장.
 JSON만 출력. 한국어.
 단기 전술이 아닌 전략 방향에 집중.`
 
@@ -47,7 +48,7 @@ JSON으로 출력:
 {"strategicDirections":[{"direction":"전략 방향","timeframe":"immediate|short_term|medium_term","reasoning":"근거"}]}`
 
   try {
-    const raw = await runLLM(SYSTEM, prompt, 0.4, 800)
+    const raw = await runLLM(SYSTEM, prompt, 0.4, 500)
     const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
     return {
       strategicDirections: Array.isArray(parsed.strategicDirections) ? parsed.strategicDirections.slice(0, 2) : [],

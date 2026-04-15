@@ -11,6 +11,7 @@ export type ContentResult = {
 }
 
 const SYSTEM = `10년차 콘텐츠 전략가. 브랜드 보이스와 시즌 트렌드를 연결하는 전문가.
+Chain-of-Draft 방식: 각 아이디어는 한 문장 컨셉 + 한 문장 근거.
 JSON만 출력. 한국어.
 기존에 반복된 아이디어 금지, 구체적이고 실행 가능한 제안만.`
 
@@ -43,7 +44,7 @@ JSON으로 출력:
 {"contentIdeas":[{"concept":"구체적 컨셉","rationale":"이 시점에 필요한 이유","format":"post|reel|story|carousel|video"}]}`
 
   try {
-    const raw = await runLLM(SYSTEM, prompt, 0.5, 800)
+    const raw = await runLLM(SYSTEM, prompt, 0.5, 500)
     const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
     return {
       contentIdeas: Array.isArray(parsed.contentIdeas) ? parsed.contentIdeas.slice(0, 2) : [],

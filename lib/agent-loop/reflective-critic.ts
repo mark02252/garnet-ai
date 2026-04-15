@@ -15,20 +15,33 @@ export async function applyCritique(output: ReasonerOutput): Promise<ReasonerOut
   const critiqued: ReasonerAction[] = []
 
   for (const action of highRiskActions) {
-    const prompt = `다음 마케팅 액션에 대해 비판적으로 검토하세요:
+    const prompt = `다음 마케팅 액션에 대해 **iGRPO 방식 자기 비판**을 수행하세요.
 
+[Draft (원안)]
 액션: ${action.title}
 근거: ${action.rationale}
 예상 효과: ${action.expectedEffect}
 리스크: ${action.riskLevel}
 
-검토 항목:
-1. 이 판단의 반례나 약점은?
-2. 더 나은 대안이 있는가?
-3. 숨겨진 리스크는?
-4. 데이터 근거가 충분한가?
+[검토 단계]
+1. 약점 식별: 이 판단의 반례/약점은?
+2. 숨겨진 리스크는?
+3. 데이터 근거가 충분한가?
 
-JSON: {"verdict":"approve|modify|reject","reason":"판단 이유","modification":"수정 시 수정안","insight":"이 검토에서 배운 범용 교훈"}`
+[개선 단계 - modify일 경우 필수]
+위 약점을 해결한 **개선된 액션**을 제시하세요:
+- 개선된 title (기존보다 구체적, 안전)
+- 개선된 rationale (약점 해소 근거 포함)
+- 개선된 expectedEffect (과장 없이)
+
+JSON:
+{
+  "verdict": "approve|modify|reject",
+  "weaknesses": ["약점1","약점2"],
+  "improvedAction": { "title":"...", "rationale":"...", "expectedEffect":"..." },
+  "reason": "판단 이유",
+  "insight": "범용 교훈"
+}`
 
     try {
       const raw = await runLLM('비판적 사고 전문가. 의사결정의 약점을 찾는다. JSON만 출력.', prompt, 0.3, 600)
@@ -48,11 +61,14 @@ JSON: {"verdict":"approve|modify|reject","reason":"판단 이유","modification"
         continue
       }
 
-      if (parsed.verdict === 'modify' && parsed.modification) {
+      if (parsed.verdict === 'modify' && parsed.improvedAction) {
+        // iGRPO: 실제로 액션 내용을 개선된 버전으로 교체
+        const improved = parsed.improvedAction
         critiqued.push({
           ...action,
-          title: `[검토됨] ${action.title}`,
-          rationale: `${action.rationale}\n[자기비판] ${parsed.modification}`,
+          title: improved.title || action.title,
+          rationale: `${improved.rationale || action.rationale}\n[iGRPO 개선] 약점 ${(parsed.weaknesses || []).length}개 해소`,
+          expectedEffect: improved.expectedEffect || action.expectedEffect,
         })
       } else {
         critiqued.push({

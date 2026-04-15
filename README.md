@@ -18,16 +18,23 @@
 
 ## 핵심 기능
 
-### Agent Loop (v0.6.0+, 36개 모듈)
-- **자율 순환 루프:** 환경 인식(Scanner) → LLM 추론(Reasoner) → 실행/승인(Executor) → 학습
-- **다중 주기:** 15분(긴급 감지) / 1시간(루틴 분석) / 7시(데일리 브리핑) / 18시(저녁 보고) / 월 9시(주간 리뷰)
-- **4단계 진화 엔진:**
+### Agent Loop (v0.6.0+, 40+ 모듈)
+- **자율 순환 루프:** 환경 인식(Scanner) → 3인 전문가 병렬 분석 → LLM 추론(Reasoner) → 자기 비판(iGRPO) → 실행/승인(Executor) → 학습
+- **다중 주기:** 15분(긴급) / 1시간(루틴) / 7시(브리핑) / 18시(저녁) / 월 9시(주간)
+- **6단계 진화 엔진:**
   - Phase 1: Knowledge Engine — 실행 결과 측정, 지식 축적, 인간 피드백 학습
   - Phase 2: Curiosity Engine — 기사 학습, 거시 환경 추적, 교차 도메인 인사이트
   - Phase 3: Causal Reasoning — 인과 모델, 신뢰도 평가, 목표 예측, 전략 변이
   - Phase 4: Reflective Roles — 자기 비판, 역량 벤치마크, 능동 질문, 역할 확장
+  - **Phase 5: Self-Coding** — 사이클 리플렉션, 예측 자동 보정, 프롬프트 자동 최적화
+  - **Phase 6: Agent Organization** — 도메인 전문 Sub-Reasoner 3인 병렬 (분석/콘텐츠/전략)
+- **고급 메모리:**
+  - Knowledge Store (지식 임베딩 기반 의미 검색)
+  - Episodic Memory (814+ 경험, 의미 검색)
+  - Failure Registry (시간 감쇠 회피 규칙)
+- **Anthropic 5패턴 구현:** [docs/AGENT_WORKFLOWS.md](docs/AGENT_WORKFLOWS.md)
 - **리스크 기반 자율:** LOW 자동 실행, MEDIUM+ Governor 승인 대기
-- **알림:** Telegram(주력) + Slack 데일리 브리핑
+- **알림:** Telegram + Slack 데일리 브리핑 (매출/퍼널/지점별)
 
 ### 마케팅 OS 기반
 - GA4 성과 분석 (이커머스 매출, 트래픽, 채널, 코호트 리텐션)
@@ -39,12 +46,19 @@
 - 캠페인 룸 + 승인 인박스
 - 마케팅 인텔리전스 (5개 플랫폼 자동 수집 + AI 분석)
 
+### 자동화 인프라 (API 기반)
+- **GTM-as-Code:** 태그/트리거/변수를 코드로 관리 (`scripts/gtm-*.ts`)
+- **GA4 Admin API:** Custom Dimension + Key Event 자동 등록 (`scripts/ga4-admin-*.ts`)
+- **6단계 이커머스 퍼널:** view_item_list → view_item → begin_checkout → add_shipping_info → add_payment_info → purchase
+
 ## 기술 스택
 - Next.js (App Router, TypeScript) + Tauri v2 데스크톱
 - TailwindCSS
 - Prisma + PostgreSQL (Supabase)
 - LLM: Gemini (기본) / Groq / OpenAI / Claude 폴백 체인
-- GA4 Data API (`@google-analytics/data`)
+- **Ollama (nomic-embed-text)** — 로컬 임베딩 기반 의미 검색
+- GA4 Data API + Admin API (`@google-analytics/data` + `@google-analytics/admin`)
+- GTM API (`googleapis/tagmanager`)
 - MCP SDK (`@modelcontextprotocol/sdk`)
 - Serper.dev 검색 API
 - Telegram Bot API + Slack Webhook

@@ -138,6 +138,13 @@ async function getReflectionContext(): Promise<string> {
       take: 5,
     })
 
+    // Failure Registry — 시간 감쇠 적용한 회피 규칙
+    let avoidanceRules = ''
+    try {
+      const { buildAvoidanceRules } = await import('./failure-registry')
+      avoidanceRules = await buildAvoidanceRules()
+    } catch { /* non-critical */ }
+
     const parts: string[] = []
     if (recentLessons.length > 0) {
       parts.push('## 최근 사이클 교훈')
@@ -146,6 +153,9 @@ async function getReflectionContext(): Promise<string> {
     if (principles.length > 0) {
       parts.push('## 확립된 원칙 (3회 이상 검증)')
       parts.push(principles.map(p => `- [${p.domain}] ${p.pattern}: ${p.observation.split('\n')[0]}`).join('\n'))
+    }
+    if (avoidanceRules) {
+      parts.push(avoidanceRules)
     }
     return parts.join('\n\n')
   } catch {

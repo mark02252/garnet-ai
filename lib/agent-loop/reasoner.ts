@@ -32,6 +32,7 @@ export function buildReasonerPrompt(
   semanticContext?: string,
   reflectionContext?: string,
   semanticEpisodesContext?: string,
+  subReasonerContext?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -109,6 +110,7 @@ ${macroSummary || '현재 특별한 시즌 없음'}
 ## Garnet의 활성 역할
 ${rolesSummary || '기본 비즈니스 분석가'}
 ${reflectionContext ? `\n${reflectionContext}` : ''}
+${subReasonerContext ? `\n${subReasonerContext}` : ''}
 
 위 상황을 분석하고, 지금 해야 할 액션을 우선순위 순으로 JSON으로 제안하세요.`
 }
@@ -172,6 +174,15 @@ export async function reason(
   goals: GoalProgress[],
 ): Promise<ReasonerOutput> {
   const businessContext = getBusinessContextPrompt()
+
+  // Phase 6-1: Sub-Reasoners 병렬 실행 (도메인 전문가 분석)
+  let subReasonerContext = ''
+  try {
+    const { runSubReasoners, buildSubReasonerContext } = await import('./sub-reasoners')
+    const results = await runSubReasoners(worldModel, goals)
+    subReasonerContext = buildSubReasonerContext(results)
+  } catch { /* non-critical — 폴백 모드 */ }
+
   const pastEpisodes = await retrieveSimilarEpisodes({
     category: 'agent_loop_decision',
     minScore: 50,
@@ -266,6 +277,7 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     semanticContext,
     reflectionContext,
     semanticEpisodesContext,
+    subReasonerContext,
   )
   const raw = await runLLM(getSystemPrompt(), userPrompt, 0.3, 2000)
   let output = parseReasonerResponse(raw)

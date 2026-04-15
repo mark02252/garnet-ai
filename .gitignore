@@ -52,3 +52,6 @@ vendor_prisma/
 .worktrees/
 .superpowers/
 docs/linkedin/
+
+# Certificates (never commit)
+certificates/

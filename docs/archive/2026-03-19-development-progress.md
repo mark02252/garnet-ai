@@ -166,9 +166,9 @@
 | 항목 | 값 |
 |------|------|
 | Instagram | @monoplex_official |
-| Account ID | 17841447794700527 |
-| 팔로워 | 6,889 |
-| App | Garnet2 (ID: 1481016583739643) |
+| Account ID | [REDACTED] |
+| 팔로워 | ~6,900 |
+| App | Garnet2 (ID: [REDACTED]) |
 | 토큰 방식 | Instagram Login for Business |
 | 인사이트 | reach 작동, impressions 불가 |
 | Facebook 페이지 | Monoplex (ID: 110447610779155) |

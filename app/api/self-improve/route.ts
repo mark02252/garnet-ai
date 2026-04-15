@@ -44,12 +44,20 @@ export async function GET() {
       }
     } catch { /* */ }
 
+    // Sub-Reasoner 최근 결과
+    let subReasoners: unknown = null
+    try {
+      const { getLatestSubReasonerResults } = await import('@/lib/agent-loop/sub-reasoners')
+      subReasoners = getLatestSubReasonerResults()
+    } catch { /* */ }
+
     return NextResponse.json({
       calibration,
       promptVersions,
       changelog,
       activePrompt,
       activePromptLength: activePrompt.length,
+      subReasoners,
     })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })

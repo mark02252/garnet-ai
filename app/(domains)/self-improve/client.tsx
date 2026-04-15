@@ -15,23 +15,31 @@ type GoalCalibration = {
 
 type ChangelogEntry = { timestamp: string; reason: string; promptLength: number }
 
+type SubReasonerData = {
+  analysis?: { insights: Array<{ finding: string; significance: string; dataEvidence: string }> }
+  content?: { contentIdeas: Array<{ concept: string; rationale: string; format: string }> }
+  strategy?: { strategicDirections: Array<{ direction: string; timeframe: string; reasoning: string }> }
+  generatedAt?: string
+}
+
 type ApiData = {
   calibration: { goals: Record<string, GoalCalibration> }
   promptVersions: Array<{ filename: string; date: string }>
   changelog: ChangelogEntry[]
   activePrompt: string
   activePromptLength: number
+  subReasoners?: SubReasonerData | null
 }
 
 const levelLabels: Record<number, string> = { 1: 'Fact', 2: 'Pattern', 3: 'Principle' }
 const levelColors: Record<number, string> = { 2: 'text-blue-400 bg-blue-900/30', 3: 'text-purple-400 bg-purple-900/30' }
-const tabs = ['교훈', '예측 보정', '프롬프트'] as const
+const tabs = ['전문가 분석', '교훈', '예측 보정', '프롬프트'] as const
 type Tab = typeof tabs[number]
 
 export function SelfImproveClient({ lessons, totalLessons, principleCount, domains }: {
   lessons: Lesson[]; totalLessons: number; principleCount: number; domains: string[]
 }) {
-  const [tab, setTab] = useState<Tab>('교훈')
+  const [tab, setTab] = useState<Tab>('전문가 분석')
   const [domainFilter, setDomainFilter] = useState<string | null>(null)
   const [apiData, setApiData] = useState<ApiData | null>(null)
   const [showPrompt, setShowPrompt] = useState(false)
@@ -91,6 +99,117 @@ export function SelfImproveClient({ lessons, totalLessons, principleCount, domai
           >{t}</button>
         ))}
       </div>
+
+      {/* Tab 0: Expert Analysis (Sub-Reasoners) */}
+      {tab === '전문가 분석' && (
+        <div>
+          {apiData?.subReasoners ? (
+            <div>
+              {apiData.subReasoners.generatedAt && (
+                <p className="text-xs text-zinc-500 mb-4">
+                  마지막 분석: {new Date(apiData.subReasoners.generatedAt).toLocaleString('ko-KR')}
+                </p>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Analysis */}
+                <div className="rounded-xl border border-blue-900/30 bg-blue-950/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">📊</span>
+                    <h3 className="text-sm font-semibold text-blue-300">데이터 분석가</h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mb-3">숫자 뒤의 의미를 찾는 전문가</p>
+                  {apiData.subReasoners.analysis?.insights.length ? (
+                    <div className="space-y-3">
+                      {apiData.subReasoners.analysis.insights.map((i, idx) => {
+                        const sigColor = i.significance === 'high' ? 'text-red-400' : i.significance === 'medium' ? 'text-yellow-400' : 'text-zinc-400'
+                        return (
+                          <div key={idx} className="border-t border-zinc-800 pt-2 first:border-0 first:pt-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] font-medium ${sigColor}`}>{i.significance.toUpperCase()}</span>
+                            </div>
+                            <p className="text-xs text-zinc-200">{i.finding}</p>
+                            {i.dataEvidence && (
+                              <p className="text-[11px] text-zinc-500 mt-1">근거: {i.dataEvidence}</p>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-600">분석 결과 없음</p>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="rounded-xl border border-purple-900/30 bg-purple-950/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🎬</span>
+                    <h3 className="text-sm font-semibold text-purple-300">콘텐츠 전략가</h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mb-3">브랜드와 트렌드를 연결</p>
+                  {apiData.subReasoners.content?.contentIdeas.length ? (
+                    <div className="space-y-3">
+                      {apiData.subReasoners.content.contentIdeas.map((c, idx) => (
+                        <div key={idx} className="border-t border-zinc-800 pt-2 first:border-0 first:pt-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-900/40 text-purple-300">
+                              {c.format}
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-200">{c.concept}</p>
+                          <p className="text-[11px] text-zinc-500 mt-1">{c.rationale}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-600">제안 없음</p>
+                  )}
+                </div>
+
+                {/* Strategy */}
+                <div className="rounded-xl border border-green-900/30 bg-green-950/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🧭</span>
+                    <h3 className="text-sm font-semibold text-green-300">마케팅 전략가</h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mb-3">경쟁/거시 환경에서 기회 포착</p>
+                  {apiData.subReasoners.strategy?.strategicDirections.length ? (
+                    <div className="space-y-3">
+                      {apiData.subReasoners.strategy.strategicDirections.map((s, idx) => {
+                        const tfLabel = s.timeframe === 'immediate' ? '즉시' : s.timeframe === 'short_term' ? '단기' : '중기'
+                        const tfColor = s.timeframe === 'immediate' ? 'bg-red-900/40 text-red-300' : s.timeframe === 'short_term' ? 'bg-yellow-900/40 text-yellow-300' : 'bg-zinc-800 text-zinc-400'
+                        return (
+                          <div key={idx} className="border-t border-zinc-800 pt-2 first:border-0 first:pt-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] px-1.5 py-0.5 rounded ${tfColor}`}>{tfLabel}</span>
+                            </div>
+                            <p className="text-xs text-zinc-200">{s.direction}</p>
+                            <p className="text-[11px] text-zinc-500 mt-1">{s.reasoning}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-600">전략 없음</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+                <p className="text-xs text-zinc-400">
+                  💡 이 3명의 전문가(Sub-Reasoner)가 병렬로 분석한 결과를 메인 Reasoner가 종합하여 최종 액션을 결정합니다.
+                  매 routine-cycle마다 재생성됩니다.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-zinc-600 text-center py-8">
+              아직 Sub-Reasoner 분석 결과가 없습니다. routine-cycle이 실행되면 자동으로 생성됩니다.
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Tab 1: Cycle Lessons */}
       {tab === '교훈' && (

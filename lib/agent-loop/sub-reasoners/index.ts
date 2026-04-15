@@ -3,10 +3,14 @@
  * 3개 도메인 Sub-Reasoner를 병렬 실행하고 결과를 종합
  */
 
+import * as fs from 'fs'
+import * as path from 'path'
 import { analyzeCurrentData, type AnalysisResult } from './analysis'
 import { suggestContent, type ContentResult } from './content'
 import { suggestStrategy, type StrategyResult } from './strategy'
 import type { WorldModel, GoalProgress } from '../types'
+
+const LATEST_FILE = path.join(process.cwd(), '.garnet-config', 'sub-reasoner-latest.json')
 
 export type SubReasonerResults = {
   analysis?: AnalysisResult
@@ -16,6 +20,7 @@ export type SubReasonerResults = {
 
 /**
  * 3개 Sub-Reasoner 병렬 실행 (한 개 실패해도 나머지 진행)
+ * 결과는 파일에 저장하여 대시보드에서 조회 가능
  */
 export async function runSubReasoners(
   worldModel: WorldModel,
@@ -27,10 +32,33 @@ export async function runSubReasoners(
     suggestStrategy(worldModel, goals),
   ])
 
-  return {
+  const results = {
     analysis: analysis.status === 'fulfilled' ? analysis.value : undefined,
     content: content.status === 'fulfilled' ? content.value : undefined,
     strategy: strategy.status === 'fulfilled' ? strategy.value : undefined,
+  }
+
+  // 최근 결과 파일 저장 (대시보드용)
+  try {
+    fs.writeFileSync(
+      LATEST_FILE,
+      JSON.stringify({ ...results, generatedAt: new Date().toISOString() }, null, 2),
+      'utf-8',
+    )
+  } catch { /* non-critical */ }
+
+  return results
+}
+
+/**
+ * 최근 Sub-Reasoner 결과 조회 (대시보드 API용)
+ */
+export function getLatestSubReasonerResults(): (SubReasonerResults & { generatedAt?: string }) | null {
+  try {
+    if (!fs.existsSync(LATEST_FILE)) return null
+    return JSON.parse(fs.readFileSync(LATEST_FILE, 'utf-8'))
+  } catch {
+    return null
   }
 }
 

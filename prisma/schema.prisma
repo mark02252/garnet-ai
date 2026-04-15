@@ -728,6 +728,7 @@ model EpisodicMemory {
   tags        String   @default("[]") // JSON: 관련 태그
   metadata    String   @default("{}") // JSON: 추가 메타데이터
   feedback    String?  // 사용자 또는 AI 피드백
+  embedding   String?  // JSON array of 768 floats (nomic-embed-text via Ollama)
   createdAt   DateTime @default(now())
 
   @@index([category])

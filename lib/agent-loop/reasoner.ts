@@ -31,6 +31,7 @@ export function buildReasonerPrompt(
   rolesSummary?: string,
   semanticContext?: string,
   reflectionContext?: string,
+  semanticEpisodesContext?: string,
 ): string {
   const trendsText = worldModel.trends
     .filter(t => t.direction !== 'stable')
@@ -92,6 +93,9 @@ ${knowledge.antiPatterns.length > 0
 ${semanticContext ? `
 ## 현재 상황과 유사한 과거 지식
 ${semanticContext}` : ''}
+${semanticEpisodesContext ? `
+## 유사 상황에서의 과거 판단 이력 (의미 검색 기반)
+${semanticEpisodesContext}` : ''}
 
 ## 축적된 인과 관계
 ${causalSummary || '아직 축적된 인과 관계 없음'}
@@ -207,14 +211,14 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
 경쟁사: 위협 수준 ${worldModel.snapshot.competitors.threatLevel}, 최근 ${worldModel.snapshot.competitors.recentMoves.length}건 변화
 캠페인: 활성 ${worldModel.snapshot.campaigns.active}건, 승인대기 ${worldModel.snapshot.campaigns.pendingApproval}건`
 
+  // 현재 상황을 요약한 쿼리 (의미 검색용)
+  const situationQuery = `세션 ${worldModel.snapshot.ga4.sessions}, 참여율 ${worldModel.snapshot.sns.engagement}%, 경쟁사 위협 ${worldModel.snapshot.competitors.threatLevel}, 트렌드: ${worldModel.trends.slice(0, 3).map(t => `${t.metric} ${t.direction}`).join(', ')}`
+
   // Semantic knowledge search for current situation
   let semanticContext = ''
   try {
     const { searchKnowledgeSemantic } = await import('./knowledge-store')
-    const relevant = await searchKnowledgeSemantic(
-      `${worldModel.snapshot.ga4.sessions} sessions, ${worldModel.snapshot.sns.engagement}% engagement, ${worldModel.snapshot.competitors.threatLevel} threat`,
-      { limit: 5, minSimilarity: 0.4 },
-    )
+    const relevant = await searchKnowledgeSemantic(situationQuery, { limit: 5, minSimilarity: 0.4 })
     if (relevant.length > 0) {
       semanticContext = relevant
         .map(
@@ -226,6 +230,28 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
   } catch {
     /* Ollama not running */
   }
+
+  // Semantic episode search — 유사 상황에서의 과거 판단
+  let semanticEpisodesContext = ''
+  try {
+    const { retrieveByMeaning } = await import('@/lib/memory/episodic-store')
+    const similarEpisodes = await retrieveByMeaning({
+      query: situationQuery,
+      category: 'agent_loop_decision',
+      limit: 3,
+      minSimilarity: 0.5,
+    })
+    if (similarEpisodes.length > 0) {
+      semanticEpisodesContext = similarEpisodes
+        .map(ep => {
+          const daysAgo = Math.floor((Date.now() - ep.createdAt.getTime()) / (1000 * 60 * 60 * 24))
+          const inputSummary = ep.input.slice(0, 100)
+          const outputSummary = ep.output.slice(0, 150)
+          return `- [${daysAgo}일 전, 유사도 ${(ep.similarity * 100).toFixed(0)}%, 점수 ${ep.score ?? '?'}] ${inputSummary}\n  → ${outputSummary}`
+        })
+        .join('\n')
+    }
+  } catch { /* */ }
 
   const reflectionContext = await getReflectionContext()
 
@@ -239,6 +265,7 @@ SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldM
     rolesSummary,
     semanticContext,
     reflectionContext,
+    semanticEpisodesContext,
   )
   const raw = await runLLM(getSystemPrompt(), userPrompt, 0.3, 2000)
   let output = parseReasonerResponse(raw)

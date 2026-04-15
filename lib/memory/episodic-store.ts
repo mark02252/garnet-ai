@@ -17,10 +17,10 @@ export type EpisodicEntry = {
 }
 
 /**
- * 에피소딕 메모리에 저장
+ * 에피소딕 메모리에 저장 + 임베딩 생성
  */
 export async function storeEpisode(entry: EpisodicEntry) {
-  return prisma.episodicMemory.create({
+  const created = await prisma.episodicMemory.create({
     data: {
       category: entry.category,
       input: entry.input,
@@ -31,6 +31,68 @@ export async function storeEpisode(entry: EpisodicEntry) {
       feedback: entry.feedback,
     },
   })
+
+  // 임베딩 생성 (Ollama) — non-blocking
+  try {
+    const { getEmbedding } = await import('@/lib/agent-loop/embeddings')
+    const text = `${entry.input} ${entry.output}`.slice(0, 2000)
+    const embedding = await getEmbedding(text)
+    if (embedding) {
+      await prisma.episodicMemory.update({
+        where: { id: created.id },
+        data: { embedding: JSON.stringify(embedding) },
+      })
+    }
+  } catch { /* Ollama not running — non-critical */ }
+
+  return created
+}
+
+/**
+ * 의미 기반 에피소드 검색 (임베딩 + 코사인 유사도)
+ */
+export async function retrieveByMeaning(params: {
+  query: string
+  category?: string
+  minScore?: number
+  limit?: number
+  minSimilarity?: number
+}) {
+  const { query, category, minScore, limit = 5, minSimilarity = 0.4 } = params
+
+  try {
+    const { getEmbedding, cosineSimilarity } = await import('@/lib/agent-loop/embeddings')
+    const queryEmbedding = await getEmbedding(query)
+    if (!queryEmbedding) return []
+
+    const episodes = await prisma.episodicMemory.findMany({
+      where: {
+        ...(category ? { category } : {}),
+        ...(minScore != null ? { score: { gte: minScore } } : {}),
+        embedding: { not: null },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 200,
+    })
+
+    const scored = episodes
+      .map(ep => {
+        try {
+          const embedding = JSON.parse(ep.embedding || '[]') as number[]
+          const similarity = cosineSimilarity(queryEmbedding, embedding)
+          return { ...ep, similarity }
+        } catch {
+          return null
+        }
+      })
+      .filter((ep): ep is NonNullable<typeof ep> => ep !== null && ep.similarity >= minSimilarity)
+      .sort((a, b) => b.similarity - a.similarity)
+      .slice(0, limit)
+
+    return scored
+  } catch {
+    return []
+  }
 }
 
 /**

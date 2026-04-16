@@ -632,5 +632,23 @@ export function isAgentLoopRunning(): boolean {
 
 export async function triggerCycle(cycleType: CycleType): Promise<CycleResult | null> {
   registerAgentLoopHandlers() // 수동 트리거 시에도 handler 보장
+  // daily-briefing은 Slack 알림까지 포함된 wrapper 사용
+  if (cycleType === 'daily-briefing') {
+    await runDailyBriefing()
+    const last = await prisma.agentLoopCycle.findFirst({
+      where: { cycleType: 'daily-briefing' },
+      orderBy: { createdAt: 'desc' },
+    })
+    return last ? {
+      cycleId: last.id,
+      cycleType: 'daily-briefing',
+      actionsCount: last.actionsCount,
+      autoExecuted: last.autoExecuted,
+      sentToGovernor: last.sentToGovernor,
+      durationMs: last.durationMs,
+      summary: last.summary,
+      error: last.error,
+    } : null
+  }
   return runCycle(cycleType)
 }

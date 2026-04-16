@@ -613,8 +613,15 @@ export async function fetchMovieRevenueTop(days = 7, limit = 10): Promise<GA4Mov
 
 export type GA4TheaterRevenue = {
   theaterCode: string;
+  theaterName: string;
   purchased: number;
   revenue: number;
+};
+
+export type GA4TheaterUnmappedSummary = {
+  unmappedCount: number;
+  unmappedRevenue: number;
+  unmappedRatio: number;
 };
 
 /**
@@ -639,16 +646,62 @@ export async function fetchTheaterRevenueTop(days = 7, limit = 10): Promise<GA4T
       limit,
     });
 
+    const { mapTheaterCode } = await import('@/lib/theater-mapping');
     return (response.rows || [])
-      .map(row => ({
-        theaterCode: row.dimensionValues?.[0]?.value || '(없음)',
-        purchased: Number(row.metricValues?.[0]?.value || 0),
-        revenue: Math.round(Number(row.metricValues?.[1]?.value || 0)),
-      }))
+      .map(row => {
+        const code = row.dimensionValues?.[0]?.value || '(없음)';
+        return {
+          theaterCode: code,
+          theaterName: mapTheaterCode(code),
+          purchased: Number(row.metricValues?.[0]?.value || 0),
+          revenue: Math.round(Number(row.metricValues?.[1]?.value || 0)),
+        };
+      })
       .filter(t => t.theaterCode && t.theaterCode !== '(not set)');
   } catch {
     // Custom Dimension 미등록 시 빈 배열
     return [];
+  }
+}
+
+/**
+ * 미분류 (theater_code 누락) 결제 통계 조회
+ */
+export async function fetchUnmappedTheaterStats(days = 7): Promise<GA4TheaterUnmappedSummary> {
+  const creds = resolveCredentials();
+  if (!creds) throw new Error('GA4 credentials not configured');
+  const client = await createClient(creds);
+
+  try {
+    const [response] = await client.runReport({
+      property: `properties/${creds.propertyId}`,
+      dateRanges: [{ startDate: `${days}daysAgo`, endDate: 'today' }],
+      dimensions: [{ name: 'customEvent:theater_code' }],
+      metrics: [{ name: 'eventCount' }, { name: 'eventValue' }],
+      dimensionFilter: {
+        filter: { fieldName: 'eventName', stringFilter: { value: 'purchase', matchType: 'EXACT' } },
+      },
+    });
+
+    let totalCount = 0, totalRev = 0, unmappedCount = 0, unmappedRev = 0;
+    for (const row of response.rows || []) {
+      const code = row.dimensionValues?.[0]?.value || '';
+      const cnt = Number(row.metricValues?.[0]?.value || 0);
+      const rev = Number(row.metricValues?.[1]?.value || 0);
+      totalCount += cnt;
+      totalRev += rev;
+      if (!code || code === '(not set)' || code === '') {
+        unmappedCount += cnt;
+        unmappedRev += rev;
+      }
+    }
+    return {
+      unmappedCount,
+      unmappedRevenue: Math.round(unmappedRev),
+      unmappedRatio: totalCount > 0 ? unmappedCount / totalCount : 0,
+    };
+  } catch {
+    return { unmappedCount: 0, unmappedRevenue: 0, unmappedRatio: 0 };
   }
 }
 

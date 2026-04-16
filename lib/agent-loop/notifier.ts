@@ -73,7 +73,8 @@ export async function notifyDailyBriefing(params: {
   traffic?: { sessions: number; changePercent: number }
   funnel?: Array<{ label: string; count: number; dropRate: number }>
   movieRevenueTop?: Array<{ itemName: string; revenue: number; purchased: number }>
-  theaterRevenueTop?: Array<{ theaterCode: string; revenue: number; purchased: number }>
+  theaterRevenueTop?: Array<{ theaterCode: string; theaterName?: string; revenue: number; purchased: number }>
+  unmappedStats?: { unmappedCount: number; unmappedRevenue: number; unmappedRatio: number }
   newKnowledge?: number
   pendingApprovals?: number
   topInsight?: string
@@ -104,6 +105,7 @@ export async function notifyDailyBriefing(params: {
       funnel: params.funnel,
       movieRevenueTop: params.movieRevenueTop,
       theaterRevenueTop: params.theaterRevenueTop,
+      unmappedStats: params.unmappedStats,
       newKnowledge: params.newKnowledge,
       pendingApprovals: params.pendingApprovals,
       topInsight: params.topInsight,

@@ -120,7 +120,8 @@ export async function slackDailyBriefing(params: {
   traffic?: { sessions: number; changePercent: number; activeUsers?: number; newUsers?: number; returningUsers?: number; arpu?: number }
   funnel?: Array<{ label: string; count: number; dropRate: number }>
   movieRevenueTop?: Array<{ itemName: string; revenue: number; purchased: number }>
-  theaterRevenueTop?: Array<{ theaterCode: string; revenue: number; purchased: number }>
+  theaterRevenueTop?: Array<{ theaterCode: string; theaterName?: string; revenue: number; purchased: number }>
+  unmappedStats?: { unmappedCount: number; unmappedRevenue: number; unmappedRatio: number }
   newKnowledge?: number
   pendingApprovals?: number
   topInsight?: string
@@ -223,12 +224,29 @@ export async function slackDailyBriefing(params: {
     blocks.push({ type: 'divider' })
     const top3 = params.theaterRevenueTop.slice(0, 3)
     blocks.push({ type: 'section', text: { type: 'mrkdwn', text: '*🏢 지점별 매출 TOP 3*' } })
-    const fields = top3.map((t, i) => ({
-      type: 'mrkdwn',
-      text: `*${i + 1}. ${t.theaterCode}*\n₩${t.revenue.toLocaleString()}`,
-    }))
+    const fields = top3.map((t, i) => {
+      const label = t.theaterName || t.theaterCode
+      return {
+        type: 'mrkdwn',
+        text: `*${i + 1}. ${label}*\n₩${t.revenue.toLocaleString()}`,
+      }
+    })
     for (let i = 0; i < fields.length; i += 2) {
       blocks.push({ type: 'section', fields: fields.slice(i, i + 2) })
+    }
+
+    // 미분류 매출 경고
+    if (params.unmappedStats && params.unmappedStats.unmappedRatio > 0.3) {
+      const ratio = (params.unmappedStats.unmappedRatio * 100).toFixed(1)
+      const rev = params.unmappedStats.unmappedRevenue.toLocaleString()
+      const cnt = params.unmappedStats.unmappedCount
+      blocks.push({
+        type: 'context',
+        elements: [{
+          type: 'mrkdwn',
+          text: `⚠️ *미분류 매출:* ₩${rev} (${cnt}건, 전체의 ${ratio}%) — theater_code 누락. 개발팀 확인 필요`,
+        }],
+      })
     }
   }
 

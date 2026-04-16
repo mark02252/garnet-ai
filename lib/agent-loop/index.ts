@@ -344,19 +344,22 @@ async function runDailyBriefing(): Promise<void> {
   // 구매 여정 이탈 분석 + 영화별/지점별 매출 TOP (GA4)
   let funnel: Array<{ label: string; count: number; dropRate: number }> | undefined
   let movieRevenueTop: Array<{ itemName: string; revenue: number; purchased: number }> | undefined
-  let theaterRevenueTop: Array<{ theaterCode: string; revenue: number; purchased: number }> | undefined
+  let theaterRevenueTop: Array<{ theaterCode: string; theaterName?: string; revenue: number; purchased: number }> | undefined
+  let unmappedStats: { unmappedCount: number; unmappedRevenue: number; unmappedRatio: number } | undefined
   try {
-    const { fetchEcommerceFunnel, fetchMovieRevenueTop, fetchTheaterRevenueTop } = await import('@/lib/ga4-client')
-    const [f, m, t] = await Promise.all([
+    const { fetchEcommerceFunnel, fetchMovieRevenueTop, fetchTheaterRevenueTop, fetchUnmappedTheaterStats } = await import('@/lib/ga4-client')
+    const [f, m, t, u] = await Promise.all([
       fetchEcommerceFunnel(7).catch(() => []),
       fetchMovieRevenueTop(7, 3).catch(() => []),
       fetchTheaterRevenueTop(7, 3).catch(() => []),
+      fetchUnmappedTheaterStats(7).catch(() => undefined),
     ])
     if (f.length > 0 && f.some(s => s.count > 0)) {
       funnel = f.map(s => ({ label: s.label, count: s.count, dropRate: s.dropRate }))
     }
     if (m.length > 0) movieRevenueTop = m
     if (t.length > 0) theaterRevenueTop = t
+    if (u) unmappedStats = u
   } catch { /* non-critical */ }
 
   // LLM으로 오늘의 핵심 인사이트 생성
@@ -395,6 +398,7 @@ async function runDailyBriefing(): Promise<void> {
     funnel,
     movieRevenueTop,
     theaterRevenueTop,
+    unmappedStats,
     newKnowledge,
     pendingApprovals,
     topInsight,

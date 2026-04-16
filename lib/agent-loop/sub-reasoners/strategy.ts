@@ -48,8 +48,10 @@ JSON으로 출력:
 {"strategicDirections":[{"direction":"전략 방향","timeframe":"immediate|short_term|medium_term","reasoning":"근거"}]}`
 
   try {
-    const raw = await runLLM(SYSTEM, prompt, 0.4, 500)
-    const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
+    const raw = await runLLM(SYSTEM, prompt, 0.4, 1200)
+    const cleaned = raw.replace(/```(?:json)?/g, '').trim()
+    const match = cleaned.match(/\{[\s\S]*\}/)?.[0] || cleaned
+    const parsed = JSON.parse(match)
     return {
       strategicDirections: Array.isArray(parsed.strategicDirections) ? parsed.strategicDirections.slice(0, 2) : [],
     }

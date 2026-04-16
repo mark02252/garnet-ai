@@ -19,6 +19,8 @@ type SubReasonerData = {
   analysis?: { insights: Array<{ finding: string; significance: string; dataEvidence: string }> }
   content?: { contentIdeas: Array<{ concept: string; rationale: string; format: string }> }
   strategy?: { strategicDirections: Array<{ direction: string; timeframe: string; reasoning: string }> }
+  cro?: { bottlenecks: Array<{ stage: string; severity: string; rootCause: string; quickWin: string }> }
+  psychology?: { insights: Array<{ bias: string; application: string; expectedImpact: string }> }
   generatedAt?: string
 }
 
@@ -111,7 +113,7 @@ export function SelfImproveClient({ lessons, totalLessons, principleCount, domai
                 </p>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Analysis */}
                 <div className="rounded-xl border border-blue-900/30 bg-blue-950/10 p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -192,6 +194,60 @@ export function SelfImproveClient({ lessons, totalLessons, principleCount, domai
                     </div>
                   ) : (
                     <p className="text-xs text-zinc-600">전략 없음</p>
+                  )}
+                </div>
+
+                {/* CRO */}
+                <div className="rounded-xl border border-orange-900/30 bg-orange-950/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">💰</span>
+                    <h3 className="text-sm font-semibold text-orange-300">CRO 전문가</h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mb-3">전환 병목 + 즉시 적용 개선안</p>
+                  {apiData.subReasoners.cro?.bottlenecks.length ? (
+                    <div className="space-y-3">
+                      {apiData.subReasoners.cro.bottlenecks.map((b, idx) => {
+                        const sevColor = b.severity === 'high' ? 'text-red-400' : b.severity === 'medium' ? 'text-yellow-400' : 'text-zinc-400'
+                        return (
+                          <div key={idx} className="border-t border-zinc-800 pt-2 first:border-0 first:pt-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`text-[10px] font-medium ${sevColor}`}>{b.severity.toUpperCase()}</span>
+                              <span className="text-[10px] text-zinc-600">{b.stage}</span>
+                            </div>
+                            <p className="text-xs text-zinc-200">{b.rootCause}</p>
+                            <p className="text-[11px] text-orange-300 mt-1">⚡ {b.quickWin}</p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-600">병목 없음</p>
+                  )}
+                </div>
+
+                {/* Psychology */}
+                <div className="rounded-xl border border-pink-900/30 bg-pink-950/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-lg">🧠</span>
+                    <h3 className="text-sm font-semibold text-pink-300">심리학 전문가</h3>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 mb-3">행동경제학 & 인지편향 적용</p>
+                  {apiData.subReasoners.psychology?.insights.length ? (
+                    <div className="space-y-3">
+                      {apiData.subReasoners.psychology.insights.map((i, idx) => (
+                        <div key={idx} className="border-t border-zinc-800 pt-2 first:border-0 first:pt-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[10px] px-1.5 py-0.5 rounded bg-pink-900/40 text-pink-300">
+                              {i.bias}
+                            </span>
+                          </div>
+                          <p className="text-xs text-zinc-200">{i.application}</p>
+                          <p className="text-[11px] text-zinc-500 mt-1">예상: {i.expectedImpact}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-600">인사이트 없음</p>
                   )}
                 </div>
               </div>

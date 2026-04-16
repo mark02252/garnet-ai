@@ -8,6 +8,8 @@ import * as path from 'path'
 import { analyzeCurrentData, type AnalysisResult } from './analysis'
 import { suggestContent, type ContentResult } from './content'
 import { suggestStrategy, type StrategyResult } from './strategy'
+import { suggestCROImprovements, type CROResult } from './cro'
+import { suggestPsychologyAngles, type PsychologyResult } from './psychology'
 import type { WorldModel, GoalProgress } from '../types'
 
 const LATEST_FILE = path.join(process.cwd(), '.garnet-config', 'sub-reasoner-latest.json')
@@ -16,6 +18,8 @@ export type SubReasonerResults = {
   analysis?: AnalysisResult
   content?: ContentResult
   strategy?: StrategyResult
+  cro?: CROResult
+  psychology?: PsychologyResult
 }
 
 /**
@@ -26,16 +30,20 @@ export async function runSubReasoners(
   worldModel: WorldModel,
   goals: GoalProgress[],
 ): Promise<SubReasonerResults> {
-  const [analysis, content, strategy] = await Promise.allSettled([
+  const [analysis, content, strategy, cro, psychology] = await Promise.allSettled([
     analyzeCurrentData(worldModel, goals),
     suggestContent(worldModel),
     suggestStrategy(worldModel, goals),
+    suggestCROImprovements(worldModel),
+    suggestPsychologyAngles(worldModel),
   ])
 
   const results = {
     analysis: analysis.status === 'fulfilled' ? analysis.value : undefined,
     content: content.status === 'fulfilled' ? content.value : undefined,
     strategy: strategy.status === 'fulfilled' ? strategy.value : undefined,
+    cro: cro.status === 'fulfilled' ? cro.value : undefined,
+    psychology: psychology.status === 'fulfilled' ? psychology.value : undefined,
   }
 
   // 최근 결과 파일 저장 (대시보드용)
@@ -89,6 +97,22 @@ export function buildSubReasonerContext(results: SubReasonerResults): string {
     for (const s of results.strategy.strategicDirections) {
       parts.push(`- [${s.timeframe}] ${s.direction}`)
       parts.push(`  근거: ${s.reasoning}`)
+    }
+  }
+
+  if (results.cro && results.cro.bottlenecks.length > 0) {
+    parts.push('\n### 💰 전환 병목 (CROSubReasoner)')
+    for (const b of results.cro.bottlenecks) {
+      parts.push(`- [${b.severity}] ${b.stage} — ${b.rootCause}`)
+      parts.push(`  Quick Win: ${b.quickWin}`)
+    }
+  }
+
+  if (results.psychology && results.psychology.insights.length > 0) {
+    parts.push('\n### 🧠 심리 적용 (PsychologySubReasoner)')
+    for (const i of results.psychology.insights) {
+      parts.push(`- [${i.bias}] ${i.application}`)
+      parts.push(`  예상 효과: ${i.expectedImpact}`)
     }
   }
 

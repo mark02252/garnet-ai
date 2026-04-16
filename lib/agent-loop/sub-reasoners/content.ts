@@ -44,8 +44,10 @@ JSON으로 출력:
 {"contentIdeas":[{"concept":"구체적 컨셉","rationale":"이 시점에 필요한 이유","format":"post|reel|story|carousel|video"}]}`
 
   try {
-    const raw = await runLLM(SYSTEM, prompt, 0.5, 500)
-    const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
+    const raw = await runLLM(SYSTEM, prompt, 0.5, 1200)
+    const cleaned = raw.replace(/```(?:json)?/g, '').trim()
+    const match = cleaned.match(/\{[\s\S]*\}/)?.[0] || cleaned
+    const parsed = JSON.parse(match)
     return {
       contentIdeas: Array.isArray(parsed.contentIdeas) ? parsed.contentIdeas.slice(0, 2) : [],
     }

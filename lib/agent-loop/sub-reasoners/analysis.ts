@@ -43,8 +43,10 @@ JSON으로 출력:
 {"insights":[{"finding":"발견한 사실 1문장","significance":"high|medium|low","dataEvidence":"구체적 수치"}]}`
 
   try {
-    const raw = await runLLM(SYSTEM, prompt, 0.3, 500)
-    const parsed = JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || '{}')
+    const raw = await runLLM(SYSTEM, prompt, 0.3, 1200)
+    const cleaned = raw.replace(/```(?:json)?/g, '').trim()
+    const match = cleaned.match(/\{[\s\S]*\}/)?.[0] || cleaned
+    const parsed = JSON.parse(match)
     return {
       insights: Array.isArray(parsed.insights) ? parsed.insights.slice(0, 3) : [],
     }

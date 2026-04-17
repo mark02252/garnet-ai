@@ -30,12 +30,19 @@ export async function runSubReasoners(
   worldModel: WorldModel,
   goals: GoalProgress[],
 ): Promise<SubReasonerResults> {
+  // 각 Sub-Reasoner에 30초 타임아웃 — 느린 1명이 전체를 블록하지 않도록
+  const withTimeout = <T>(promise: Promise<T>, ms = 30000): Promise<T> =>
+    Promise.race([
+      promise,
+      new Promise<T>((_, reject) => setTimeout(() => reject(new Error('Sub-Reasoner timeout')), ms)),
+    ])
+
   const [analysis, content, strategy, cro, psychology] = await Promise.allSettled([
-    analyzeCurrentData(worldModel, goals),
-    suggestContent(worldModel),
-    suggestStrategy(worldModel, goals),
-    suggestCROImprovements(worldModel),
-    suggestPsychologyAngles(worldModel),
+    withTimeout(analyzeCurrentData(worldModel, goals)),
+    withTimeout(suggestContent(worldModel)),
+    withTimeout(suggestStrategy(worldModel, goals)),
+    withTimeout(suggestCROImprovements(worldModel)),
+    withTimeout(suggestPsychologyAngles(worldModel)),
   ])
 
   const results = {

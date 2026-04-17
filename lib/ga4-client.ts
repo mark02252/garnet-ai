@@ -17,6 +17,21 @@ async function getAnalyticsClient(credentials: { clientEmail: string; privateKey
 import { runLLM } from '@/lib/llm';
 import type { RuntimeConfig } from '@/lib/types';
 
+// ── 간단한 메모리 캐시 (5분 TTL) ─────────────────────────────────────────
+const _cache = new Map<string, { data: unknown; expiresAt: number }>();
+const CACHE_TTL = 5 * 60 * 1000; // 5분
+
+function getCached<T>(key: string): T | null {
+  const entry = _cache.get(key);
+  if (!entry) return null;
+  if (Date.now() > entry.expiresAt) { _cache.delete(key); return null; }
+  return entry.data as T;
+}
+
+function setCache(key: string, data: unknown): void {
+  _cache.set(key, { data, expiresAt: Date.now() + CACHE_TTL });
+}
+
 type GA4Credentials = {
   propertyId: string;
   clientEmail: string;
@@ -490,6 +505,10 @@ export type GA4EcommerceSummary = {
 };
 
 export async function fetchEcommerceSummary(days = 30): Promise<GA4EcommerceSummary> {
+  const cacheKey = `ecommerce_summary_${days}`;
+  const cached = getCached<GA4EcommerceSummary>(cacheKey);
+  if (cached) return cached;
+
   const endDate = 'today';
   const startDate = `${days}daysAgo`;
   const data = await fetchEcommerceData(startDate, endDate);
@@ -501,13 +520,15 @@ export async function fetchEcommerceSummary(days = 30): Promise<GA4EcommerceSumm
     return s + (d.purchaseRate > 0 ? d.transactions / d.purchaseRate : 0);
   }, 0);
 
-  return {
+  const result = {
     totalTransactions,
     totalRevenue,
     avgPurchaseRate: totalSessions > 0 ? totalTransactions / totalSessions : 0,
     avgOrderValue: totalTransactions > 0 ? Math.round(totalRevenue / totalTransactions) : 0,
     dailyData: data,
   };
+  setCache(cacheKey, result);
+  return result;
 }
 
 // ── Ecommerce Funnel ─────────────────────────────────────────────────────
@@ -530,6 +551,10 @@ const FUNNEL_DEFINITION: Array<{ eventName: string; label: string }> = [
 ];
 
 export async function fetchEcommerceFunnel(days = 7): Promise<GA4FunnelStage[]> {
+  const cacheKey = `funnel_${days}`;
+  const cached = getCached<GA4FunnelStage[]>(cacheKey);
+  if (cached) return cached;
+
   const creds = resolveCredentials();
   if (!creds) throw new Error('GA4 credentials not configured');
   const client = await createClient(creds);
@@ -572,6 +597,7 @@ export async function fetchEcommerceFunnel(days = 7): Promise<GA4FunnelStage[]> 
     if (count > 0) prevCount = count;
   }
 
+  setCache(cacheKey, stages);
   return stages;
 }
 

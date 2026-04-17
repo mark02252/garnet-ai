@@ -138,7 +138,7 @@ async function executeDebateNode(
     .join('\n\n')
 
   const topic = node.data.topic || runInput.topic
-  const rounds = node.data.rounds || 3
+  const rounds = node.data.rounds || 2  // CoD: 3→2 기본 라운드 (조기 종료도 있음)
   const runtime = MODEL_RUNTIME[node.data.model] as RuntimeConfig
 
   let debate = ''
@@ -173,7 +173,8 @@ async function executeDebateNode(
 
     // Check consensus
     try {
-      const parsed = JSON.parse(modResult.match(/\{[\s\S]*\}/)?.[0] || '{}')
+      const cleanedMod = modResult.replace(/```(?:json)?/g, '').trim()
+      const parsed = JSON.parse(cleanedMod.match(/\{[\s\S]*\}/)?.[0] || '{}')
       lastModeratorSummary = parsed.summary || modResult
       if (parsed.consensus && round < rounds) break
     } catch {
@@ -196,8 +197,8 @@ async function executeJudgeNode(
   events: FlowRunEvent[],
 ): Promise<string> {
   const runtime = MODEL_RUNTIME[node.data.model] as RuntimeConfig
-  const threshold = node.data.threshold || 70
-  const maxRetries = node.data.maxRetries || 3
+  const threshold = node.data.threshold || 65  // 70→65 완화 (충분한 품질)
+  const maxRetries = node.data.maxRetries || 1  // 3→1 재시도 (과잉 방지)
 
   // Find the creator node (first upstream agent)
   const creatorId = upstreamIds[0]

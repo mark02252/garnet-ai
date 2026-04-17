@@ -31,10 +31,12 @@ const MAX_RETRIES = 2
 
 function parseArchitectResponse(raw: string): ArchitectResponse | null {
   try {
-    const start = raw.indexOf('{')
-    const end = raw.lastIndexOf('}')
+    // ```json 코드블록 전처리
+    const cleaned = raw.replace(/```(?:json)?/g, '').trim()
+    const start = cleaned.indexOf('{')
+    const end = cleaned.lastIndexOf('}')
     if (start === -1 || end <= start) return null
-    const parsed = JSON.parse(raw.slice(start, end + 1)) as ArchitectResponse
+    const parsed = JSON.parse(cleaned.slice(start, end + 1)) as ArchitectResponse
     if (!Array.isArray(parsed.agents) || parsed.agents.length === 0) return null
     return parsed
   } catch {
@@ -168,7 +170,7 @@ export async function generateFlowBlueprint(
 ): Promise<FlowBlueprint> {
   const systemPrompt = buildArchitectSystemPrompt()
   const userPrompt = buildArchitectUserPrompt(projectDescription, options?.conversationContext)
-  const runtime: RuntimeConfig = { llmProvider: 'gemma4' }
+  const runtime: RuntimeConfig = { llmProvider: 'gemini' }
 
   let lastError = ''
 

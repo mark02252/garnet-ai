@@ -1047,6 +1047,158 @@ function streamByProvider(
   throw new ProviderError(provider, 'UNAVAILABLE', `${providerLabel(provider)}은(는) 스트리밍을 지원하지 않습니다.`);
 }
 
+// ── Tool-calling support ───────────────────────────────────────────────────
+
+import type { ToolDeclaration, ToolCall } from '@/lib/agent-loop/tool-types'
+
+export type LLMWithToolsResult = { text: string; toolCalls: ToolCall[] }
+
+export async function runLLMWithTools(
+  system: string,
+  prompt: string,
+  tools: ToolDeclaration[],
+  options?: { temperature?: number; maxTokens?: number; runtime?: RuntimeConfig }
+): Promise<LLMWithToolsResult> {
+  const temperature = options?.temperature ?? 0.35
+  const maxTokens = options?.maxTokens ?? 2400
+  const runtime = options?.runtime
+
+  const provider = resolveProvider(runtime)
+
+  // ── Gemini: native function calling ──────────────────────────────────────
+  if (provider === 'gemini') {
+    const apiKey = pickValue(runtime?.geminiApiKey, process.env.GEMINI_API_KEY)
+    const model = pickValue(runtime?.geminiModel, process.env.GEMINI_MODEL, GEMINI_DEFAULT_MODEL)
+    if (!apiKey) throw new ProviderError('gemini', 'MISSING_CONFIG', 'Gemini API 키가 없습니다.')
+
+    const functionDeclarations = tools.map(t => ({
+      name: t.name,
+      description: t.description,
+      parameters: {
+        type: 'OBJECT',
+        properties: Object.fromEntries(
+          Object.entries(t.parameters).map(([k, v]) => [k, { type: v.type.toUpperCase(), description: v.description, ...(v.enum ? { enum: v.enum } : {}) }])
+        ),
+        required: Object.entries(t.parameters).filter(([, v]) => v.required).map(([k]) => k),
+      },
+    }))
+
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(apiKey)}`
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: system }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        tools: [{ function_declarations: functionDeclarations }],
+        generationConfig: { temperature, maxOutputTokens: maxTokens },
+      }),
+    })
+
+    if (!response.ok) {
+      const rawText = await response.text()
+      throw mapGeminiHttpError(response.status, rawText)
+    }
+
+    const data = (await response.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args: Record<string, unknown> } }> } }>
+    }
+    const parts = data.candidates?.[0]?.content?.parts ?? []
+    const textParts = parts.filter(p => p.text).map(p => p.text!).join('\n').trim()
+    const toolCalls: ToolCall[] = parts
+      .filter(p => p.functionCall)
+      .map(p => ({ tool: p.functionCall!.name, params: p.functionCall!.args }))
+
+    return { text: textParts, toolCalls }
+  }
+
+  // ── Groq: OpenAI-compatible tool_use ─────────────────────────────────────
+  if (provider === 'groq') {
+    const apiKey = pickValue(runtime?.groqApiKey, process.env.GROQ_API_KEY)
+    const model = pickValue(runtime?.groqModel, process.env.GROQ_MODEL, GROQ_DEFAULT_MODEL)
+    if (!apiKey) throw new ProviderError('groq', 'MISSING_CONFIG', 'GROQ_API_KEY가 없습니다.')
+
+    const groqTools = tools.map(t => ({
+      type: 'function',
+      function: {
+        name: t.name,
+        description: t.description,
+        parameters: {
+          type: 'object',
+          properties: Object.fromEntries(
+            Object.entries(t.parameters).map(([k, v]) => [k, { type: v.type, description: v.description, ...(v.enum ? { enum: v.enum } : {}) }])
+          ),
+          required: Object.entries(t.parameters).filter(([, v]) => v.required).map(([k]) => k),
+        },
+      },
+    }))
+
+    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        temperature,
+        max_tokens: maxTokens,
+        messages: [
+          { role: 'system', content: system },
+          { role: 'user', content: prompt },
+        ],
+        tools: groqTools,
+      }),
+    })
+
+    if (!response.ok) {
+      const rawText = await response.text()
+      throw mapGroqHttpError(response.status, rawText)
+    }
+
+    const data = (await response.json()) as {
+      choices?: Array<{ message?: { content?: string | null; tool_calls?: Array<{ function: { name: string; arguments: string } }> } }>
+    }
+    const message = data.choices?.[0]?.message
+    const text = (message?.content || '').trim()
+    const toolCalls: ToolCall[] = (message?.tool_calls ?? []).map(tc => ({
+      tool: tc.function.name,
+      params: (() => { try { return JSON.parse(tc.function.arguments) } catch { return {} } })(),
+    }))
+
+    return { text, toolCalls }
+  }
+
+  // ── JSON fallback (gemma4, local, openai, claude, etc.) ───────────────────
+  const toolDescriptions = tools
+    .map(t => {
+      const params = Object.entries(t.parameters)
+        .map(([k, v]) => `  ${k} (${v.type}${v.required ? ', required' : ''}): ${v.description}${v.enum ? ` [${v.enum.join('|')}]` : ''}`)
+        .join('\n')
+      return `### ${t.name}\n${t.description}\nParameters:\n${params}`
+    })
+    .join('\n\n')
+
+  const augmentedPrompt = `${prompt}
+
+## 사용 가능한 도구
+${toolDescriptions}
+
+도구를 사용하려면 다음 JSON 형식으로 응답하세요:
+{"tool_calls":[{"tool":"도구명","params":{"파라미터":"값"}}],"analysis":{"key":"value"}}
+도구 호출이 필요 없으면: {"tool_calls":[],"analysis":{"result":"분석 결과"}}`
+
+  const raw = await runLLM(system, augmentedPrompt, temperature, maxTokens, runtime)
+  const match = raw.match(/\{[\s\S]*\}/)?.[0] || ''
+  try {
+    const parsed = JSON.parse(match) as { tool_calls?: Array<{ tool: string; params: Record<string, unknown> }>; analysis?: unknown }
+    const toolCalls: ToolCall[] = Array.isArray(parsed.tool_calls)
+      ? parsed.tool_calls.map(tc => ({ tool: tc.tool, params: tc.params ?? {} }))
+      : []
+    const text = match
+    return { text, toolCalls }
+  } catch {
+    return { text: raw, toolCalls: [] }
+  }
+}
+
 export async function* streamLLM(
   systemPrompt: string,
   userPrompt: string,

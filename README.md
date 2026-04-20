@@ -18,23 +18,42 @@
 
 ## 핵심 기능
 
-### Agent Loop (v0.6.0+, 40+ 모듈)
-- **자율 순환 루프:** 환경 인식(Scanner) → 3인 전문가 병렬 분석 → LLM 추론(Reasoner) → 자기 비판(iGRPO) → 실행/승인(Executor) → 학습
+### Agent Loop (v0.7.0+, 50+ 모듈)
+- **자율 순환 루프:** 환경 인식(Scanner) → 5인 전문가 병렬 분석(능동 도구 호출) → LLM 추론(Reasoner) → 자기 비판(iGRPO) → 실행/승인(Executor) → 학습
 - **다중 주기:** 15분(긴급) / 1시간(루틴) / 7시(브리핑) / 18시(저녁) / 월 9시(주간)
-- **6단계 진화 엔진:**
+- **7단계 진화 엔진:**
   - Phase 1: Knowledge Engine — 실행 결과 측정, 지식 축적, 인간 피드백 학습
   - Phase 2: Curiosity Engine — 기사 학습, 거시 환경 추적, 교차 도메인 인사이트
   - Phase 3: Causal Reasoning — 인과 모델, 신뢰도 평가, 목표 예측, 전략 변이
   - Phase 4: Reflective Roles — 자기 비판, 역량 벤치마크, 능동 질문, 역할 확장
-  - **Phase 5: Self-Coding** — 사이클 리플렉션, 예측 자동 보정, 프롬프트 자동 최적화
-  - **Phase 6: Agent Organization** — 도메인 전문 Sub-Reasoner 3인 병렬 (분석/콘텐츠/전략)
+  - Phase 5: Self-Coding — 사이클 리플렉션, 예측 자동 보정, 프롬프트 자동 최적화
+  - Phase 6: Agent Organization — 도메인 전문 Sub-Reasoner 5인 병렬 (분석/콘텐츠/전략/CRO/심리)
+  - **Phase 7: Agentic Tool Harness** — Sub-Reasoner 능동 도구 호출, A2A 교차 질의, 도메인 이식성
+
+#### Phase 7: Agentic Tool Harness (NEW)
+Sub-Reasoner가 분석 중 추가 데이터가 필요하면 **직접 도구를 호출**합니다:
+
+```
+CRO: "이탈률 82%... 어느 지점이 문제지?"
+  → theater_detail(m016) 호출 → "JSW씨네라운지 91%, 평균 대비 +13%p"
+  → knowledge_search("좌석 이탈 개선") → 과거 성공 사례 발견
+  → ask_expert(psychology, "좌석 선택 시 이탈 심리?") → "선택 과부하"
+```
+
+- **Tool Harness:** 캐시(사이클 단위) + 화이트리스트 + Rate Limit + 관측성 메트릭
+- **6개 도구:** ga4_query, ga4_funnel, theater_detail, knowledge_search, episode_search, web_search
+- **A2A Protocol:** Sub-Reasoner 간 교차 질의 (`ask_expert`) — CRO가 Psychology에게 물어보기
+- **2-pass 프로토콜:** LLM이 도구 필요 여부를 판단 → 필요 시 호출 → 결과 반영 후 재분석
+- **Native Function Calling:** Gemini/Groq의 native tool-use 지원, Gemma4는 JSON 폴백
+- **도메인 이식성:** `config/company.md` 하나로 새 회사에 부트스트랩 — Engine/Config/Knowledge 3계층 분리
+
 - **고급 메모리:**
-  - Knowledge Store (지식 임베딩 기반 의미 검색)
+  - Knowledge Store (임베딩 기반 의미 검색 + Agentic Retrieval)
   - Episodic Memory (814+ 경험, 의미 검색)
   - Failure Registry (시간 감쇠 회피 규칙)
 - **Anthropic 5패턴 구현:** [docs/AGENT_WORKFLOWS.md](docs/AGENT_WORKFLOWS.md)
 - **리스크 기반 자율:** LOW 자동 실행, MEDIUM+ Governor 승인 대기
-- **알림:** Telegram + Slack 데일리 브리핑 (매출/퍼널/지점별)
+- **알림:** Telegram + Slack 데일리 브리핑 (매출/퍼널/지점별/신규재방문)
 
 ### 마케팅 OS 기반
 - GA4 성과 분석 (이커머스 매출, 트래픽, 채널, 코호트 리텐션)
@@ -55,11 +74,13 @@
 - Next.js (App Router, TypeScript) + Tauri v2 데스크톱
 - TailwindCSS
 - Prisma + PostgreSQL (Supabase)
-- LLM: Gemini (기본) / Groq / OpenAI / Claude 폴백 체인
+- LLM: Gemini 2.5 Flash (기본, native function calling) / Groq / Gemma4 / OpenAI / Claude 폴백 체인
 - **Ollama (nomic-embed-text)** — 로컬 임베딩 기반 의미 검색
+- **Tool Harness** — Sub-Reasoner 능동 도구 호출 (캐시 + rate limit + 관측성)
+- **A2A Protocol** — 에이전트 간 교차 질의 + 외부 에이전트 확장 포트
 - GA4 Data API + Admin API (`@google-analytics/data` + `@google-analytics/admin`)
 - GTM API (`googleapis/tagmanager`)
-- MCP SDK (`@modelcontextprotocol/sdk`)
+- MCP SDK (`@modelcontextprotocol/sdk`) — 28개 프리셋 커넥션
 - Serper.dev 검색 API
 - Telegram Bot API + Slack Webhook
 

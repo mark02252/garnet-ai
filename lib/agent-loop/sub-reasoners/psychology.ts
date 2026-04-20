@@ -3,6 +3,7 @@ import { runLLMWithTools } from '@/lib/llm'
 import type { ToolHarness } from '../tool-harness'
 import type { ToolCall } from '../tool-types'
 import type { WorldModel } from '../types'
+import { formatSnapshotForPrompt } from '../snapshot-formatter'
 
 export type PsychologyResult = {
   insights: Array<{
@@ -20,13 +21,10 @@ JSON만 출력. 한국어.
 도구 에러가 반환되면 해당 데이터 없이 기존 WorldModel 데이터로 분석을 진행하세요.`
 
 export async function suggestPsychologyAngles(worldModel: WorldModel, harness?: ToolHarness): Promise<PsychologyResult> {
-  const sns = worldModel.snapshot.sns
-  const ga4 = worldModel.snapshot.ga4
+  const metricsText = formatSnapshotForPrompt(worldModel)
 
   const prompt = `## 현재 사용자 행동 지표
-SNS 참여율: ${sns.engagement}%
-이탈률: ${ga4.bounceRate}%
-전환율: ${ga4.conversionRate}%
+${metricsText}
 
 현재 데이터에 적용할 만한 **심리 원리 2개**를 도출하세요.
 - 인지편향 또는 행동경제학 원리 명시 (예: 손실회피, 사회적 증명, 희소성)

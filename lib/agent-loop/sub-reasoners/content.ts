@@ -3,6 +3,7 @@ import { runLLMWithTools } from '@/lib/llm'
 import type { ToolHarness } from '../tool-harness'
 import type { ToolCall } from '../tool-types'
 import type { WorldModel } from '../types'
+import { formatSnapshotForPrompt } from '../snapshot-formatter'
 
 export type ContentResult = {
   contentIdeas: Array<{
@@ -20,10 +21,9 @@ JSON만 출력. 한국어.
 도구 에러가 반환되면 해당 데이터 없이 기존 WorldModel 데이터로 분석을 진행하세요.`
 
 export async function suggestContent(worldModel: WorldModel, harness?: ToolHarness): Promise<ContentResult> {
-  const sns = worldModel.snapshot.sns
-  const prompt = `## 현재 SNS 상황
-참여율: ${sns.engagement}%
-팔로워 변동: ${sns.followerGrowth}
+  const metricsText = formatSnapshotForPrompt(worldModel)
+  const prompt = `## 현재 지표
+${metricsText}
 
 현재 시점에 제안할 만한 콘텐츠 아이디어 **2개**를 도출하세요.
 - 시즌/브랜드 보이스와 맞아야 함

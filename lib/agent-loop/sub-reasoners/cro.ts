@@ -3,6 +3,7 @@ import { runLLMWithTools } from '@/lib/llm'
 import type { ToolHarness } from '../tool-harness'
 import type { ToolCall } from '../tool-types'
 import type { WorldModel } from '../types'
+import { formatSnapshotForPrompt } from '../snapshot-formatter'
 
 export type CROResult = {
   bottlenecks: Array<{
@@ -21,11 +22,9 @@ JSON만 출력. 한국어.
 도구 에러가 반환되면 해당 데이터 없이 기존 WorldModel 데이터로 분석을 진행하세요.`
 
 export async function suggestCROImprovements(worldModel: WorldModel, harness?: ToolHarness): Promise<CROResult> {
-  const ga4 = worldModel.snapshot.ga4
-  const prompt = `## 현재 GA4 지표
-세션: ${ga4.sessions}
-이탈률: ${ga4.bounceRate}%
-전환율: ${ga4.conversionRate}%
+  const metricsText = formatSnapshotForPrompt(worldModel)
+  const prompt = `## 현재 지표
+${metricsText}
 
 위 데이터에서 **전환 병목 2개**를 도출하세요.
 - 이탈률이 높거나 전환율이 낮은 단계

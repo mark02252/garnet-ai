@@ -3,6 +3,7 @@ import { runLLMWithTools } from '@/lib/llm'
 import type { ToolHarness } from '../tool-harness'
 import type { ToolCall } from '../tool-types'
 import type { WorldModel, GoalProgress } from '../types'
+import { formatSnapshotForPrompt } from '../snapshot-formatter'
 
 export type AnalysisResult = {
   insights: Array<{
@@ -24,8 +25,7 @@ export async function analyzeCurrentData(
   goals: GoalProgress[],
   harness?: ToolHarness,
 ): Promise<AnalysisResult> {
-  const ga4 = worldModel.snapshot.ga4
-  const sns = worldModel.snapshot.sns
+  const metricsText = formatSnapshotForPrompt(worldModel)
   const trends = worldModel.trends
     .filter(t => t.direction !== 'stable')
     .map(t => `${t.metric}: ${t.direction} ${t.magnitude.toFixed(1)}% (${t.duration}회)`)
@@ -37,8 +37,7 @@ export async function analyzeCurrentData(
 
   const prompt = `## 현재 데이터
 
-GA4: 세션 ${ga4.sessions}, 이탈률 ${ga4.bounceRate}%, 전환율 ${ga4.conversionRate}%
-SNS: 참여율 ${sns.engagement}%, 팔로워 변동 ${sns.followerGrowth}
+${metricsText}
 트렌드: ${trends}
 목표: ${goalsText}
 

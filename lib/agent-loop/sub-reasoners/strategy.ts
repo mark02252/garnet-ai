@@ -3,6 +3,7 @@ import { runLLMWithTools } from '@/lib/llm'
 import type { ToolHarness } from '../tool-harness'
 import type { ToolCall } from '../tool-types'
 import type { WorldModel, GoalProgress } from '../types'
+import { formatSnapshotForPrompt } from '../snapshot-formatter'
 
 export type StrategyResult = {
   strategicDirections: Array<{
@@ -24,6 +25,7 @@ export async function suggestStrategy(
   goals: GoalProgress[],
   harness?: ToolHarness,
 ): Promise<StrategyResult> {
+  const metricsText = formatSnapshotForPrompt(worldModel)
   const competitors = worldModel.snapshot.competitors
   const competitorText = `위협 수준 ${competitors.threatLevel}, 최근 ${competitors.recentMoves.length}건 변화${competitors.recentMoves.length > 0 ? ': ' + competitors.recentMoves.slice(0, 3).map(m => `${m.competitor}: ${m.action}`).join(' | ') : ''}`
 
@@ -36,7 +38,10 @@ export async function suggestStrategy(
 
   const laggingGoals = goals.filter(g => !g.onTrack).map(g => `${g.goal.goal} (${g.progressPercent}%)`).join(', ') || '없음'
 
-  const prompt = `## 경쟁 환경
+  const prompt = `## 현재 지표
+${metricsText}
+
+## 경쟁 환경
 ${competitorText}
 
 ## 거시 환경 (시즌/이벤트)

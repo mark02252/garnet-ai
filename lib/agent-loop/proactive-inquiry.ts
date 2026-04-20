@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { isTelegramConfigured, sendMessage } from '@/lib/telegram'
+import { getMetricValue } from './snapshot-formatter'
 import type { WorldModel, GoalProgress } from './types'
 
 type InquiryQuestion = {
@@ -21,10 +22,10 @@ export async function detectInformationGaps(
 
   // 1. World Model에 0인 지표가 3개 이상
   const zeroMetrics: string[] = []
-  if (worldModel.snapshot.ga4.sessions === 0) zeroMetrics.push('GA4 세션')
-  if (worldModel.snapshot.ga4.bounceRate === 0) zeroMetrics.push('이탈률')
-  if (worldModel.snapshot.ga4.conversionRate === 0) zeroMetrics.push('전환율')
-  if (worldModel.snapshot.sns.engagement === 0) zeroMetrics.push('SNS 참여율')
+  if (getMetricValue(worldModel, 'sessions') === 0) zeroMetrics.push('세션')
+  if (getMetricValue(worldModel, 'bounceRate') === 0) zeroMetrics.push('이탈률')
+  if (getMetricValue(worldModel, 'conversionRate') === 0) zeroMetrics.push('전환율')
+  if (getMetricValue(worldModel, 'engagement') === 0) zeroMetrics.push('SNS 참여율')
 
   if (zeroMetrics.length >= 2) {
     gaps.push({

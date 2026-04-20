@@ -13,6 +13,7 @@ import { runLLM } from '@/lib/llm'
 import { getKnowledgeStats } from './knowledge-store'
 import { isSlackConfigured, slackEvolutionAlert } from './slack-notifier'
 import { isTelegramConfigured, sendMessage } from '@/lib/telegram'
+import { getTrackableMetricKeys } from './snapshot-formatter'
 
 export type GoalTrackability = {
   goal: StrategicGoal
@@ -32,6 +33,8 @@ export type ContextUpdateProposal = {
  */
 export function assessGoalTrackability(ctx: BusinessContext): GoalTrackability[] {
   // 데이터 소스 매핑 — Garnet이 접근 가능한 데이터
+  // NOTE: config/domain.yaml의 metrics_display 키들이 추적 가능 메트릭의 primary source.
+  //       아래 목록은 레거시 한국어 키 매핑 폴백으로 유지됩니다.
   const trackableMetrics: Record<string, { source: string; available: boolean }> = {
     '팔로워 수': { source: 'Instagram API (SnsAnalyticsSnapshot)', available: true },
     '팔로워': { source: 'Instagram API', available: true },
@@ -42,6 +45,14 @@ export function assessGoalTrackability(ctx: BusinessContext): GoalTrackability[]
     '예매 전환율': { source: 'GA4 API', available: true },
     '이탈률': { source: 'GA4 API', available: true },
     '페이지뷰': { source: 'GA4 API', available: true },
+  }
+
+  // config/domain.yaml의 metrics_display 키들을 추가로 추적 가능 메트릭으로 등록
+  const configKeys = getTrackableMetricKeys()
+  for (const key of configKeys) {
+    if (!(key in trackableMetrics)) {
+      trackableMetrics[key] = { source: 'config/domain.yaml (snapshot-formatter)', available: true }
+    }
   }
 
   // 추적 불가능한 메트릭 패턴

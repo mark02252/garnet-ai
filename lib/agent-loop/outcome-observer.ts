@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { getTrackableMetricKeys } from './snapshot-formatter'
 
 const MEASUREMENT_DELAYS: Record<string, number> = {
   report_generation: 0,           // 즉시
@@ -113,7 +114,8 @@ async function getCurrentMetrics(): Promise<Record<string, number>> {
 
 /** 영향 점수 계산: before vs after의 가중 평균 변화율 */
 function calculateImpact(before: Record<string, number>, after: Record<string, number>): number {
-  const metrics = ['engagement', 'followers', 'reach']
+  const configKeys = getTrackableMetricKeys()
+  const metrics = configKeys.length > 0 ? configKeys.slice(0, 5) : ['engagement', 'followers', 'reach']
   let totalChange = 0
   let count = 0
 

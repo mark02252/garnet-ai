@@ -1,0 +1,15 @@
+max_calls_per_reasoner: 3
+max_calls_per_cycle: 15
+tool_timeout: 5000
+
+sub_reasoners:
+  analysis:
+    tools: [ga4_query, knowledge_search, episode_search]
+  content:
+    tools: [knowledge_search, web_search, episode_search]
+  strategy:
+    tools: [ga4_query, knowledge_search, web_search]
+  cro:
+    tools: [ga4_funnel, theater_detail, knowledge_search]
+  psychology:
+    tools: [knowledge_search, episode_search, web_search]

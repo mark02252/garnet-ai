@@ -1,0 +1,8 @@
+name: "MONOPLEX"
+industry: "entertainment/private-cinema"
+kpis: [매출, 전환율, 재방문율, 좌석점유율, ARPU]
+data_sources: [ga4, instagram]
+sub_reasoners: [analysis, content, strategy, cro, psychology]
+custom_dimensions:
+  theater_code: "지점 코드"
+  movie_id: "영화 ID"

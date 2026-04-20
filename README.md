@@ -31,21 +31,32 @@
   - **Phase 7: Agentic Tool Harness** — Sub-Reasoner 능동 도구 호출, A2A 교차 질의, 도메인 이식성
 
 #### Phase 7: Agentic Tool Harness (NEW)
-Sub-Reasoner가 분석 중 추가 데이터가 필요하면 **직접 도구를 호출**합니다:
+기존 에이전트는 미리 수집된 데이터만 분석했습니다. Phase 7부터 Sub-Reasoner가 **스스로 판단하여 도구를 호출**합니다:
 
 ```
-CRO: "이탈률 82%... 어느 지점이 문제지?"
-  → theater_detail(m016) 호출 → "JSW씨네라운지 91%, 평균 대비 +13%p"
-  → knowledge_search("좌석 이탈 개선") → 과거 성공 사례 발견
-  → ask_expert(psychology, "좌석 선택 시 이탈 심리?") → "선택 과부하"
+기존: Scanner가 수집한 고정 데이터 → Sub-Reasoner 분석 → 일반적 인사이트
+Phase 7: Sub-Reasoner가 분석 중 필요하면 → 도구 호출로 추가 데이터 직접 획득 → 근거 있는 구체적 인사이트
 ```
 
-- **Tool Harness:** 캐시(사이클 단위) + 화이트리스트 + Rate Limit + 관측성 메트릭
-- **6개 도구:** ga4_query, ga4_funnel, theater_detail, knowledge_search, episode_search, web_search
-- **A2A Protocol:** Sub-Reasoner 간 교차 질의 (`ask_expert`) — CRO가 Psychology에게 물어보기
-- **2-pass 프로토콜:** LLM이 도구 필요 여부를 판단 → 필요 시 호출 → 결과 반영 후 재분석
-- **Native Function Calling:** Gemini/Groq의 native tool-use 지원, Gemma4는 JSON 폴백
-- **도메인 이식성:** `config/company.md` 하나로 새 회사에 부트스트랩 — Engine/Config/Knowledge 3계층 분리
+**작동 방식 — 2-pass 프로토콜:**
+1. LLM이 기본 데이터를 보고 "추가 데이터가 필요한가?" 판단
+2. 필요하면 도구 호출 요청 (ga4_query, knowledge_search, web_search 등)
+3. Tool Harness가 실행 (캐시 체크 → 화이트리스트 → Rate Limit → 실행)
+4. 도구 결과를 받아 LLM이 재분석 → 더 깊은 인사이트 도출
+5. 기본 데이터만으로 충분하면 도구 호출 없이 기존처럼 1-pass로 완료
+
+**에이전트 간 교차 질의 (A2A Protocol):**
+- Sub-Reasoner가 다른 전문가의 관점이 필요하면 `ask_expert`로 질의
+- 예: CRO 전문가가 심리 전문가에게 "이 이탈의 심리적 원인은?" → 교차 분석
+
+**도메인 이식성:**
+- Engine(도메인 무관) / Config(회사별 교체) / Knowledge(학습 데이터) 3계층 분리
+- `config/company.md` 하나로 새 도메인에 부트스트랩 — Sub-Reasoner 구성, 도구 매핑, 브리핑 템플릿 자동 생성
+
+**기술 세부:**
+- **Tool Harness:** 사이클 단위 캐시 + Sub-Reasoner별 화이트리스트 + 슬라이딩 윈도우 Rate Limit + 관측성 메트릭
+- **6개 도구:** ga4_query, ga4_funnel, theater_detail, knowledge_search, episode_search, web_search + ask_expert
+- **Native Function Calling:** Gemini/Groq는 native tool-use, Gemma4는 JSON 폴백
 
 - **고급 메모리:**
   - Knowledge Store (임베딩 기반 의미 검색 + Agentic Retrieval)

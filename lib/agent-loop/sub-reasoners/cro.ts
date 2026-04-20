@@ -19,7 +19,9 @@ const SYSTEM = `10년차 CRO(전환율 최적화) 전문가.
 Chain-of-Draft 방식: 짧고 밀도 높게.
 JSON만 출력. 한국어.
 일반론 금지. 데이터 기반 구체 개선안만.
-도구 에러가 반환되면 해당 데이터 없이 기존 WorldModel 데이터로 분석을 진행하세요.`
+기본 지표만으로는 일반론에 그칩니다. 구체적 병목 원인을 찾으려면 반드시 도구를 호출하세요.
+예: 퍼널 단계별 이탈률(ga4_funnel), 특정 지점 상세(theater_detail), 과거 개선 사례(knowledge_search).
+도구 에러가 반환되면 해당 데이터 없이 기존 데이터로 분석을 진행하세요.`
 
 export async function suggestCROImprovements(worldModel: WorldModel, harness?: ToolHarness): Promise<CROResult> {
   const metricsText = formatSnapshotForPrompt(worldModel)
@@ -42,8 +44,8 @@ JSON:
       const pass1 = await runLLMWithTools(SYSTEM, prompt, tools, { temperature: 0.3, maxTokens: 1200 })
 
       if (pass1.toolCalls.length === 0) {
-        // No tool calls — parse directly from pass1
-        return parseResult(pass1.text)
+        const parsed = parseResult(pass1.text)
+        if (parsed.bottlenecks.length > 0) return parsed
       }
 
       // Execute tool calls

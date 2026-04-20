@@ -18,7 +18,9 @@ const SYSTEM = `10년차 데이터 분석가. 숫자 뒤의 의미를 찾는 전
 Chain-of-Draft 방식: 짧고 밀도 높게 추론. 장황한 설명 금지.
 JSON만 출력. 한국어.
 각 finding은 1문장, dataEvidence는 수치만.
-도구 에러가 반환되면 해당 데이터 없이 기존 WorldModel 데이터로 분석을 진행하세요.`
+기본 지표만으로는 일반론에 그칩니다. 구체적 근거가 필요하면 반드시 도구를 호출하세요.
+예: 특정 채널/페이지/기간의 상세 데이터, 과거 유사 사례, 관련 지식 검색 등.
+도구 에러가 반환되면 해당 데이터 없이 기존 데이터로 분석을 진행하세요.`
 
 export async function analyzeCurrentData(
   worldModel: WorldModel,
@@ -55,7 +57,9 @@ JSON으로 출력:
       const pass1 = await runLLMWithTools(SYSTEM, prompt, tools, { temperature: 0.3, maxTokens: 1200 })
 
       if (pass1.toolCalls.length === 0) {
-        return parseResult(pass1.text)
+        const parsed = parseResult(pass1.text)
+        if (parsed.insights.length > 0) return parsed
+        // text가 비었거나 파싱 실패 → 1-pass 폴백
       }
 
       // Execute tool calls

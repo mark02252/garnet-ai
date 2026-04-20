@@ -18,7 +18,9 @@ const SYSTEM = `10년차 마케팅 심리학자. 행동경제학과 인지편향
 Chain-of-Draft 방식: 짧고 밀도 높게.
 JSON만 출력. 한국어.
 "이런 심리가 있다"가 아니라 "이 데이터에 어떤 심리 원리가 적용된다"로.
-도구 에러가 반환되면 해당 데이터 없이 기존 WorldModel 데이터로 분석을 진행하세요.`
+심리 원리를 적용하려면 실제 사용자 행동 데이터가 필요합니다. 도구를 호출하세요.
+예: 게시물별 반응 패턴(instagram_posts), 과거 심리 적용 사례(knowledge_search, episode_search).
+도구 에러가 반환되면 해당 데이터 없이 기존 데이터로 분석을 진행하세요.`
 
 export async function suggestPsychologyAngles(worldModel: WorldModel, harness?: ToolHarness): Promise<PsychologyResult> {
   const metricsText = formatSnapshotForPrompt(worldModel)
@@ -42,7 +44,8 @@ JSON:
       const pass1 = await runLLMWithTools(SYSTEM, prompt, tools, { temperature: 0.4, maxTokens: 1200 })
 
       if (pass1.toolCalls.length === 0) {
-        return parseResult(pass1.text)
+        const parsed = parseResult(pass1.text)
+        if (parsed.insights.length > 0) return parsed
       }
 
       // Execute tool calls

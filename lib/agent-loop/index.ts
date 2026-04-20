@@ -128,6 +128,11 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     const goals = await evaluateGoals(updatedWm)
 
     // 5. Reasoner — with ToolHarness for 2-pass Sub-Reasoner tool calling
+    try {
+      const { clearExpertCache } = await import('./a2a-protocol')
+      clearExpertCache()
+    } catch { /* */ }
+
     let harness: import('./tool-harness').ToolHarness | undefined
     try {
       const { ToolHarness } = await import('./tool-harness')

@@ -2,8 +2,8 @@
 
 > Personal AGI Agent System — 자율 학습 + 자기 개선 + 조직 확장
 
-**최종 업데이트:** 2026-04-13
-**현재 버전:** v0.6.0+
+**최종 업데이트:** 2026-04-20
+**현재 버전:** v0.8.0+
 **이전 로드맵:** `docs/archive/2026-03-GARNET_ROADMAP_v1.md`
 
 ---
@@ -16,28 +16,34 @@ Garnet은 마케팅 자동화 도구가 **아니다**.
 
 ---
 
-## 현재 상태: Agent Loop Phase 1~4 운영 중
+## 현재 상태: Agent Loop Phase 1~8 운영 중
 
 ### 아키텍처
 
 ```
-┌─────────────────────────────────────────────────┐
-│  Agent Loop (36개 모듈, lib/agent-loop/)         │
-│                                                  │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐      │
-│  │ Scanner  │→│ Reasoner │→│ Executor │      │
-│  │(환경 인식)│  │(LLM 추론)│  │(실행/승인)│      │
-│  └──────────┘  └──────────┘  └──────────┘      │
-│       ↑                            │             │
-│       └────── World Model ←────────┘             │
-│              (누적 상황 인식)                      │
-│                                                  │
-│  사이클: 15분(긴급) / 1시간(루틴) / 7시(브리핑)   │
-│          18시(저녁보고) / 월 9시(주간리뷰)        │
-└─────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│  Agent Loop (50+ 모듈, lib/agent-loop/)                      │
+│                                                               │
+│  ┌──────────┐  ┌─────────────────────┐  ┌──────────┐        │
+│  │ Scanner  │→│ 5 Sub-Reasoners     │→│ Reasoner │        │
+│  │(환경 인식)│  │(능동 도구 호출+A2A) │  │(LLM 추론)│        │
+│  └──────────┘  └─────────────────────┘  └──────────┘        │
+│       ↑              ↕ Tool Harness          │               │
+│       │         (캐시+화이트리스트+Rate Limit) │               │
+│       │              ↕ ask_expert (A2A)       ↓               │
+│       │         ┌──────────┐  ┌──────────┐                   │
+│       │         │Reflective│→│ Executor │                   │
+│       │         │  Critic  │  │(실행/승인)│                   │
+│       │         └──────────┘  └──────────┘                   │
+│       └────── World Model ←──────────────────┘               │
+│              (config 기반 도메인 이식)                         │
+│                                                               │
+│  사이클: 15분(긴급) / 1시간(루틴) / 7시(브리핑)               │
+│          18시(저녁보고) / 월 9시(주간리뷰)                    │
+└──────────────────────────────────────────────────────────────┘
 ```
 
-### Agent Loop 진화 단계 (Phase 1~4 완료)
+### Agent Loop 진화 단계 (Phase 1~8 완료)
 
 | Phase | 이름 | 핵심 모듈 | 상태 |
 |-------|------|----------|------|
@@ -45,21 +51,23 @@ Garnet은 마케팅 자동화 도구가 **아니다**.
 | 2 | Curiosity Engine | Article Learner, Macro Tracker, Self-Improvement Scout, Cross-Pollinator, Emergence Detector | ✅ 운영 중 |
 | 3 | Causal Reasoning | Causal Model, Confidence Scoring, Goal Predictor, Strategy Mutator, Paradigm Shift | ✅ 운영 중 |
 | 4 | Reflective Roles | Reflective Critic, Self Benchmark, Proactive Inquiry, Role Manager | ✅ 운영 중 |
+| 5 | Self-Coding | Cycle Reflector, Prediction Calibrator, Prompt Evolver | ✅ 운영 중 |
+| 6 | Agent Organization | Sub-Reasoner 5인 (Analysis, Content, Strategy, CRO, Psychology) | ✅ 운영 중 |
+| 7 | Agentic Tool Harness | Tool Harness, runLLMWithTools, A2A Protocol, Domain Bootstrap | ✅ 구현 완료 |
+| 8 | WorldModel Portability | snapshot-formatter, MetricResolver, config 기반 프롬프트 | ✅ 구현 완료 |
 
-### 운영 5일차 실적 (4/8~4/13)
+### 운영 실적 (4/8~4/20)
 
 | 지표 | 수치 |
 |------|------|
-| 총 사이클 | 550회 (일평균 110회) |
-| 축적 지식 | 99건 (9개 도메인) |
-| 에피소딕 메모리 | 807건 |
-| 인과 관계 모델 | 7건 |
-| 총 액션 | 536건 (496건 자동 실행) |
-| 전략 목표 평균 달성 | 81% |
+| 축적 지식 | 339+ 건 (25개 도메인) |
+| 에피소딕 메모리 | 814+ 건 |
+| 등록 도구 | 10개 (GA4 3, Instagram 3, Knowledge 2, Web 1, A2A 1) |
+| 도메인 이식성 | config/ 교체만으로 완료 |
 
 ---
 
-## Phase 5: Self-Coding (다음 단계)
+## Phase 5-6: Self-Coding + Agent Organization (완료)
 
 > "AI가 자기 코드를 개선한다"
 
@@ -142,96 +150,78 @@ Agent가 "이런 도구가 필요합니다" 요청
 
 ---
 
-## Phase 6: Agent Organization
+## Phase 7-8: Agentic Tool Harness + WorldModel Portability (완료)
 
-> "단일 Reasoner → 전문 에이전트 팀 → 자율 조직"
+> "Sub-Reasoner가 직접 찾고, 서로 물어보고, 어디든 이식 가능"
 
-### 6-1. 역량 기반 역할 분화
-
-현재 Role Manager가 역량 임계값(80%+) 도달 시 새 역할을 제안하는 구조.
-이를 확장하여 **독립 에이전트로 분화**:
+### Phase 7: Agentic Tool Harness (2026-04-20)
 
 ```
-현재:  단일 Reasoner + 역할 프롬프트 주입
-       ↓
-Phase 6: 독립 에이전트 인스턴스
+Sub-Reasoner가 분석 중 추가 데이터가 필요하면 직접 도구를 호출:
 
-Garnet Core (총괄 — 전략 수립, 팀 간 조율)
-├── Analysis Agent    — 데이터 분석 + 인사이트 (GA4, SNS)
-├── Content Agent     — 콘텐츠 기획/생성/검수
-├── Strategy Agent    — 시장 조사 + 경쟁 분석 + 전략 설계
-└── Operations Agent  — 일정 관리 + 이상 탐지 + 리포팅
+1. LLM이 "추가 데이터 필요한가?" 판단 (Pass 1)
+2. 필요하면 도구 호출 → Tool Harness가 실행 (캐시/화이트리스트/Rate Limit)
+3. 도구 결과 반영 → LLM이 재분석 (Pass 2)
+4. 기본 데이터로 충분하면 1-pass로 완료 (기존 속도 유지)
 ```
 
-- **핵심 원칙:** 하드코딩이 아닌 **역량 성숙도에 따른 자연 분화**
-- Role Manager의 readiness 점수가 임계값을 넘으면 독립 에이전트로 승격 제안
+- **Tool Harness:** 캐시(사이클 단위) + Sub-Reasoner별 화이트리스트 + 슬라이딩 윈도우 Rate Limit + 관측성 메트릭
+- **10개 도구:** ga4_query, ga4_funnel, theater_detail, knowledge_search, episode_search, web_search, instagram_posts, instagram_account, instagram_demographics, ask_expert
+- **A2A Protocol:** Sub-Reasoner 간 교차 질의 (ask_expert) — CRO가 Psychology에게 질문 가능
+- **Native Function Calling:** Gemini/Groq는 native tool-use, Gemma4는 JSON 폴백
+- **Domain Bootstrap:** config/company.md → config/ 자동 생성
 
-### 6-2. 에이전트 간 프로토콜
-
-```
-각 에이전트:
-- 전용 에피소딕 메모리 (자기 분야 경험 축적)
-- 전용 Knowledge Store 도메인
-- 개별 Self Benchmark (역량 추적)
-- Phase 5 자기 개선 적용
-
-팀 간 통신:
-- 구조화된 JSON 메시지
-- 승인 게이트 (중요 결정은 사용자 승인)
-- 에스컬레이션 (해결 못 하면 상위로)
-```
-
-### 6-3. 도메인 확장
-
-현재 MONOPLEX 마케팅이 첫 번째 도메인. Phase 6에서 확장:
+### Phase 8: WorldModel Portability (2026-04-20)
 
 ```
-현재: marketing, operations, content_strategy, consumer, b2b, pricing, finance
-확장: HR, 재무, 법무, 제품, 기술 등 → 새 회사/역할에 이식 가능
+Engine (도메인 무관) / Config (회사별 교체) / Knowledge (학습 데이터) 3계층 분리
+
+회사 이동 시:
+1. config/company.md 작성
+2. config/domain.yaml + tools.yaml 자동 생성
+3. .env 교체
+4. 끝. 코드 변경 없음.
 ```
+
+- **snapshot-formatter.ts:** MetricResolver + config 기반 프롬프트/브리핑 포맷터
+- **config/domain.yaml:** company_name, company_description, metrics_display
+- 11개 파일의 하드코딩 → formatSnapshotForPrompt/getMetricValue로 통합
+- 향후 분석 툴 변경 시: MetricResolver만 교체
 
 ---
 
-## Phase 7: 자율 에이전트 (장기 비전)
+## 향후 로드맵
 
-> "사람이 방향만 제시하면 나머지는 에이전트 조직이 자율 운영"
+### 단기 (다음 작업)
 
-- 에이전트 조직이 스스로 구조를 개편 (팀 신설/해산/합병)
-- 외부 시스템과 자율 연동 (새 API 발견 → 도구 생성 → 연결)
-- 멀티 도메인 동시 운영 (마케팅 + 전략 + 운영)
-- 사용자는 주간 1회 방향 확인 + 승인만
+| 항목 | 설명 |
+|------|------|
+| 도구 호출 프롬프트 튜닝 | LLM이 1-pass 선호 → 도구 호출 유도 강화 |
+| harness-metrics 대시보드 | 도구 호출 트렌드, 캐시 효율 시각화 |
+| Sub-Reasoner 간헐적 파싱 실패 | Gemini function calling 안정성 개선 |
+
+### 중기
+
+| 항목 | 설명 |
+|------|------|
+| Slack/Notion MCP 연동 | MCP Hub 28개 커넥션 중 필요한 것 활성화 |
+| 분석 툴 전환 | MetricResolver 교체 + WorldModel 타입 제네릭화 |
+| Scanner 플러그인화 | 데이터소스별 모듈 분리 |
+
+### 장기
+
+| 항목 | 설명 |
+|------|------|
+| 외부 A2A (askExternal) | 외부 에이전트 연동 — 대상 생길 때 |
+| Google A2A v0.2 호환 | 표준 프로토콜 채택 |
+| 모델 업그레이드 | Claude Sonnet 4.5 / Haiku 4.5 — Anthropic 키 확보 시 |
+| 자율 에이전트 조직 | 에이전트가 스스로 구조 개편, 외부 시스템 자율 연동 |
 
 ---
 
-## 기술 스택 추가 필요
+## 핵심 원칙
 
-| Phase | 필요 기술 | 비고 |
-|-------|---------|------|
-| 5 | 없음 | 기존 LLM + DB로 구현 가능 |
-| 6 | Agent 통신 프로토콜 | JSON 메시지 규격 설계 필요 |
-| 7 | 없음 | Phase 5-6 위에 자연 확장 |
-
----
-
-## 타임라인
-
-```
-현재        Phase 1~4 운영 중 (지식/메모리 연속 축적)
-            ████████████████████████████████████████
-
-다음        Phase 5: Self-Coding
-            ░░░░░░░░░░░░░░░░
-
-이후        Phase 6: Agent Organization
-            ░░░░░░░░░░░░░░░░░░░░
-
-장기        Phase 7: 자율 에이전트
-            ░░░░░░░░░░░░░░░░░░░░░░░░
-```
-
-**핵심 원칙:**
-- Phase 1~4는 **병렬 연속 진화** — 사이클마다 모든 Phase가 동시 동작
-- Phase 5는 Phase 1~4 데이터 축적이 전제 (현재 충족)
-- Phase 6는 Phase 5의 자기 개선이 안정화된 후
+- Phase 1~8은 **병렬 연속 진화** — 사이클마다 모든 Phase가 동시 동작
 - 사용자 승인 게이트는 **항상** 유지
-- "마케팅 전용"이 아닌 **범용 추론 + 도메인 지식 분리** 구조
+- **범용 추론 + 도메인 지식 분리** — config 기반 이식성
+- 새 기능은 하드코딩 금지 — config/domain.yaml 기반으로 설계

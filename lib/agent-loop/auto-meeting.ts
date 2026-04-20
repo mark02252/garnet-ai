@@ -10,6 +10,7 @@ import { executeFlow } from '@/lib/flow/runner'
 import { reflectOnFlowRun } from '@/lib/self-improve/reflection-agent'
 import { isTelegramConfigured, sendMessage } from '@/lib/telegram'
 import { storeEpisode } from '@/lib/memory/episodic-store'
+import { formatSnapshotForPrompt } from './snapshot-formatter'
 import type { FlowNode, FlowEdge, RunInput } from '@/lib/flow/types'
 import type { WorldModel, GoalProgress } from './types'
 
@@ -138,11 +139,7 @@ export async function triggerAutoMeeting(
 
   const topic = `마케팅 전략 회의: ${issuesSummary}${behindGoals ? ` | 뒤처진 목표: ${behindGoals}` : ''}`
 
-  const context = `현재 상황:
-- GA4 세션: ${worldModel.snapshot.ga4.sessions}, 이탈률: ${worldModel.snapshot.ga4.bounceRate}%
-- SNS 참여율: ${worldModel.snapshot.sns.engagement}%, 팔로워: ${worldModel.snapshot.sns.followerGrowth}
-- 경쟁사 위협: ${worldModel.snapshot.competitors.threatLevel}
-- 활성 캠페인: ${worldModel.snapshot.campaigns.active}건`
+  const context = `현재 상황:\n${formatSnapshotForPrompt(worldModel)}`
 
   // 2. 에이전트 팀 설계
   const { nodes: nodesJson, edges: edgesJson } = await designMeetingTeam(topic, context)

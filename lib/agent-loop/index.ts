@@ -127,8 +127,16 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     // 4. Goal Manager
     const goals = await evaluateGoals(updatedWm)
 
-    // 5. Reasoner
-    let decision = await reason(updatedWm, goals)
+    // 5. Reasoner — with ToolHarness for 2-pass Sub-Reasoner tool calling
+    let harness: import('./tool-harness').ToolHarness | undefined
+    try {
+      const { ToolHarness } = await import('./tool-harness')
+      const { registerAllTools } = await import('./tool-registry')
+      harness = new ToolHarness(cycleId || 'unknown')
+      registerAllTools(harness)
+    } catch { /* non-critical — tool harness not available */ }
+
+    let decision = await reason(updatedWm, goals, harness)
 
     // 5.5. 복합 이슈 감지 시 자동 회의
     if (needsMeeting(updatedWm, goals) && cycleType === 'routine-cycle') {
@@ -223,6 +231,8 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
 
     await releaseLock(cycleId, result)
     await notifyCycleResult(result)
+    // Save tool harness metrics after cycle completes
+    try { harness?.saveMetrics() } catch { /* non-critical */ }
     return result
   } catch (err) {
     const result: CycleResult = {
@@ -314,14 +324,14 @@ async function runDailyBriefing(): Promise<void> {
     } catch { /* */ }
 
     try {
-      const userRes = await fetch('http://localhost:3000/api/ga4/user-type')
+      const userRes = await fetch('http://localhost:3000/api/ga4/user-type?startDate=yesterday&endDate=yesterday')
       if (userRes.ok) {
-        const users = await userRes.json() as { data?: Array<{ userType?: string; users?: number }> }
+        const users = await userRes.json() as { data?: Array<{ userType?: string; activeUsers?: number }> }
         if (users.data) {
-          const newU = users.data.find(u => u.userType === 'New')
-          const retU = users.data.find(u => u.userType === 'Returning')
-          traffic.newUsers = newU?.users ?? 0
-          traffic.returningUsers = retU?.users ?? 0
+          const newU = users.data.find(u => u.userType?.toLowerCase() === 'new')
+          const retU = users.data.find(u => u.userType?.toLowerCase() === 'returning')
+          traffic.newUsers = newU?.activeUsers ?? 0
+          traffic.returningUsers = retU?.activeUsers ?? 0
         }
       }
     } catch { /* */ }
@@ -350,9 +360,9 @@ async function runDailyBriefing(): Promise<void> {
     const { fetchEcommerceFunnel, fetchMovieRevenueTop, fetchTheaterRevenueTop, fetchUnmappedTheaterStats } = await import('@/lib/ga4-client')
     const [f, m, t, u] = await Promise.all([
       fetchEcommerceFunnel(7).catch(() => []),
-      fetchMovieRevenueTop(7, 3).catch(() => []),
-      fetchTheaterRevenueTop(7, 3).catch(() => []),
-      fetchUnmappedTheaterStats(7).catch(() => undefined),
+      fetchMovieRevenueTop(1, 10).catch(() => []),
+      fetchTheaterRevenueTop(1, 30).catch(() => []),
+      fetchUnmappedTheaterStats(1).catch(() => undefined),
     ])
     if (f.length > 0 && f.some(s => s.count > 0)) {
       funnel = f.map(s => ({ label: s.label, count: s.count, dropRate: s.dropRate }))

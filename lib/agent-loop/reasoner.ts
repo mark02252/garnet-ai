@@ -10,6 +10,7 @@ import { retrieveSimilarEpisodes } from '@/lib/memory/episodic-store'
 import { getKnowledgeForReasoner } from './knowledge-store'
 import { loadReasonerPrompt } from './prompt-manager'
 import type { WorldModel, GoalProgress, ReasonerOutput, ReasonerAction } from './types'
+import type { ToolHarness } from './tool-harness'
 
 /** Reasoner 시스템 프롬프트 — prompt-manager에서 동적 로드 (자동 최적화 대상) */
 function getSystemPrompt(): string {
@@ -172,6 +173,7 @@ async function getReflectionContext(): Promise<string> {
 export async function reason(
   worldModel: WorldModel,
   goals: GoalProgress[],
+  harness?: ToolHarness,
 ): Promise<ReasonerOutput> {
   const businessContext = getBusinessContextPrompt()
 
@@ -179,7 +181,7 @@ export async function reason(
   let subReasonerContext = ''
   try {
     const { runSubReasoners, buildSubReasonerContext } = await import('./sub-reasoners')
-    const results = await runSubReasoners(worldModel, goals)
+    const results = await runSubReasoners(worldModel, goals, harness)
     subReasonerContext = buildSubReasonerContext(results)
   } catch { /* non-critical — 폴백 모드 */ }
 

@@ -7,6 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { runLLM } from '@/lib/llm'
 import { loadBusinessContext, saveBusinessContext } from '@/lib/business-context'
 import type { Competitor } from '@/lib/business-context'
+import { getCompanyName, getCompanyDescription } from './snapshot-formatter'
 
 // ── Types ──
 
@@ -110,7 +111,7 @@ async function evaluateCandidate(
   domain: string,
   titles: string[],
 ): Promise<Competitor | null> {
-  const prompt = `다음 웹사이트가 MONOPLEX(프라이빗 시네마 대관, 아파트 시네마 구축, Cinema-as-a-Service)의 경쟁사인지 판단하세요.
+  const prompt = `다음 웹사이트가 ${getCompanyName()}(${getCompanyDescription()})의 경쟁사인지 판단하세요.
 
 도메인: ${domain}
 관련 기사 제목:

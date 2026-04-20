@@ -9,6 +9,7 @@ import { getBusinessContextPrompt } from '@/lib/business-context'
 import { retrieveSimilarEpisodes } from '@/lib/memory/episodic-store'
 import { getKnowledgeForReasoner } from './knowledge-store'
 import { loadReasonerPrompt } from './prompt-manager'
+import { formatSnapshotForPrompt, formatSnapshotForBriefing } from './snapshot-formatter'
 import type { WorldModel, GoalProgress, ReasonerOutput, ReasonerAction } from './types'
 import type { ToolHarness } from './tool-harness'
 
@@ -62,10 +63,7 @@ export function buildReasonerPrompt(
     ? `최근 제안된 액션 종류: ${[...new Set(recentActionKinds)].join(', ')} — 동일한 제안 반복 금지`
     : ''
 
-  const snapshotText = `GA4: 세션 ${worldModel.snapshot.ga4.sessions}, 이탈률 ${worldModel.snapshot.ga4.bounceRate}%, 전환율 ${worldModel.snapshot.ga4.conversionRate}%
-SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldModel.snapshot.sns.followerGrowth}
-경쟁사: 위협 수준 ${worldModel.snapshot.competitors.threatLevel}, 최근 ${worldModel.snapshot.competitors.recentMoves.length}건 변화
-캠페인: 활성 ${worldModel.snapshot.campaigns.active}건, 승인대기 ${worldModel.snapshot.campaigns.pendingApproval}건`
+  const snapshotText = formatSnapshotForPrompt(worldModel)
 
   return `${businessContext ? `## 사업 맥락\n${businessContext}\n\n` : ''}## 현재 상황 (World Model)
 ${snapshotText}
@@ -219,13 +217,10 @@ export async function reason(
     rolesSummary = getActiveRolesSummary()
   } catch { /* */ }
 
-  const snapshotText = `GA4: 세션 ${worldModel.snapshot.ga4.sessions}, 이탈률 ${worldModel.snapshot.ga4.bounceRate}%, 전환율 ${worldModel.snapshot.ga4.conversionRate}%
-SNS: 참여율 ${worldModel.snapshot.sns.engagement}%, 팔로워 변동 ${worldModel.snapshot.sns.followerGrowth}
-경쟁사: 위협 수준 ${worldModel.snapshot.competitors.threatLevel}, 최근 ${worldModel.snapshot.competitors.recentMoves.length}건 변화
-캠페인: 활성 ${worldModel.snapshot.campaigns.active}건, 승인대기 ${worldModel.snapshot.campaigns.pendingApproval}건`
+  const snapshotText = formatSnapshotForPrompt(worldModel)
 
   // 현재 상황을 요약한 쿼리 (의미 검색용)
-  const situationQuery = `세션 ${worldModel.snapshot.ga4.sessions}, 참여율 ${worldModel.snapshot.sns.engagement}%, 경쟁사 위협 ${worldModel.snapshot.competitors.threatLevel}, 트렌드: ${worldModel.trends.slice(0, 3).map(t => `${t.metric} ${t.direction}`).join(', ')}`
+  const situationQuery = formatSnapshotForBriefing(worldModel) + `, 트렌드: ${worldModel.trends.slice(0, 3).map(t => `${t.metric} ${t.direction}`).join(', ')}`
 
   // Semantic knowledge search for current situation
   let semanticContext = ''

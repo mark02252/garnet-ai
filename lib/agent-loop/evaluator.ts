@@ -5,6 +5,7 @@
 
 import { storeEpisode } from '@/lib/memory/episodic-store'
 import type { EpisodicEntry } from '@/lib/memory/episodic-store'
+import { getMetricValue } from './snapshot-formatter'
 import type { WorldModel, ReasonerOutput, CycleType } from './types'
 
 type ExecutionSummary = {
@@ -25,9 +26,9 @@ export function buildEpisode(
     input: JSON.stringify({
       cycleType,
       snapshot: {
-        ga4Sessions: worldModel.snapshot.ga4.sessions,
-        snsEngagement: worldModel.snapshot.sns.engagement,
-        competitorThreat: worldModel.snapshot.competitors.threatLevel,
+        ga4Sessions: getMetricValue(worldModel, 'sessions'),
+        snsEngagement: getMetricValue(worldModel, 'engagement'),
+        competitorThreat: getMetricValue(worldModel, 'threatLevel'),
       },
       situationSummary: decision.situationSummary,
       actionsDecided: decision.actions.length,

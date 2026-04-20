@@ -14,7 +14,7 @@ import type { ToolHarness } from './tool-harness';
 const GA4_QUERY_DECLARATION: ToolDeclaration = {
   name: 'ga4_query',
   description:
-    'Query MONOPLEX GA4 analytics data. Supports metrics: daily_traffic, channel_breakdown, page_performance, new_vs_returning, channel_trend, stickiness, engagement, device, geo, landing_pages, hourly_pattern, channel_conversions, ecommerce.',
+    'GA4 지표 조회. 세션, 전환율, 이탈률, 매출 등을 조회합니다. Supports metrics: daily_traffic, channel_breakdown, page_performance, new_vs_returning, channel_trend, stickiness, engagement, device, geo, landing_pages, hourly_pattern, channel_conversions, ecommerce.',
   parameters: {
     metric: {
       type: 'string',
@@ -56,7 +56,7 @@ const GA4_QUERY_DECLARATION: ToolDeclaration = {
 
 const GA4_FUNNEL_DECLARATION: ToolDeclaration = {
   name: 'ga4_funnel',
-  description: 'Fetch the MONOPLEX e-commerce purchase funnel with stage-by-stage drop-off rates.',
+  description: '구매 퍼널 이탈 분석. 단계별 이탈률을 조회합니다.',
   parameters: {
     days: {
       type: 'number',
@@ -69,7 +69,7 @@ const GA4_FUNNEL_DECLARATION: ToolDeclaration = {
 const THEATER_DETAIL_DECLARATION: ToolDeclaration = {
   name: 'theater_detail',
   description:
-    'Fetch revenue and performance data for a specific MONOPLEX theater branch, filtered by theater code or name.',
+    '특정 지점의 매출/구매 상세 데이터를 조회합니다. 지점 코드 또는 이름으로 필터링합니다.',
   parameters: {
     query: {
       type: 'string',
@@ -157,7 +157,7 @@ const WEB_SEARCH_DECLARATION: ToolDeclaration = {
     },
     brand: {
       type: 'string',
-      description: 'Brand name for context (e.g. "MONOPLEX").',
+      description: 'Brand name for context (optional).',
       required: false,
     },
     region: {

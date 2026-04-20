@@ -325,6 +325,73 @@ async function handleWebSearch(params: Record<string, unknown>): Promise<unknown
   }));
 }
 
+// ── Instagram Tools ────────────────────────────────────────────────────────
+
+const INSTAGRAM_POSTS_DECLARATION: ToolDeclaration = {
+  name: 'instagram_posts',
+  description: '최근 Instagram 게시물별 성과 조회. 저장수, 공유수, 도달, 참여율 등 개별 콘텐츠 성과를 확인합니다.',
+  parameters: {
+    limit: { type: 'number', description: '조회할 게시물 수 (기본 20, 최대 50)' },
+  },
+};
+
+const INSTAGRAM_ACCOUNT_DECLARATION: ToolDeclaration = {
+  name: 'instagram_account',
+  description: 'Instagram 계정 인사이트 조회. 팔로워, 도달, 노출, 참여, 프로필 조회수 등 계정 레벨 지표를 확인합니다.',
+  parameters: {},
+};
+
+const INSTAGRAM_DEMOGRAPHICS_DECLARATION: ToolDeclaration = {
+  name: 'instagram_demographics',
+  description: '팔로워 활동 시간대 분석. 요일/시간별 팔로워 온라인 패턴을 조회합니다.',
+  parameters: {},
+};
+
+async function handleInstagramPosts(params: Record<string, unknown>): Promise<unknown> {
+  const token = process.env.META_ACCESS_TOKEN;
+  const accountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+  if (!token || !accountId) return { error: 'Instagram 미설정 (META_ACCESS_TOKEN / INSTAGRAM_BUSINESS_ACCOUNT_ID)' };
+
+  const { fetchInstagramMediaInsights } = await import('@/lib/sns/instagram-api');
+  const limit = Math.min((params.limit as number) || 20, 50);
+  const posts = await fetchInstagramMediaInsights(token, accountId, limit);
+
+  return posts.map(p => ({
+    id: p.id,
+    type: p.media_type,
+    caption: p.caption?.slice(0, 80),
+    reach: p.reach,
+    impressions: p.impressions,
+    engagement: p.engagement,
+    saves: p.saved,
+    shares: p.shares,
+    likes: p.like_count,
+    comments: p.comments_count,
+    engagement_rate: p.engagement_rate,
+    date: p.timestamp?.split('T')[0],
+  }));
+}
+
+async function handleInstagramAccount(_params: Record<string, unknown>): Promise<unknown> {
+  const token = process.env.META_ACCESS_TOKEN;
+  const accountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+  if (!token || !accountId) return { error: 'Instagram 미설정' };
+
+  const { fetchInstagramAccountMetrics } = await import('@/lib/sns/instagram-api');
+  return await fetchInstagramAccountMetrics(token, accountId);
+}
+
+async function handleInstagramDemographics(_params: Record<string, unknown>): Promise<unknown> {
+  const token = process.env.META_ACCESS_TOKEN;
+  const accountId = process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID;
+  if (!token || !accountId) return { error: 'Instagram 미설정' };
+
+  const { fetchOnlineFollowers } = await import('@/lib/sns/instagram-api');
+  return await fetchOnlineFollowers(token, accountId);
+}
+
+// ── Ask Expert ────────────────────────────────────────────────────────────
+
 async function handleAskExpert(params: Record<string, unknown>): Promise<unknown> {
   const { askExpert } = await import('./a2a-protocol');
   return askExpert({
@@ -343,5 +410,8 @@ export function registerAllTools(harness: ToolHarness): void {
   harness.registerTool(KNOWLEDGE_SEARCH_DECLARATION, handleKnowledgeSearch);
   harness.registerTool(EPISODE_SEARCH_DECLARATION, handleEpisodeSearch);
   harness.registerTool(WEB_SEARCH_DECLARATION, handleWebSearch);
+  harness.registerTool(INSTAGRAM_POSTS_DECLARATION, handleInstagramPosts);
+  harness.registerTool(INSTAGRAM_ACCOUNT_DECLARATION, handleInstagramAccount);
+  harness.registerTool(INSTAGRAM_DEMOGRAPHICS_DECLARATION, handleInstagramDemographics);
   harness.registerTool(askExpertDecl, handleAskExpert);
 }

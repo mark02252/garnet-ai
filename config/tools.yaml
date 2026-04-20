@@ -4,12 +4,12 @@ tool_timeout: 5000
 
 sub_reasoners:
   analysis:
-    tools: [ga4_query, knowledge_search, episode_search, ask_expert]
+    tools: [ga4_query, instagram_account, knowledge_search, episode_search, ask_expert]
   content:
-    tools: [knowledge_search, web_search, episode_search, ask_expert]
+    tools: [instagram_posts, instagram_demographics, knowledge_search, web_search, episode_search, ask_expert]
   strategy:
-    tools: [ga4_query, knowledge_search, web_search, ask_expert]
+    tools: [ga4_query, instagram_account, knowledge_search, web_search, ask_expert]
   cro:
     tools: [ga4_funnel, theater_detail, knowledge_search, ask_expert]
   psychology:
-    tools: [knowledge_search, episode_search, web_search, ask_expert]
+    tools: [instagram_posts, knowledge_search, episode_search, web_search, ask_expert]

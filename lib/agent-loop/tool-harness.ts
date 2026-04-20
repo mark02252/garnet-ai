@@ -96,6 +96,9 @@ export class ToolHarness {
     ga4_query: createRateLimiter(10, 60_000),   // 10 calls / min
     ga4_funnel: createRateLimiter(10, 60_000),  // shared GA4 limit
     web_search: createRateLimiter(5, 60_000),   // 5 calls / min
+    instagram_posts: createRateLimiter(5, 60_000),         // Meta API 분당 5회
+    instagram_account: createRateLimiter(5, 60_000),
+    instagram_demographics: createRateLimiter(5, 60_000),
   };
 
   // Metrics accumulators

@@ -1109,6 +1109,11 @@ export async function runLLMWithTools(
       .filter(p => p.functionCall)
       .map(p => ({ tool: p.functionCall!.name, params: p.functionCall!.args }))
 
+    // Gemini가 빈 응답을 주면 에러 → 호출측 catch에서 1-pass 폴백
+    if (!textParts && toolCalls.length === 0) {
+      throw new ProviderError('gemini', 'UNKNOWN', 'Gemini function calling returned empty response')
+    }
+
     return { text: textParts, toolCalls }
   }
 

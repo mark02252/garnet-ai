@@ -315,12 +315,14 @@ async function handleEpisodeSearch(params: Record<string, unknown>): Promise<unk
 
 async function handleWebSearch(params: Record<string, unknown>): Promise<unknown> {
   const { runWebSearchWithRuntime } = await import('@/lib/search');
-  return runWebSearchWithRuntime(
-    params.topic as string,
-    params.brand as string | undefined,
-    params.region as string | undefined,
-    params.goal as string | undefined,
-  );
+  const query = (params.query || params.topic) as string;
+  const region = (params.region as string) || 'kr';
+  const hits = await runWebSearchWithRuntime(query, '', region, '');
+  return hits.slice(0, 5).map((h: { title?: string; snippet?: string; url?: string }) => ({
+    title: h.title,
+    snippet: h.snippet,
+    url: h.url,
+  }));
 }
 
 async function handleAskExpert(params: Record<string, unknown>): Promise<unknown> {

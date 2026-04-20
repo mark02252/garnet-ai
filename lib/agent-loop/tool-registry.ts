@@ -173,6 +173,15 @@ const WEB_SEARCH_DECLARATION: ToolDeclaration = {
   },
 };
 
+const askExpertDecl: ToolDeclaration = {
+  name: 'ask_expert',
+  description: '다른 전문가에게 질의. 분석 중 다른 관점이 필요할 때 사용합니다.',
+  parameters: {
+    expert: { type: 'string', description: '전문가 이름 (analysis, content, strategy, cro, psychology)', required: true },
+    question: { type: 'string', description: '질문 (한국어)', required: true },
+  },
+};
+
 export const ALL_DECLARATIONS: ToolDeclaration[] = [
   GA4_QUERY_DECLARATION,
   GA4_FUNNEL_DECLARATION,
@@ -180,6 +189,7 @@ export const ALL_DECLARATIONS: ToolDeclaration[] = [
   KNOWLEDGE_SEARCH_DECLARATION,
   EPISODE_SEARCH_DECLARATION,
   WEB_SEARCH_DECLARATION,
+  askExpertDecl,
 ];
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -313,6 +323,15 @@ async function handleWebSearch(params: Record<string, unknown>): Promise<unknown
   );
 }
 
+async function handleAskExpert(params: Record<string, unknown>): Promise<unknown> {
+  const { askExpert } = await import('./a2a-protocol');
+  return askExpert({
+    from: 'tool',
+    expert: params.expert as string,
+    question: params.question as string,
+  });
+}
+
 // ── Registration ───────────────────────────────────────────────────────────
 
 export function registerAllTools(harness: ToolHarness): void {
@@ -322,4 +341,5 @@ export function registerAllTools(harness: ToolHarness): void {
   harness.registerTool(KNOWLEDGE_SEARCH_DECLARATION, handleKnowledgeSearch);
   harness.registerTool(EPISODE_SEARCH_DECLARATION, handleEpisodeSearch);
   harness.registerTool(WEB_SEARCH_DECLARATION, handleWebSearch);
+  harness.registerTool(askExpertDecl, handleAskExpert);
 }

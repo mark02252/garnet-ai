@@ -11,6 +11,7 @@ import { suggestStrategy, type StrategyResult } from './strategy'
 import { suggestCROImprovements, type CROResult } from './cro'
 import { suggestPsychologyAngles, type PsychologyResult } from './psychology'
 import type { WorldModel, GoalProgress } from '../types'
+import type { ToolHarness } from '../tool-harness'
 
 const LATEST_FILE = path.join(process.cwd(), '.garnet-config', 'sub-reasoner-latest.json')
 
@@ -29,6 +30,7 @@ export type SubReasonerResults = {
 export async function runSubReasoners(
   worldModel: WorldModel,
   goals: GoalProgress[],
+  harness?: ToolHarness,
 ): Promise<SubReasonerResults> {
   // 각 Sub-Reasoner에 30초 타임아웃 — 느린 1명이 전체를 블록하지 않도록
   const withTimeout = <T>(promise: Promise<T>, ms = 30000): Promise<T> =>
@@ -38,11 +40,11 @@ export async function runSubReasoners(
     ])
 
   const [analysis, content, strategy, cro, psychology] = await Promise.allSettled([
-    withTimeout(analyzeCurrentData(worldModel, goals)),
-    withTimeout(suggestContent(worldModel)),
-    withTimeout(suggestStrategy(worldModel, goals)),
-    withTimeout(suggestCROImprovements(worldModel)),
-    withTimeout(suggestPsychologyAngles(worldModel)),
+    withTimeout(analyzeCurrentData(worldModel, goals, harness)),
+    withTimeout(suggestContent(worldModel, harness)),
+    withTimeout(suggestStrategy(worldModel, goals, harness)),
+    withTimeout(suggestCROImprovements(worldModel, harness)),
+    withTimeout(suggestPsychologyAngles(worldModel, harness)),
   ])
 
   const results = {

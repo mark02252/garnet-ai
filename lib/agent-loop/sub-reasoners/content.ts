@@ -45,6 +45,7 @@ JSON으로 출력:
       if (pass1.toolCalls.length === 0) {
         const parsed = parseResult(pass1.text)
         if (parsed.contentIdeas.length > 0) return parsed
+        throw new Error('pass1 empty')
       }
 
       // Execute tool calls

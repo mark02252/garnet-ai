@@ -46,6 +46,7 @@ JSON:
       if (pass1.toolCalls.length === 0) {
         const parsed = parseResult(pass1.text)
         if (parsed.insights.length > 0) return parsed
+        throw new Error('pass1 empty')
       }
 
       // Execute tool calls

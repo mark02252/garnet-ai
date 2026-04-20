@@ -59,7 +59,7 @@ JSON으로 출력:
       if (pass1.toolCalls.length === 0) {
         const parsed = parseResult(pass1.text)
         if (parsed.insights.length > 0) return parsed
-        // text가 비었거나 파싱 실패 → 1-pass 폴백
+        throw new Error('pass1 empty')
       }
 
       // Execute tool calls

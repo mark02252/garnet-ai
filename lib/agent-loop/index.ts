@@ -238,6 +238,15 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
     await notifyCycleResult(result)
     // Save tool harness metrics after cycle completes
     try { harness?.saveMetrics() } catch { /* non-critical */ }
+    // Sub-Reasoner 품질 평가 (routine-cycle, daily-briefing에서만)
+    if (cycleType === 'routine-cycle' || cycleType === 'daily-briefing') {
+      try {
+        const { getLatestSubReasonerResults } = await import('./sub-reasoners/index')
+        const { evaluateSubReasonerQuality } = await import('./sub-reasoner-evaluator')
+        const latest = getLatestSubReasonerResults()
+        if (latest) await evaluateSubReasonerQuality(cycleId, latest)
+      } catch { /* non-critical */ }
+    }
     return result
   } catch (err) {
     const result: CycleResult = {

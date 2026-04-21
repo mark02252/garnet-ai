@@ -3,6 +3,28 @@
 import { motion } from 'framer-motion';
 import { Rnd } from 'react-rnd';
 import { useCanvasStore, type CanvasPanel as CanvasPanelType } from '@/lib/canvas-store';
+
+/** LLM 출력의 LaTeX/특수문자를 사람이 읽을 수 있는 문자로 치환 */
+function cleanLLMOutput(text: string): string {
+  return text
+    .replace(/\$\\rightarrow\$/g, '→')
+    .replace(/\\rightarrow/g, '→')
+    .replace(/\$\\leftarrow\$/g, '←')
+    .replace(/\\leftarrow/g, '←')
+    .replace(/\$\\times\$/g, '×')
+    .replace(/\\times/g, '×')
+    .replace(/\$\\approx\$/g, '≈')
+    .replace(/\\approx/g, '≈')
+    .replace(/\$\\geq\$/g, '≥')
+    .replace(/\\geq/g, '≥')
+    .replace(/\$\\leq\$/g, '≤')
+    .replace(/\\leq/g, '≤')
+    .replace(/\$\\neq\$/g, '≠')
+    .replace(/\\neq/g, '≠')
+    .replace(/\$\\pm\$/g, '±')
+    .replace(/\\pm/g, '±')
+    .replace(/\$([^$]+)\$/g, '$1')  // 나머지 $...$ 래핑 제거
+}
 import { GA4SummaryPanel } from '@/components/panels/ga4-summary-panel';
 import { SeminarStatusPanel } from '@/components/panels/seminar-status-panel';
 import { IntelBriefPanel } from '@/components/panels/intel-brief-panel';
@@ -129,7 +151,7 @@ export function CanvasPanel({ panel }: { panel: CanvasPanelType }) {
                 </div>
               ) : (
                 <p style={{ fontSize: 13, color: 'var(--shell-text-secondary)', whiteSpace: 'pre-wrap' }}>
-                  {panel.data.markdown}
+                  {cleanLLMOutput(panel.data.markdown || '')}
                 </p>
               )
             ) : (

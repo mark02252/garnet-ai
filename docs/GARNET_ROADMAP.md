@@ -2,8 +2,8 @@
 
 > Personal AGI Agent System — 자율 학습 + 자기 개선 + 조직 확장
 
-**최종 업데이트:** 2026-04-20
-**현재 버전:** v0.8.0+
+**최종 업데이트:** 2026-04-21
+**현재 버전:** v0.8.1+
 **이전 로드맵:** `docs/archive/2026-03-GARNET_ROADMAP_v1.md`
 
 ---
@@ -56,14 +56,16 @@ Garnet은 마케팅 자동화 도구가 **아니다**.
 | 7 | Agentic Tool Harness | Tool Harness, runLLMWithTools, A2A Protocol, Domain Bootstrap | ✅ 구현 완료 |
 | 8 | WorldModel Portability | snapshot-formatter, MetricResolver, config 기반 프롬프트 | ✅ 구현 완료 |
 
-### 운영 실적 (4/8~4/20)
+### 운영 실적 (4/8~4/21)
 
 | 지표 | 수치 |
 |------|------|
-| 축적 지식 | 339+ 건 (25개 도메인) |
-| 에피소딕 메모리 | 814+ 건 |
+| 축적 지식 | 397건 (25개 도메인) |
+| 에피소딕 메모리 | 1,201건 |
+| 마케팅 인텔 | 124건 (Serper 웹/뉴스, 18개 워치 키워드) |
 | 등록 도구 | 10개 (GA4 3, Instagram 3, Knowledge 2, Web 1, A2A 1) |
 | 도메인 이식성 | config/ 교체만으로 완료 |
+| 백업/복원 | backup.sh + restore.sh (DB + env + config) |
 
 ---
 
@@ -190,32 +192,85 @@ Engine (도메인 무관) / Config (회사별 교체) / Knowledge (학습 데이
 
 ---
 
+## 최근 완료 (4/20~4/21)
+
+| 항목 | 내용 |
+|------|------|
+| 도구 호출 프롬프트 튜닝 | ✅ 5개 Sub-Reasoner에 도구 호출 유도 + 구체 예시 추가 |
+| Sub-Reasoner 파싱 안정성 | ✅ 빈 응답 시 1-pass 폴백 보장, Gemini empty response throw |
+| 마케팅 인텔 복구 | ✅ Scheduler 자동 시작 (instrumentation.ts), 워치 키워드 18개 세팅 |
+| 인텔 수집 품질 | ✅ 기간 필터 (7일), 쿼리 중복 스킵 (24시간), 제목 유사도 체크 (80%) |
+| LaTeX 깨짐 수정 | ✅ `$\rightarrow$` → `→` 치환 (canvas-panel.tsx) |
+| 백업/복원 스크립트 | ✅ backup.sh + restore.sh + JSON 백업/복원 |
+| Slack 브리핑 수정 | ✅ 신규/재방문, 지점 합산, 기간 통일, 전체 지점 |
+| Knowledge Store 중복 | ✅ 임베딩 기반 병합, cross_domain L3→L2 |
+
+---
+
 ## 향후 로드맵
 
-### 단기 (다음 작업)
+### Phase 9: 에이전트 품질 고도화 (단기)
+
+> "도구를 쓰게 하고, 결과를 보여주고, 더 똑똑하게"
+
+| 항목 | 설명 | 트리거 |
+|------|------|--------|
+| 도구 호출 실측 모니터링 | harness-metrics를 대시보드에 시각화 (호출 수, 캐시 히트율, 실패율) | 데이터 쌓이면 |
+| Gemini function calling 안정성 | 간헐적 빈 응답 패턴 분석 → 프롬프트 or 모델 조정 | 실패율 높으면 |
+| Sub-Reasoner 품질 평가 | 각 Sub-Reasoner의 인사이트 품질을 자동 채점 → 프롬프트 개선 피드백 | Phase 5 Self-Coding 연계 |
+| 마케팅 인텔 AI 분석 | 수집된 124건+ 인텔에 relevance/urgency 자동 태깅, 긴급 알림 | Scheduler 안정화 후 |
+| 마케팅 인텔 다이제스트 | 매일 7시 수집 인텔 AI 종합 → Slack 요약 발송 | 인텔 축적 후 |
+
+### Phase 10: MCP Hub 확장 (중기)
+
+> "외부 도구를 표준 인터페이스로 연결"
+
+| 항목 | 설명 | 트리거 |
+|------|------|--------|
+| Slack MCP 활성화 | Sub-Reasoner가 Slack 채널 데이터 직접 읽기 | 채널 데이터 분석 필요 시 |
+| Notion MCP 활성화 | 문서/위키 기반 분석, 미팅 노트 참조 | 문서 기반 의사결정 필요 시 |
+| Playwright MCP 활성화 | 경쟁사 웹사이트 자동 스크래핑 | 경쟁 모니터링 심화 시 |
+| MCP → Tool Harness 브릿지 | Hub 커넥션 활성화 시 자동으로 도구 등록 | MCP 도구 3개+ 활성화 시 |
+
+### Phase 11: 분석 인프라 확장 (중기)
+
+> "데이터소스 교체/추가에 코드 변경 없이 대응"
+
+| 항목 | 설명 | 트리거 |
+|------|------|--------|
+| MetricResolver 교체 | 분석 툴 변경 시 새 resolver 추가 | 회사 이동 / 툴 변경 시 |
+| WorldModel 타입 제네릭화 | ga4/sns 하드코딩 → `Record<string, MetricValue>` | 분석 툴이 GA4가 아닐 때 |
+| Scanner 플러그인화 | GA4 Scanner, Mixpanel Scanner 등 모듈 분리 | 새 데이터소스 추가 시 |
+| 수집기 API 키 관리 | Twitter/YouTube/Reddit 키 발급 가이드 + 자동 검증 | 인텔 채널 확대 시 |
+
+### Phase 12: 외부 연동 + 자율 조직 (장기)
+
+> "외부 에이전트와 통신하고, 조직을 스스로 개편"
+
+| 항목 | 설명 | 트리거 |
+|------|------|--------|
+| askExternal 구현 | 외부 에이전트(Salesforce AI, 광고 플랫폼) 실제 연동 | 연동 대상 생길 때 |
+| Google A2A v0.2 호환 | 표준 프로토콜 채택 | A2A 지원 서비스 증가 시 |
+| 에이전트 자율 분화 | 역량 성숙도에 따라 Sub-Reasoner가 독립 에이전트로 승격 | 지식 1000건+ |
+| 멀티 도메인 동시 운영 | 마케팅 + 전략 + 운영 동시 | 회사 규모 확대 시 |
+
+### 모델 업그레이드 (키 확보 시)
+
+| 모델 | 적용 위치 | 효과 |
+|------|----------|------|
+| Claude Sonnet 4.5 | Reasoner + Reflective Critic | 30h 자율 세션, 판단 품질 ↑ |
+| Claude Haiku 4.5 | Cross-pollinator, 경량 태스크 | 비용 절감, 속도 ↑ |
+| GPT-5.2 | Content Sub-Reasoner | 톤 매칭 |
+| Gemini 3 Pro | Strategy Sub-Reasoner | 멀티스텝 플래닝 |
+
+### 브랜드/비즈니스 확장
 
 | 항목 | 설명 |
 |------|------|
-| 도구 호출 프롬프트 튜닝 | LLM이 1-pass 선호 → 도구 호출 유도 강화 |
-| harness-metrics 대시보드 | 도구 호출 트렌드, 캐시 효율 시각화 |
-| Sub-Reasoner 간헐적 파싱 실패 | Gemini function calling 안정성 개선 |
-
-### 중기
-
-| 항목 | 설명 |
-|------|------|
-| Slack/Notion MCP 연동 | MCP Hub 28개 커넥션 중 필요한 것 활성화 |
-| 분석 툴 전환 | MetricResolver 교체 + WorldModel 타입 제네릭화 |
-| Scanner 플러그인화 | 데이터소스별 모듈 분리 |
-
-### 장기
-
-| 항목 | 설명 |
-|------|------|
-| 외부 A2A (askExternal) | 외부 에이전트 연동 — 대상 생길 때 |
-| Google A2A v0.2 호환 | 표준 프로토콜 채택 |
-| 모델 업그레이드 | Claude Sonnet 4.5 / Haiku 4.5 — Anthropic 키 확보 시 |
-| 자율 에이전트 조직 | 에이전트가 스스로 구조 개편, 외부 시스템 자율 연동 |
+| 브랜드 콜라보 자동 발굴 | 마케팅 인텔 + Knowledge Store 기반 협업 브랜드 추천 |
+| 콘텐츠 자동 발행 | Instagram Publisher 연동 → Sub-Reasoner 제안 → Governor 승인 → 자동 게시 |
+| CRM 데이터 연동 | 매출/고객/LTV 데이터를 Agent Loop에 주입 (앱 출시 후) |
+| 경쟁사 자동 모니터링 | Playwright + 인텔 수집 → 경쟁사 가격/프로모션 변동 실시간 알림 |
 
 ---
 
@@ -225,3 +280,5 @@ Engine (도메인 무관) / Config (회사별 교체) / Knowledge (학습 데이
 - 사용자 승인 게이트는 **항상** 유지
 - **범용 추론 + 도메인 지식 분리** — config 기반 이식성
 - 새 기능은 하드코딩 금지 — config/domain.yaml 기반으로 설계
+- 향후 작업은 **트리거 기반** — 필요한 시점에 착수, 미리 과잉 설계하지 않음
+- 백업/복원으로 **어디서든 재설치 가능** — 개인 자산으로서의 이식성

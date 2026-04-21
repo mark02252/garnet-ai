@@ -401,6 +401,58 @@ async function handleAskExpert(params: Record<string, unknown>): Promise<unknown
   });
 }
 
+// ── Competitor Crawling Tools ──────────────────────────────────────────────
+
+const COMPETITOR_EXTRACT_DECLARATION: ToolDeclaration = {
+  name: 'competitor_extract',
+  description: '경쟁사 웹사이트에서 구조화된 데이터를 추출합니다. 제목, 가격, 프로모션, 주요 링크, 텍스트를 파싱합니다.',
+  parameters: {
+    url: { type: 'string', description: '경쟁사 웹사이트 URL', required: true },
+  },
+};
+
+const COMPETITOR_DIFF_DECLARATION: ToolDeclaration = {
+  name: 'competitor_diff',
+  description: '경쟁사 웹사이트의 최근 변경사항을 감지합니다. 이전 스냅샷 대비 변화를 확인합니다.',
+  parameters: {
+    url: { type: 'string', description: '경쟁사 웹사이트 URL', required: true },
+  },
+};
+
+async function handleCompetitorExtract(params: Record<string, unknown>): Promise<unknown> {
+  const { extractPageData } = await import('@/lib/playwright-agent');
+  const url = params.url as string;
+  if (!url) return { error: 'URL이 필요합니다' };
+
+  try {
+    const data = await extractPageData(url);
+    return {
+      url,
+      title: data.title,
+      prices: data.prices,
+      promotions: data.promotions,
+      headings: data.headings?.slice(0, 10),
+      links: data.links?.slice(0, 10),
+      textPreview: data.text?.slice(0, 500),
+    };
+  } catch (err) {
+    return { error: `페이지 추출 실패: ${err instanceof Error ? err.message : err}` };
+  }
+}
+
+async function handleCompetitorDiff(params: Record<string, unknown>): Promise<unknown> {
+  const { diffSnapshots } = await import('@/lib/playwright-agent');
+  const url = params.url as string;
+  if (!url) return { error: 'URL이 필요합니다' };
+
+  try {
+    const diff = await diffSnapshots(url);
+    return diff;
+  } catch (err) {
+    return { error: `변경 감지 실패: ${err instanceof Error ? err.message : err}` };
+  }
+}
+
 // ── Registration ───────────────────────────────────────────────────────────
 
 export function registerAllTools(harness: ToolHarness): void {
@@ -413,5 +465,7 @@ export function registerAllTools(harness: ToolHarness): void {
   harness.registerTool(INSTAGRAM_POSTS_DECLARATION, handleInstagramPosts);
   harness.registerTool(INSTAGRAM_ACCOUNT_DECLARATION, handleInstagramAccount);
   harness.registerTool(INSTAGRAM_DEMOGRAPHICS_DECLARATION, handleInstagramDemographics);
+  harness.registerTool(COMPETITOR_EXTRACT_DECLARATION, handleCompetitorExtract);
+  harness.registerTool(COMPETITOR_DIFF_DECLARATION, handleCompetitorDiff);
   harness.registerTool(askExpertDecl, handleAskExpert);
 }

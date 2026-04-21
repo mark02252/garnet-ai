@@ -99,6 +99,8 @@ export class ToolHarness {
     instagram_posts: createRateLimiter(5, 60_000),         // Meta API 분당 5회
     instagram_account: createRateLimiter(5, 60_000),
     instagram_demographics: createRateLimiter(5, 60_000),
+    competitor_extract: createRateLimiter(3, 60_000),    // Playwright 분당 3회
+    competitor_diff: createRateLimiter(3, 60_000),
   };
 
   // Metrics accumulators

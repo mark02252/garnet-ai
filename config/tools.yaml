@@ -8,7 +8,7 @@ sub_reasoners:
   content:
     tools: [instagram_posts, instagram_demographics, knowledge_search, web_search, episode_search, ask_expert]
   strategy:
-    tools: [ga4_query, instagram_account, knowledge_search, web_search, ask_expert]
+    tools: [ga4_query, instagram_account, knowledge_search, web_search, competitor_extract, competitor_diff, ask_expert]
   cro:
     tools: [ga4_funnel, theater_detail, knowledge_search, ask_expert]
   psychology:

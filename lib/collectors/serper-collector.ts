@@ -28,7 +28,7 @@ export class SerperCollector implements ICollector {
     const response = await fetch('https://google.serper.dev/search', {
       method: 'POST',
       headers: { 'X-API-KEY': apiKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ q: query, num: 10, gl: 'kr', hl: 'ko' })
+      body: JSON.stringify({ q: query, num: 10, gl: 'kr', hl: 'ko', tbs: 'qdr:w1' })
     });
 
     if (response.status === 429) throw new CollectorError('RATE_LIMIT', 'Serper rate limit', this.platform);

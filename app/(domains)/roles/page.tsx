@@ -1,31 +1,7 @@
 import { PageTransition } from '@/components/page-transition'
-import * as fs from 'fs'
-import * as path from 'path'
+import { loadRoles } from '@/lib/agent-loop/role-manager'
 
 export const dynamic = 'force-dynamic'
-
-type GarnetRole = {
-  id: string
-  name: string
-  description: string
-  domains: string[]
-  active: boolean
-  activatedAt?: string
-}
-
-function loadRoles(): GarnetRole[] {
-  try {
-    const rolesPath = path.join(process.cwd(), '.garnet-config', 'roles.json')
-    if (fs.existsSync(rolesPath)) {
-      return JSON.parse(fs.readFileSync(rolesPath, 'utf-8'))
-    }
-  } catch { /* */ }
-  return [
-    { id: 'marketing_analyst', name: '마케팅 분석가', description: 'SNS/콘텐츠/캠페인 전략 분석 및 제안', domains: ['marketing', 'content_strategy'], active: true },
-    { id: 'competitive_intel', name: '경쟁 정보 분석가', description: '경쟁사 동향 모니터링 및 대응 전략', domains: ['competitive'], active: true },
-    { id: 'data_analyst', name: '데이터 분석가', description: 'GA4/SNS 데이터 해석 및 인사이트 도출', domains: ['marketing'], active: true },
-  ]
-}
 
 export default async function RolesPage() {
   const roles = loadRoles()

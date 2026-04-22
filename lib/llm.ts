@@ -36,7 +36,7 @@ class ProviderError extends Error {
 }
 
 const OPENAI_DEFAULT_MODEL = 'gpt-4.1-mini';
-const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash';
+const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 const OPENCLAW_DEFAULT_AGENT = 'main';
 const CLAUDE_DEFAULT_MODEL = 'claude-sonnet-4-5-20250514';

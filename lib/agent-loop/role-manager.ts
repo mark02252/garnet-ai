@@ -17,6 +17,8 @@ const DEFAULT_ROLES: GarnetRole[] = [
   { id: 'marketing_analyst', name: '마케팅 분석가', description: 'SNS/콘텐츠/캠페인 전략 분석 및 제안', domains: ['marketing', 'content_strategy'], active: true },
   { id: 'competitive_intel', name: '경쟁 정보 분석가', description: '경쟁사 동향 모니터링 및 대응 전략', domains: ['competitive'], active: true },
   { id: 'data_analyst', name: '데이터 분석가', description: 'GA4/SNS 데이터 해석 및 인사이트 도출', domains: ['marketing'], active: true },
+  { id: 'cro_expert', name: 'CRO 전문가', description: '전환율 최적화, 퍼널 병목 분석, 즉시 적용 가능한 개선안 도출', domains: ['marketing', 'operations'], active: true },
+  { id: 'psychology_expert', name: '마케팅 심리학자', description: '행동경제학 및 인지편향 기반 마케팅 전략 적용', domains: ['consumer', 'marketing'], active: true },
 ]
 
 export function loadRoles(): GarnetRole[] {

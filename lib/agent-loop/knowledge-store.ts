@@ -96,23 +96,57 @@ export async function addKnowledge(entry: NewKnowledge): Promise<string> {
   return created.id
 }
 
-/** 유사 지식 검색 (간단한 키워드 매칭) */
+/** 유사 지식 검색 (임베딩 기반 + 키워드 폴백, 전체 도메인 검색) */
 async function findSimilarKnowledge(domain: string, pattern: string) {
+  // 1) 임베딩 기반 검색 시도 (전체 도메인에서)
+  try {
+    const { getEmbedding, cosineSimilarity } = await import('./embeddings')
+    const queryEmb = await getEmbedding(pattern)
+    if (queryEmb) {
+      const candidates = await prisma.knowledgeEntry.findMany({
+        where: { embedding: { not: null } },
+        select: { id: true, domain: true, pattern: true, observation: true, observedCount: true, source: true, confidence: true, embedding: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 200,
+      })
+
+      let bestMatch: typeof candidates[0] | null = null
+      let bestSim = 0
+      for (const c of candidates) {
+        const emb = JSON.parse(c.embedding!) as number[]
+        const sim = cosineSimilarity(queryEmb, emb)
+        // 같은 도메인이면 threshold 낮게, 다른 도메인이면 높게
+        const threshold = c.domain === domain ? 0.75 : 0.85
+        if (sim >= threshold && sim > bestSim) {
+          bestSim = sim
+          bestMatch = c
+        }
+      }
+      if (bestMatch) return bestMatch
+    }
+  } catch { /* Ollama unavailable, fall through to keyword */ }
+
+  // 2) 키워드 폴백 (같은 도메인 + 관련 도메인)
   const keywords = pattern
     .replace(/[^가-힣a-zA-Z0-9\s]/g, '')
     .split(/\s+/)
     .filter(w => w.length > 1)
-    .slice(0, 3)
+    .slice(0, 5)
 
   if (keywords.length === 0) return null
 
+  // 같은 도메인 우선, cross_domain 포함 도메인도 검색
   const candidates = await prisma.knowledgeEntry.findMany({
-    where: { domain },
+    where: {
+      OR: [
+        { domain },
+        { domain: { contains: domain } }, // cross_domain 조합에서 원본 도메인 포함
+      ],
+    },
     orderBy: { updatedAt: 'desc' },
-    take: 50,
+    take: 100,
   })
 
-  // 키워드 오버랩으로 유사도 측정
   for (const c of candidates) {
     const matchCount = keywords.filter(k =>
       c.pattern.toLowerCase().includes(k.toLowerCase())
@@ -185,7 +219,7 @@ export async function pruneWeakKnowledge(): Promise<number> {
   return result.count
 }
 
-/** 의미 기반 지식 검색 (벡터 유사도) */
+/** 의미 기반 지식 검색 (LightRAG 패턴: 벡터 유사도 + 키워드 부스트 + 신뢰도/레벨 가중) */
 export async function searchKnowledgeSemantic(
   query: string,
   options?: {
@@ -207,13 +241,19 @@ export async function searchKnowledgeSemantic(
 > {
   const { getEmbedding, cosineSimilarity } = await import('./embeddings')
   const limit = options?.limit ?? 10
-  const minSim = options?.minSimilarity ?? 0.3
+  const minSim = options?.minSimilarity ?? 0.25  // LightRAG: 다중 신호로 보완하므로 임계값 낮춤
 
   const queryEmbedding = await getEmbedding(query)
   if (!queryEmbedding) {
-    // Fallback to keyword search if Ollama unavailable
     return fallbackKeywordSearch(query, options?.domain, limit)
   }
+
+  // 쿼리에서 키워드 추출 (LightRAG: low-level keywords)
+  const queryKeywords = query
+    .replace(/[^가-힣a-zA-Z0-9\s]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 1)
+    .map(w => w.toLowerCase())
 
   // Get all entries with embeddings
   const where: Record<string, unknown> = { embedding: { not: null } }
@@ -230,15 +270,38 @@ export async function searchKnowledgeSemantic(
       confidence: true,
       isAntiPattern: true,
       embedding: true,
+      observedCount: true,
     },
   })
 
-  // Calculate similarities
+  // 다중 신호 스코어링 (LightRAG 패턴)
   const scored = entries
     .map((e) => {
       const emb = JSON.parse(e.embedding!) as number[]
-      const similarity = cosineSimilarity(queryEmbedding, emb)
-      return { ...e, embedding: undefined, similarity }
+
+      // 신호 1: 벡터 유사도 (0~1)
+      const vectorSim = cosineSimilarity(queryEmbedding, emb)
+
+      // 신호 2: 키워드 오버랩 부스트 (0~0.2)
+      const text = `${e.pattern} ${e.observation}`.toLowerCase()
+      const keywordHits = queryKeywords.filter(k => text.includes(k)).length
+      const keywordBoost = queryKeywords.length > 0
+        ? (keywordHits / queryKeywords.length) * 0.2
+        : 0
+
+      // 신호 3: 지식 레벨 부스트 — L3(원칙) > L2(패턴) > L1(팩트)
+      const levelBoost = e.level === 3 ? 0.05 : e.level === 2 ? 0.02 : 0
+
+      // 신호 4: 신뢰도 부스트 (confidence 0.7+ → +0.03)
+      const confBoost = e.confidence >= 0.7 ? 0.03 : 0
+
+      // 신호 5: 관찰 빈도 부스트 (3회+ → +0.02)
+      const freqBoost = (e.observedCount ?? 0) >= 3 ? 0.02 : 0
+
+      // 복합 스코어
+      const similarity = vectorSim + keywordBoost + levelBoost + confBoost + freqBoost
+
+      return { ...e, embedding: undefined, observedCount: undefined, similarity }
     })
     .filter((e) => e.similarity >= minSim)
     .sort((a, b) => b.similarity - a.similarity)
@@ -310,12 +373,12 @@ export async function backfillEmbeddings(): Promise<{ total: number; embedded: n
 }
 
 /**
- * cycle_reflector가 3회 이상 관찰한 패턴을 Level 3(Principle)으로 승격
+ * 3회 이상 관찰한 패턴을 Level 3(Principle)으로 승격
+ * cycle_reflector + cross_domain 모두 대상
  */
 export async function promoteRepeatedLessons(): Promise<number> {
   const candidates = await prisma.knowledgeEntry.findMany({
     where: {
-      source: { contains: 'cycle_reflector' },
       level: 2,
       observedCount: { gte: 3 },
     },
@@ -330,4 +393,84 @@ export async function promoteRepeatedLessons(): Promise<number> {
     promoted++
   }
   return promoted
+}
+
+/**
+ * 기존 cross_domain L3 → L2 다운그레이드 + 중복 병합 (1회 실행용)
+ */
+export async function mergeAndDowngradeCrossDomain(): Promise<{
+  downgraded: number
+  merged: number
+  deleted: number
+}> {
+  const { getEmbedding, cosineSimilarity } = await import('./embeddings')
+
+  // 1) cross_domain L3 → L2 다운그레이드 (observedCount < 3인 것만)
+  const downgradeResult = await prisma.knowledgeEntry.updateMany({
+    where: {
+      source: { startsWith: 'cross_domain_' },
+      level: 3,
+      observedCount: { lt: 3 },
+    },
+    data: { level: 2 },
+  })
+
+  // 2) 중복 병합: cross_domain 엔트리 간 임베딩 유사도 0.85 이상이면 병합
+  const crossEntries = await prisma.knowledgeEntry.findMany({
+    where: { source: { startsWith: 'cross_domain_' } },
+    orderBy: { observedCount: 'desc' }, // 관찰 많은 것 우선
+  })
+
+  const embeddings = new Map<string, number[]>()
+  for (const entry of crossEntries) {
+    if (entry.embedding) {
+      embeddings.set(entry.id, JSON.parse(entry.embedding) as number[])
+    } else {
+      const emb = await getEmbedding(`${entry.pattern} ${entry.observation}`)
+      if (emb) {
+        embeddings.set(entry.id, emb)
+        await prisma.knowledgeEntry.update({
+          where: { id: entry.id },
+          data: { embedding: JSON.stringify(emb) },
+        })
+      }
+      await new Promise(r => setTimeout(r, 50))
+    }
+  }
+
+  const deletedIds = new Set<string>()
+  let merged = 0
+
+  for (let i = 0; i < crossEntries.length; i++) {
+    const a = crossEntries[i]
+    if (deletedIds.has(a.id)) continue
+    const embA = embeddings.get(a.id)
+    if (!embA) continue
+
+    for (let j = i + 1; j < crossEntries.length; j++) {
+      const b = crossEntries[j]
+      if (deletedIds.has(b.id)) continue
+      const embB = embeddings.get(b.id)
+      if (!embB) continue
+
+      const sim = cosineSimilarity(embA, embB)
+      if (sim >= 0.85) {
+        // b를 a에 병합
+        await prisma.knowledgeEntry.update({
+          where: { id: a.id },
+          data: {
+            observedCount: a.observedCount + b.observedCount,
+            confidence: Math.min(0.95, a.confidence + 0.05),
+            observation: `${a.observation}\n---\n[병합] ${b.observation}`,
+            source: a.source.includes(b.source) ? a.source : `${a.source}, ${b.source}`,
+          },
+        })
+        await prisma.knowledgeEntry.delete({ where: { id: b.id } })
+        deletedIds.add(b.id)
+        merged++
+      }
+    }
+  }
+
+  return { downgraded: downgradeResult.count, merged, deleted: deletedIds.size }
 }

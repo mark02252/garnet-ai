@@ -40,7 +40,7 @@ const GEMINI_DEFAULT_MODEL = 'gemini-2.5-flash-lite';
 const GROQ_DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 const OPENCLAW_DEFAULT_AGENT = 'main';
 const CLAUDE_DEFAULT_MODEL = 'claude-sonnet-4-5-20250514';
-const GEMMA4_DEFAULT_MODEL = 'gemma-4-31b-it';
+const GEMMA4_DEFAULT_MODEL = 'gemma4';
 const MAX_RAW_ERROR_LEN = 600;
 
 function hasValue(value?: string | null) {

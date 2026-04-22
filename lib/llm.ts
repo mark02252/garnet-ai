@@ -1090,7 +1090,7 @@ export async function runLLMWithTools(
       body: JSON.stringify({
         system_instruction: { parts: [{ text: system }] },
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        tools: [{ function_declarations: functionDeclarations }],
+        tools: [{ function_declarations: functionDeclarations }, { google_search: {} }],
         generationConfig: { temperature, maxOutputTokens: maxTokens },
       }),
     })

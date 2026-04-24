@@ -222,9 +222,9 @@ export async function slackDailyBriefing(params: {
   // 지점별 매출 TOP
   if (params.theaterRevenueTop && params.theaterRevenueTop.length > 0) {
     blocks.push({ type: 'divider' })
-    const top3 = params.theaterRevenueTop.slice(0, 3)
-    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: '*🏢 지점별 매출 TOP 3*' } })
-    const fields = top3.map((t, i) => {
+    const theaters = params.theaterRevenueTop
+    blocks.push({ type: 'section', text: { type: 'mrkdwn', text: `*🏢 지점별 매출 (${theaters.length}개 지점)*` } })
+    const fields = theaters.map((t, i) => {
       const label = t.theaterName || t.theaterCode
       return {
         type: 'mrkdwn',

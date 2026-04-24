@@ -63,7 +63,8 @@ _lookup.set('페틀라 시네마', '페를라 시네마')
  */
 export function mapTheaterCode(code: string | null | undefined): string {
   if (!code) return '(미분류)'
-  return _lookup.get(code) || code
+  const trimmed = code.trim()
+  return _lookup.get(trimmed) || _lookup.get(code) || trimmed
 }
 
 /**
@@ -71,8 +72,9 @@ export function mapTheaterCode(code: string | null | undefined): string {
  */
 export function formatTheaterLabel(code: string | null | undefined): string {
   if (!code) return '(미분류)'
-  const name = _lookup.get(code)
-  return name || `${code} (미등록)`
+  const trimmed = code.trim()
+  const name = _lookup.get(trimmed) || _lookup.get(code)
+  return name || `${trimmed} (미등록)`
 }
 
 /**

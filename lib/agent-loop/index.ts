@@ -622,7 +622,7 @@ export function startAgentLoop(): void {
   registerAgentLoopHandlers()
   paused = false
 
-  crons.push(new Cron('*/15 * * * *', () => { runCycle('urgency-check') }))
+  crons.push(new Cron('*/30 * * * *', () => { runCycle('urgency-check') }))
   crons.push(new Cron('0 * * * *', () => { runCycle('routine-cycle') }))
   crons.push(new Cron('0 7 * * *', () => { runDailyBriefing() }))
   crons.push(new Cron('0 18 * * *', () => { runEveningReport() }))

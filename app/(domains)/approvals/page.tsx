@@ -44,6 +44,8 @@ export default function ApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [deciding, setDeciding] = useState<string | null>(null);
   const [deferringId, setDeferringId] = useState<string | null>(null);
+  const [feedbackId, setFeedbackId] = useState<string | null>(null);
+  const [feedbackText, setFeedbackText] = useState('');
 
   const fetchItems = useCallback(async () => {
     try {
@@ -62,14 +64,14 @@ export default function ApprovalsPage() {
     return () => clearInterval(timer);
   }, [fetchItems]);
 
-  async function handleDecide(id: string, decision: 'APPROVED' | 'REJECTED' | 'DEFERRED', reason?: string) {
+  async function handleDecide(id: string, decision: 'APPROVED' | 'REJECTED' | 'DEFERRED' | 'NOTED' | 'PASSED', reason?: string, feedback?: string) {
     setDeciding(id);
     setItems((prev) => prev.filter((item) => item.id !== id));
     try {
       const res = await fetch(`/api/governor/${id}/decide`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ decision, reason }),
+        body: JSON.stringify({ decision, reason, feedbackText: feedback || undefined }),
       });
       if (!res.ok) void fetchItems();
     } catch {
@@ -77,6 +79,8 @@ export default function ApprovalsPage() {
     } finally {
       setDeciding(null);
       setDeferringId(null);
+      setFeedbackId(null);
+      setFeedbackText('');
     }
   }
 
@@ -86,7 +90,7 @@ export default function ApprovalsPage() {
         <p className="text-[9px] font-semibold uppercase tracking-[2px] text-[var(--text-muted)]">Governor</p>
         <h1 className="mt-1 text-xl font-semibold text-[var(--text-strong)]">승인 인박스</h1>
         <p className="mt-1 text-sm text-[var(--text-muted)]">
-          에이전트가 요청한 액션을 검토하고 승인, 보류 또는 거절합니다.
+          에이전트의 인사이트와 제안을 검토합니다. 참고하거나 패스하면 가넷이 방향을 학습합니다.
         </p>
       </div>
 
@@ -163,6 +167,34 @@ export default function ApprovalsPage() {
                         className="mt-2 text-[10px] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition"
                       >취소</button>
                     </div>
+                  ) : feedbackId === item.id ? (
+                    <div className="mt-3 rounded-lg border border-zinc-700 bg-zinc-900/50 p-3">
+                      <p className="text-[11px] text-zinc-400 mb-2">피드백을 남겨주세요 (선택사항):</p>
+                      <textarea
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        placeholder="예: 고객사 계약 이슈로 현재 불가, B2B보다 B2C에 집중 중..."
+                        className="w-full rounded-md border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs text-zinc-200 placeholder:text-zinc-600 resize-none"
+                        rows={2}
+                      />
+                      <div className="mt-2 flex gap-2 justify-end">
+                        <button
+                          onClick={() => { setFeedbackId(null); setFeedbackText(''); }}
+                          className="text-[10px] text-zinc-500 hover:text-zinc-300 transition">취소</button>
+                        <button
+                          onClick={() => handleDecide(item.id, 'PASSED', undefined, feedbackText)}
+                          disabled={deciding !== null}
+                          className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 disabled:opacity-50 transition">
+                          패스
+                        </button>
+                        <button
+                          onClick={() => handleDecide(item.id, 'NOTED', undefined, feedbackText)}
+                          disabled={deciding !== null}
+                          className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 transition">
+                          {deciding === item.id ? '처리 중…' : '👍 참고'}
+                        </button>
+                      </div>
+                    </div>
                   ) : (
                     <div className="mt-3 flex gap-2 justify-end">
                       <button
@@ -178,10 +210,16 @@ export default function ApprovalsPage() {
                         보류
                       </button>
                       <button
-                        onClick={() => handleDecide(item.id, 'APPROVED')}
+                        onClick={() => setFeedbackId(item.id)}
                         disabled={deciding !== null}
-                        className="rounded-md bg-[#C93545] px-3 py-1.5 text-xs font-semibold text-[#ffffff] hover:bg-[#B02D3C] disabled:opacity-50 transition">
-                        {deciding === item.id ? '처리 중…' : '승인'}
+                        className="rounded-md border border-zinc-600 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 disabled:opacity-50 transition">
+                        ❌ 패스
+                      </button>
+                      <button
+                        onClick={() => handleDecide(item.id, 'NOTED')}
+                        disabled={deciding !== null}
+                        className="rounded-md bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 transition">
+                        {deciding === item.id ? '처리 중…' : '👍 참고'}
                       </button>
                     </div>
                   )}

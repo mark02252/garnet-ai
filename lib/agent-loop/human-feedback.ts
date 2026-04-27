@@ -138,6 +138,82 @@ export async function onActionRejected(params: {
   })
 }
 
+// ── 어드바이저 모드: 참고 ──
+
+/** 인사이트를 참고했을 때 — 방향이 맞다는 긍정 신호 */
+export async function onInsightNoted(params: {
+  actionKind: string
+  title: string
+  rationale: string
+  feedbackText: string
+}): Promise<void> {
+  // 관련 지식 confidence 소폭 상승
+  const entries = await prisma.knowledgeEntry.findMany({
+    where: {
+      isAntiPattern: false,
+      OR: [
+        { pattern: { contains: params.actionKind } },
+        { pattern: { contains: params.title.slice(0, 20) } },
+      ],
+    },
+    take: 3,
+  })
+
+  for (const entry of entries) {
+    await prisma.knowledgeEntry.update({
+      where: { id: entry.id },
+      data: { confidence: Math.min(0.95, entry.confidence + 0.03) },
+    }).catch(() => {})
+  }
+
+  // "이 방향의 인사이트가 참고됨" 학습
+  const observation = params.feedbackText
+    ? `참고됨 — 사용자 피드백: "${params.feedbackText}"`
+    : `참고됨 — 이 방향의 인사이트가 유용했음`
+
+  await addKnowledge({
+    domain: inferDomain(params.actionKind),
+    level: 1,
+    pattern: `${params.actionKind}: ${params.title.slice(0, 60)}`,
+    observation,
+    source: 'human_feedback_noted',
+  })
+}
+
+// ── 어드바이저 모드: 패스 ──
+
+/** 인사이트를 패스했을 때 — 방향이 안 맞거나 상황이 안 됨 (anti-pattern은 아님) */
+export async function onInsightPassed(params: {
+  actionKind: string
+  title: string
+  rationale: string
+  feedbackText: string
+}): Promise<void> {
+  const observation = params.feedbackText
+    ? `패스됨 — 사용자 사유: "${params.feedbackText}". 상황 변화 시 재제안 가능.`
+    : `패스됨 — 현재 상황에서는 관련 없음. 상황 변화 시 재제안 가능.`
+
+  await addKnowledge({
+    domain: inferDomain(params.actionKind),
+    level: 2,
+    pattern: `${params.actionKind}: ${params.title.slice(0, 60)}`,
+    observation,
+    source: 'human_feedback_passed',
+    isAntiPattern: false, // 패스 ≠ 거절. 방향이 틀린 게 아니라 상황이 안 되는 것
+  })
+
+  // 사유 텍스트가 있으면 컨텍스트 학습
+  if (params.feedbackText) {
+    await addKnowledge({
+      domain: 'operations',
+      level: 2,
+      pattern: `패스 사유: ${params.feedbackText.slice(0, 60)}`,
+      observation: `"${params.title.slice(0, 40)}" 제안이 패스됨. 사유: ${params.feedbackText}. 유사한 제약이 있는 제안 시 참고.`,
+      source: 'human_feedback_context',
+    })
+  }
+}
+
 // ── 유틸 ──
 
 function inferDomain(actionKind: string): string {

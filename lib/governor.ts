@@ -9,6 +9,8 @@ export type GovernorStatus =
   | 'PENDING_APPROVAL'
   | 'EXECUTED'
   | 'REJECTED'
+  | 'NOTED'      // 어드바이저 모드: 참고함 (실행 추적 안 함)
+  | 'PASSED'     // 어드바이저 모드: 패스 (이 방향 아님)
   | 'FAILED';
 
 export type GovernorAction = {
@@ -195,7 +197,8 @@ export async function markRejected(id: string): Promise<void> {
 
 export async function decideAction(
   id: string,
-  decision: 'APPROVED' | 'REJECTED'
+  decision: 'APPROVED' | 'REJECTED' | 'NOTED' | 'PASSED',
+  feedbackText?: string
 ): Promise<void> {
   const action = await getById(id);
   if (!action) throw new Error(`GovernorAction not found: ${id}`);
@@ -203,9 +206,44 @@ export async function decideAction(
     throw new Error(`Action ${id} is already in terminal status: ${action.status}`);
   }
 
+  // 어드바이저 모드: 참고함 (실행 없이 방향 학습)
+  if (decision === 'NOTED') {
+    await updateStatus(id, { status: 'NOTED', approvedBy: 'user' });
+    try {
+      const { onInsightNoted } = await import('@/lib/agent-loop/human-feedback');
+      const meta = typeof action.payload === 'object' && action.payload !== null
+        ? (action.payload as Record<string, unknown>)._agentLoop as Record<string, string> | undefined
+        : undefined;
+      await onInsightNoted({
+        actionKind: action.kind,
+        title: meta?.title || action.kind,
+        rationale: meta?.rationale || '',
+        feedbackText: feedbackText || '',
+      });
+    } catch { /* non-critical */ }
+    return;
+  }
+
+  // 어드바이저 모드: 패스 (이 방향 아님, anti-pattern은 아님)
+  if (decision === 'PASSED') {
+    await updateStatus(id, { status: 'PASSED', approvedBy: 'user' });
+    try {
+      const { onInsightPassed } = await import('@/lib/agent-loop/human-feedback');
+      const meta = typeof action.payload === 'object' && action.payload !== null
+        ? (action.payload as Record<string, unknown>)._agentLoop as Record<string, string> | undefined
+        : undefined;
+      await onInsightPassed({
+        actionKind: action.kind,
+        title: meta?.title || action.kind,
+        rationale: meta?.rationale || '',
+        feedbackText: feedbackText || '',
+      });
+    } catch { /* non-critical */ }
+    return;
+  }
+
   if (decision === 'REJECTED') {
     await markRejected(id);
-    // Agent Loop Human Feedback 학습
     try {
       const { onActionRejected } = await import('@/lib/agent-loop/human-feedback');
       const meta = typeof action.payload === 'object' && action.payload !== null

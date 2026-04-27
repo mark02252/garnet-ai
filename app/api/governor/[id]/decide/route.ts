@@ -3,8 +3,9 @@ import { z } from 'zod';
 import { decideAction, markRejected, getById } from '@/lib/governor';
 
 const decideSchema = z.object({
-  decision: z.enum(['APPROVED', 'REJECTED', 'DEFERRED']),
+  decision: z.enum(['APPROVED', 'REJECTED', 'DEFERRED', 'NOTED', 'PASSED']),
   reason: z.string().optional(),
+  feedbackText: z.string().optional(),
 });
 
 export async function POST(
@@ -39,7 +40,7 @@ export async function POST(
       return NextResponse.json({ ok: true, status: 'deferred' });
     }
 
-    await decideAction(id, body.decision);
+    await decideAction(id, body.decision, body.feedbackText);
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : '처리 실패';

@@ -1,37 +1,31 @@
-name: "MONOPLEX"
-industry: "entertainment/private-cinema"
-kpis: [매출, 전환율, 재방문율, 좌석점유율, ARPU]
+name: "Example Company"
+industry: "your-industry"
+kpis: [revenue, conversion_rate, retention_rate, arpu]
 data_sources: [ga4, instagram]
 sub_reasoners: [analysis, content, strategy, cro, psychology]
 custom_dimensions:
-  theater_code: "지점 코드"
-  movie_id: "영화 ID"
+  location_code: "Location code"
+  item_id: "Product/content ID"
 
-company_name: "MONOPLEX"
-company_description: "프라이빗 시네마 대관, 아파트 시네마 구축, Cinema-as-a-Service"
+company_name: "Example Company"
+company_description: "Describe your business in one line"
 
 metrics_display:
   - key: sessions
-    label: "세션"
+    label: "Sessions"
   - key: bounceRate
-    label: "이탈률"
+    label: "Bounce Rate"
     unit: "%"
   - key: conversionRate
-    label: "전환율"
+    label: "Conversion Rate"
     unit: "%"
   - key: engagement
-    label: "SNS 참여율"
+    label: "SNS Engagement"
     unit: "%"
   - key: followerGrowth
-    label: "팔로워 변동"
+    label: "Follower Growth"
   - key: threatLevel
-    label: "경쟁사 위협"
-  - key: recentMoves
-    label: "경쟁사 변화"
-    unit: "건"
+    label: "Competitor Threat"
   - key: activeCampaigns
-    label: "활성 캠페인"
-    unit: "건"
-  - key: pendingApproval
-    label: "승인대기"
-    unit: "건"
+    label: "Active Campaigns"
+    unit: ""

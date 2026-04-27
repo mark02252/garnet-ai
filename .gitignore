@@ -18,6 +18,11 @@ dist-electron
 # Backups (API 키 + DB 데이터 포함 — 절대 커밋 금지)
 backups/
 
+# Local config (실제 회사 데이터 — GitHub에 올리지 않음)
+config/company.local.md
+config/domain.local.yaml
+lib/theater-mapping.local.ts
+
 # Database files
 *.db
 *.db-journal

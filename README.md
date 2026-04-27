@@ -176,8 +176,16 @@ If you're a marketer who wants to build your own AI advisor, you can. [Start her
 
 MIT
 
+## Author
+
+**Jung Jaeho** — Solo marketer who built this with Claude Code.
+
+- [LinkedIn](https://www.linkedin.com/in/jung-jaeho-9a72a3325)
+- [Portfolio](https://mark02252.github.io)
+
+Questions, feedback, or collaboration? Open an [Issue](https://github.com/mark02252/garnet-ai/issues) or reach out on LinkedIn.
+
 ## Links
 
 - [Roadmap](docs/GARNET_ROADMAP.md)
 - [Agent Workflows](docs/AGENT_WORKFLOWS.md)
-- [Portfolio](https://mark02252.github.io)

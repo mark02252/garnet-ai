@@ -52,6 +52,28 @@ export async function evolveReasonerPrompt(): Promise<EvolutionResult> {
     ? lessons.map(l => `- [${l.domain}] ${l.pattern}: ${l.observation.split('\n')[0]}`).join('\n')
     : '축적된 교훈 없음'
 
+  // Sub-Reasoner 품질 점수 (자동 평가 결과)
+  let qualityText = ''
+  try {
+    const { getQualityTrend, getWeakSubReasoners } = await import('./sub-reasoner-evaluator')
+    const trend = getQualityTrend(10)
+    const weak = getWeakSubReasoners(6)
+
+    if (trend) {
+      qualityText = '\n### Sub-Reasoner 품질 점수 (최근 10사이클)\n'
+      for (const [name, info] of Object.entries(trend)) {
+        qualityText += `- ${name}: ${info.avg}/10 (${info.trend === 'up' ? '↑ 상승' : info.trend === 'down' ? '↓ 하락' : '→ 유지'})\n`
+      }
+    }
+
+    if (weak.length > 0) {
+      qualityText += '\n### 개선 필요 Sub-Reasoner\n'
+      for (const w of weak) {
+        qualityText += `- ⚠️ ${w.name}: 평균 ${w.avgScore}/10 — 약점: ${w.weakArea === 'specificity' ? '구체성 부족' : w.weakArea === 'evidence' ? '근거 부족' : '실행 가능성 부족'}\n`
+      }
+    }
+  } catch { /* sub-reasoner-evaluator not available */ }
+
   // 3. 현재 프롬프트
   const currentPrompt = loadReasonerPrompt()
 
@@ -69,13 +91,15 @@ ${currentPrompt}
 
 ### 축적된 교훈
 ${lessonsText}
-
+${qualityText}
 ### 요청
 위 프롬프트를 개선하세요. 개선 방향:
 1. 축적된 교훈을 프롬프트 규칙에 반영
 2. 에러를 줄이는 방향으로 지시를 명확히
 3. 불필요한 규칙 제거, 효과적인 규칙 강화
 4. 출력 형식은 변경하지 마세요 (JSON 구조 유지 필수)
+5. Sub-Reasoner 품질 점수가 낮은 전문가의 프롬프트 개선에 집중
+6. 약점(구체성/근거/실행가능성)을 보강하는 지시를 추가
 
 JSON으로 출력:
 {"improved":true/false,"reason":"개선 이유 또는 불필요한 이유","newPrompt":"개선된 전체 프롬프트 (improved=true일 때만)"}`

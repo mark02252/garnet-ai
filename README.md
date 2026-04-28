@@ -1,12 +1,38 @@
 # Garnet
 
-**Your autonomous marketing advisor that learns your business.**
+### A marketer with zero coding experience built a team of 5 AI specialists that run 24/7.
 
-Garnet is an open-source AI agent system that runs 24/7, analyzes your marketing data, monitors competitors, and advises you with insights that get smarter every day.
+They analyze data, monitor competitors, find problems you'd miss, and get smarter every day — all built with Claude Code.
 
-Built by a solo marketer with no coding experience, using Claude Code.
+> **Every morning at 7am, this lands in Slack:**
+>
+> Revenue. Conversion funnels. Competitor changes. Per-location anomalies.
+>
+> Not a dashboard you check. A briefing that comes to you.
 
-> [한국어 README](README.ko.md) · [Roadmap](docs/GARNET_ROADMAP.md)
+[![GitHub stars](https://img.shields.io/github/stars/mark02252/garnet-ai?style=social)](https://github.com/mark02252/garnet-ai)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/mark02252/garnet-ai)](https://github.com/mark02252/garnet-ai/releases)
+
+[한국어 README](README.ko.md) · [Roadmap](docs/GARNET_ROADMAP.md)
+
+---
+
+## The 5 AI Specialists
+
+| | Specialist | What They Do |
+|---|---|---|
+| 📊 | **Data Analyst** | Catches anomalies across all locations — "This branch dropped 40% yesterday" |
+| 🎬 | **Content Strategist** | Proposes content ideas backed by engagement data |
+| 💰 | **CRO Expert** | Finds conversion bottlenecks — "79% drop-off at seat selection" |
+| 🧠 | **Marketing Psychologist** | Applies behavioral science — "Choice overload is causing abandonment" |
+| 🧭 | **Strategy Lead** | Market positioning — "B2B workshop season, time to pivot focus" |
+
+They talk to each other. CRO asks Psychology: *"Why are users dropping off here?"*
+
+They call tools on their own. If they need more data, they query GA4, crawl competitor sites, or search the knowledge base — without being told.
+
+---
 
 ## Screenshots
 
@@ -18,9 +44,11 @@ Built by a solo marketer with no coding experience, using Claude Code.
 |:---:|:---:|
 | ![Roles](docs/screenshots/02-evolution.png) | ![Analytics](docs/screenshots/04-analytics.png) |
 
+---
+
 ## Why Garnet?
 
-**Most AI marketing tools wait for your commands. Garnet doesn't.**
+**Most AI tools wait for commands. Garnet doesn't.**
 
 - **Runs 24/7** — 5 AI specialists analyze your data every cycle, automatically
 - **Learns your judgment** — Give feedback (👍 Noted / ❌ Pass), Garnet learns what matters to you

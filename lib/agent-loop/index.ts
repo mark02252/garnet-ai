@@ -455,7 +455,7 @@ async function runEveningReport(): Promise<void> {
 
     // 오늘 자동실행된 것
     const executed = await prisma.$queryRawUnsafe<Array<{ kind: string; payload: string }>>(
-      `SELECT kind, payload FROM "GovernorAction" WHERE status = 'EXECUTED' AND "createdAt" >= $1 AND "deletedAt" IS NULL ORDER BY "createdAt" DESC LIMIT 10`,
+      `SELECT kind, payload FROM "GovernorAction" WHERE status = 'EXECUTED' AND "createdAt" >= $1::timestamptz AND "deletedAt" IS NULL ORDER BY "createdAt" DESC LIMIT 10`,
       oneDayAgo.toISOString(),
     ).catch(() => [])
 

@@ -92,6 +92,22 @@ Garnet doesn't tell you what to do. It tells you what's happening and suggests w
 - **❌ Pass** + text — "Not now, focusing on B2B" → Garnet learns your priorities
 - **No execution tracking** — Garnet advises, you decide and execute
 
+### Runs on Your Machine
+```
+No cloud subscription. No monthly fees. Your data stays on your machine.
+
+Garnet runs locally on:
+  Mac Mini (recommended) — always-on, low power, runs 24/7 quietly
+  MacBook — works fine, just needs to be running
+  Any machine with Node.js 18+ — Linux, Windows (WSL)
+
+What you need:
+  Free Gemini API key (ai.google.dev)
+  GA4 service account (if you want analytics)
+  Slack webhook (if you want morning briefings)
+  That's it. No paid subscriptions.
+```
+
 ### Domain Portability
 ```
 Engine (domain-agnostic) → never changes

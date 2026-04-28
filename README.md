@@ -122,32 +122,72 @@ Every morning at 7am:
 - Per-location revenue breakdown
 - AI-generated insights and recommendations
 
-## Quick Start
+## Apply to Your Company in 5 Minutes
+
+### Step 1: Describe your business
+
+Edit `config/company.md`:
+
+```markdown
+---
+name: "Your Company"
+industry: "ecommerce"
+---
+
+# Business Context
+
+We sell handmade candles online.
+Main channels: Instagram + Google Ads.
+KPIs: revenue, conversion rate, CAC, retention.
+Current challenge: conversion rate stuck at 2%.
+```
+
+That's it. Write in plain language. Garnet reads this and configures itself.
+
+### Step 2: Connect your data
+
+Add to `.env`:
+```
+GEMINI_API_KEY=your_key          # Free at ai.google.dev
+GA4_PROPERTY_ID=123456789        # Your GA4 property
+GA4_CLIENT_EMAIL=...             # GA4 service account
+GA4_PRIVATE_KEY=...              # GA4 service account key
+SLACK_WEBHOOK_URL=...            # For daily briefings
+```
+
+No GA4? Garnet still works — it just won't have analytics data. It can still monitor competitors and provide strategic insights.
+
+### Step 3: Start
 
 ```bash
-# Clone
 git clone https://github.com/mark02252/garnet-ai.git
 cd garnet-ai
-
-# Install
 npm install
-
-# Configure
-cp config/company.md.example config/company.md
-# Edit company.md with your business context
-
-# Set environment variables
-cp .env.example .env
-# Add: GEMINI_API_KEY, GA4 credentials, SLACK_WEBHOOK_URL
-
-# Generate Prisma client
 npx prisma db push
-
-# Start (Agent Loop + Scheduler auto-start)
 npm run dev
 ```
 
 First Slack briefing arrives at 7am next morning.
+
+### What happens next
+
+```
+Day 1:    Garnet starts collecting data, learning your business
+Day 3:    Insights start getting specific to your situation
+Week 2:   Knowledge store has 50+ learned patterns
+Month 1:  Garnet knows your priorities, gives relevant advice
+Month 3:  400+ insights, tailored to how you think
+```
+
+### Works for any business
+
+```
+SaaS:        Track MRR, churn, trial conversion
+E-commerce:  Track revenue, cart abandonment, channel ROI
+Hospitality: Track bookings, per-location performance
+Agency:      Track client campaigns, deliverables
+Any:         If you have GA4, Garnet can analyze it
+```
 
 ## Architecture
 

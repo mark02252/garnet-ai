@@ -857,6 +857,27 @@ model PendingOutcome {
   @@index([actionKind])
 }
 
+// ── Auto-Learner (Prediction Verification) ──
+
+model PendingPrediction {
+  id                 String    @id @default(cuid())
+  cycleId            String
+  domain             String
+  prediction         String    // 검증할 예측 텍스트
+  metric             String    // 측정 지표
+  expectedDirection  String    // up | down | stable
+  expectedThreshold  Float?    // 수치 임계값 (선택)
+  verifyAfterHours   Int       @default(72)
+  insightTitle       String?   // 원본 인사이트 제목
+  status             String    @default("pending") // pending | verified_correct | verified_incorrect | expired
+  verificationResult String?   // JSON
+  verifiedAt         DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@index([status, createdAt])
+  @@index([domain])
+}
+
 // ── Causal Reasoning (Phase 3) ──
 
 model CausalLink {

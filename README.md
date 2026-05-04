@@ -235,6 +235,24 @@ Any:         If you have GA4, Garnet can analyze it
 | 7 | Agentic Tool Harness | Active tool calling, A2A cross-queries, domain portability |
 | 8 | WorldModel Portability | Config-driven prompts, company.md bootstrap |
 
+### Self-Learning with Bounded Confidence
+
+Garnet automatically verifies its own insights against real data — no human labeling required.
+
+```
+Every cycle:
+  1. Garnet generates insights with testable predictions
+  2. After 24-168 hours, compares predictions against actual data
+  3. Correct → confidence +0.08 (max 0.95)
+     Wrong  → confidence -0.08 (min 0.10)
+  4. Knowledge Store evolves without human intervention
+
+Safe domains (auto-learn):   analytics, competitive, retention, marketing...
+Manual domains (human only):  pricing, finance, paid advertising
+```
+
+No runaway learning — confidence moves ±0.08 per verification, capped at [0.10, 0.95]. The system learns what works, forgets what doesn't, and never touches pricing or budget decisions without you.
+
 ## Tech Stack
 
 - **Runtime:** Next.js (App Router, TypeScript)

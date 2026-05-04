@@ -216,6 +216,29 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
       } catch { /* non-critical */ }
     }
 
+    // 7.4 Auto-Learner — 예측 등록 + 검증/학습
+    if (cycleType === 'routine-cycle') {
+      try {
+        const { extractAndRegisterPredictions, verifyAndLearn } = await import('./auto-learner')
+
+        // 이번 사이클 인사이트에서 검증 가능한 예측 추출
+        if (decision.actions.length > 0) {
+          await extractAndRegisterPredictions({
+            cycleId,
+            insights: decision.actions.map(a => ({
+              domain: inferDomainFromKind(a.kind),
+              title: a.title,
+              description: a.rationale || '',
+              actionKind: a.kind,
+            })),
+          })
+        }
+
+        // 이전 예측 중 검증 시점이 된 것 자동 학습
+        await verifyAndLearn()
+      } catch { /* non-critical */ }
+    }
+
     // 7.5 정보 부족 감지 → 질문
     if (cycleType === 'routine-cycle') {
       try {
@@ -679,4 +702,21 @@ export async function triggerCycle(cycleType: CycleType): Promise<CycleResult | 
     } : null
   }
   return runCycle(cycleType)
+}
+
+// ── 유틸 ──
+
+function inferDomainFromKind(kind: string): string {
+  const map: Record<string, string> = {
+    content_publish: 'content_strategy',
+    budget_adjust: 'finance',
+    flow_trigger: 'operations',
+    report_generation: 'analytics',
+    playbook_update: 'marketing',
+    alert: 'operations',
+    competitor_discovery: 'competitive',
+    mutation_experiment: 'marketing',
+    prompt_optimization: 'self_improvement',
+  }
+  return map[kind] || 'marketing'
 }

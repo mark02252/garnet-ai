@@ -177,6 +177,69 @@ confidence 0.6 미만 → 제안만 (Governor HIGH)
 
 ---
 
+## 발송 제한 규칙 (Fatigue Control)
+
+```
+핵심 원칙: 유저가 "또 왔네" 하는 순간 실패
+
+1. 유저당 발송 한도
+   - 하루 최대 1건
+   - 주간 최대 3건
+   - 월간 최대 8건
+   - 한도 초과 시 우선순위 높은 것만 발송, 나머지 큐에 대기
+
+2. 우선순위 (높은 순)
+   ① cart_abandonment — 이탈 직후, 타이밍이 생명
+   ② new_movie_alert — 유저가 직접 설정한 관심사
+   ③ post_viewing_review — 관람 직후 자연스러운 맥락
+   ④ re_engagement — 이미 이탈 중이라 리스크 낮음
+   ⑤ time_based_promo — 프로모션성
+   ⑥ free_to_paid — 전환 유도
+   ⑦ member_conversion — 가입 유도
+
+   같은 날 cart_abandonment와 time_based_promo가 겹치면
+   cart_abandonment만 발송
+
+3. 쿨다운
+   - 같은 종류 메시지: 최소 72시간 간격
+   - 프로모션성 메시지: 주 1회 한도
+   - 유저가 푸시 무시 3회 연속 시: 2주간 발송 중단
+
+4. 시간대 제한
+   - 발송 가능: 09:00 ~ 21:00
+   - 금지: 21:00 ~ 09:00 (야간 푸시 금지)
+   - 유저 타임존 기준
+
+5. 자동 학습 연동
+   - 푸시 오픈율이 5% 미만인 메시지 유형 → 자동 중단
+   - 푸시 후 앱 삭제율 증가 감지 → 해당 유형 즉시 중단
+   - 오픈율 높은 시간대/요일 학습 → 발송 타이밍 자동 최적화
+
+6. 유저 컨트롤
+   - 앱 설정에서 알림 종류별 on/off
+   - "예매 알림만 받기" / "프로모션 안 받기" 선택 가능
+   - 수신 거부 시 해당 유형 즉시 중단 + 다시 보내지 않음
+```
+
+```typescript
+// lib/crm/fatigue-control.ts (예정)
+
+type FatigueCheck = {
+  canSend: boolean
+  reason?: string  // 차단 사유
+  nextAvailable?: Date  // 다음 발송 가능 시점
+}
+
+async function checkFatigue(userId: string, actionKind: string): Promise<FatigueCheck> {
+  // 1. 일일 한도 체크
+  // 2. 주간 한도 체크
+  // 3. 같은 종류 쿨다운 체크
+  // 4. 연속 무시 체크
+  // 5. 시간대 체크
+  // 6. 유저 수신 설정 체크
+}
+```
+
 ## Governor 연동
 
 ```typescript

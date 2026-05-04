@@ -280,6 +280,184 @@ function getCRMRiskLevel(confidence: number): GovernorRiskLevel {
 
 ---
 
+## 단계적 이양 (사람 → Garnet)
+
+```
+Phase 0: 사람이 CRM 운영 (앱 출시 ~ 1개월)
+
+  마케터가 직접:
+  - 푸시 메시지 작성, 세그먼트 선택, 발송 시간 결정
+
+  Garnet은 관찰만:
+  - 모든 발송 로그 자동 수집 (메시지, 대상, 시간, 결과)
+  - 오픈율, 전환율, 이탈률 패턴 축적
+  - Knowledge Store에 학습만, 실행 안 함
+
+  전환 조건: 발송 로그 50건 이상 축적 → Phase 1
+
+
+Phase 1: Garnet이 제안 (1~2개월)
+
+  마케터가 여전히 실행하지만,
+  Garnet이 학습 데이터 기반으로 제안 시작:
+
+  "지난 4주 데이터 기준:
+   목요일 18시 JSW 유저 푸시 → 오픈율 15%, 전환 8%
+   이번 주도 보내는 건 어떨까요?
+   메시지 제안: '이번 주 JSW씨네라운지 금요일 신작 확인하기'"
+
+  마케터가 👍/❌로 피드백 → 제안 정확도 학습
+
+  전환 조건: 특정 패턴 confidence 0.8 이상 + 마케터 1회 승인 → Phase 2
+
+
+Phase 2: 검증된 패턴만 자동 발송 (2~3개월)
+
+  confidence 0.8 이상 패턴만 자동:
+  - "목요일 18시 JSW 재방문 유저 푸시" → 4주 검증 → 자동 전환
+  - 새로운 유형은 항상 Phase 1(제안)부터 시작
+
+  전환 조건: 자동 발송 4주 연속 목표 전환율 유지 → Phase 3
+
+
+Phase 3: 자기 최적화 (3개월~)
+
+  자동 발송 패턴도 계속 측정:
+  - 오픈율 하락 → 메시지 변형 제안
+  - 시간대 변화 → 발송 시간 조정 제안
+  - 새 세그먼트 발견 → Phase 1로 새 CRM 액션 제안
+
+  사람은 새로운 제안 검토 + 예외 상황 판단만
+
+  안전장치:
+  - 어느 Phase에서든 마케터가 즉시 수동 전환 가능
+  - 오픈율 5% 미만 → 자동 중단 + 마케터 알림
+  - 앱 삭제율 증가 → 전체 자동 발송 일시 중지
+```
+
+```
+CRM 발송 로그 (Garnet 관찰 데이터):
+
+model CRMSendLog {
+  id            String   @id @default(cuid())
+  userId        String
+  actionKind    String   // cart_abandonment, new_movie_alert 등
+  segment       String   // 세그먼트명
+  messageTitle  String
+  messageBody   String
+  sentAt        DateTime
+  openedAt      DateTime?
+  clickedAt     DateTime?
+  convertedAt   DateTime?  // purchase 발생 시
+  uninstalled   Boolean  @default(false)
+  phase         String   // manual | suggested | auto
+  confidence    Float?   // 발송 시점 패턴 confidence
+  createdAt     DateTime @default(now())
+}
+```
+
+---
+
+## 데이터 수집 구조 (Firebase 연결만으로는 부족)
+
+```
+Garnet이 CRM 자동화를 위해 필요한 데이터와 수집 경로:
+
+┌─────────────────────────────────────────────────┐
+│ 1. GA4 Data API (이미 연결됨 ✅)                   │
+│    - 퍼널 전환율, 채널별 ROI, 지점별 전환율           │
+│    - 요일/시간 패턴, 신규 vs 재방문                   │
+│    - 이벤트 기반 행동 데이터                         │
+│    → Garnet이 "언제, 누구에게, 무슨 맥락에서"를 학습   │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│ 2. Firebase Cloud Messaging (개발팀 연결 필요)      │
+│    - 푸시 발송 기능                                │
+│    - FCM 토큰 관리 (유저별 디바이스 토큰)             │
+│    - 토픽 구독 (선호 극장별 그룹)                     │
+│    → Garnet이 "보내는 행위" 자체                     │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│ 3. Firebase Analytics User Property (개발팀 세팅)   │
+│    - preferred_theater: 선호 극장                  │
+│    - preferred_region: 선호 지역                   │
+│    - total_purchases: 누적 구매 수                  │
+│    - last_purchase_date: 마지막 구매일               │
+│    - membership_tier: 회원 등급                    │
+│    → GA4 User Property로 전송되면                  │
+│      Garnet이 "누구에게 보낼지" 세그먼트 판단          │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│ 4. 푸시 결과 이벤트 (개발팀 세팅)                    │
+│    - push_received: 푸시 수신                     │
+│    - push_opened: 푸시 클릭                       │
+│    - push_dismissed: 푸시 무시                     │
+│    → GA4 이벤트로 전송되면                          │
+│      Garnet이 "효과 있었는지" 자동 측정              │
+└─────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────┐
+│ 5. 자체 DB — CRM 발송 로그 (Garnet 서버)           │
+│    - 어떤 메시지를, 누구에게, 언제 보냈는지            │
+│    - 사람이 보냈는지 / Garnet이 보냈는지              │
+│    - 발송 시점의 confidence                        │
+│    → Phase 판단 + 효과 분석의 기준                   │
+└─────────────────────────────────────────────────┘
+```
+
+```
+정리:
+
+Firebase만으로 되는 것:
+  ✅ 푸시 발송 (FCM)
+  ✅ 유저 속성 저장 (User Property)
+  ✅ 앱 이벤트 → GA4 전송
+
+Firebase만으로 안 되는 것 (추가 필요):
+  □ 푸시 결과 이벤트 (push_opened 등) → 개발팀이 앱 코드에 추가
+  □ User Property 세팅 (preferred_theater 등) → 개발팀이 앱 코드에 추가
+  □ CRM 발송 로그 DB → Garnet 서버에 테이블 추가
+  □ FCM 토큰 저장 API → 서버 엔드포인트 개발
+```
+
+---
+
+## 개발팀 요청 사항 (CRM용)
+
+```
+앱 출시 시 또는 직후 필요한 세팅:
+
+1. FCM 토큰 관리
+   - 앱 실행 시 FCM 토큰 발급
+   - 서버에 전송: POST /api/user/fcm-token { userId, token, platform }
+   - 토큰 갱신 시 업데이트
+
+2. User Property 설정 (Firebase Analytics)
+   Analytics.setUserProperty("preferred_theater", "JSW씨네라운지")
+   Analytics.setUserProperty("preferred_region", "서울")
+   Analytics.setUserProperty("total_purchases", "5")
+   Analytics.setUserProperty("last_purchase_date", "2026-05-04")
+
+3. 토픽 구독 (FCM)
+   선호 극장 선택 시:
+   FirebaseMessaging.subscribeToTopic("theater_jsw")
+   변경 시 이전 토픽 unsubscribe + 새 토픽 subscribe
+
+4. 푸시 결과 이벤트 (Firebase Analytics)
+   Analytics.logEvent("push_received", { message_id, action_kind })
+   Analytics.logEvent("push_opened", { message_id, action_kind })
+   Analytics.logEvent("push_dismissed", { message_id, action_kind })
+
+5. 딥링크 처리
+   푸시 클릭 시 payload의 link 값으로 화면 이동
+   예: { "link": "/movie/booking?movieId=xxx" }
+```
+
+---
+
 ## 구현 순서
 
 ```

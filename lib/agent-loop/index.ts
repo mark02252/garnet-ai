@@ -216,6 +216,17 @@ async function runCycle(cycleType: CycleType): Promise<CycleResult | null> {
       } catch { /* non-critical */ }
     }
 
+    // 7.35 GA4 Insight Extractor — GA4 데이터에서 패턴 자동 추출
+    if (cycleType === 'routine-cycle') {
+      try {
+        const { extractGA4Insights } = await import('./ga4-insight-extractor')
+        const ga4Result = await extractGA4Insights()
+        if (ga4Result.knowledgeStored > 0) {
+          console.log(`[Agent Loop] GA4 insights: ${ga4Result.patternsFound} found, ${ga4Result.knowledgeStored} stored`)
+        }
+      } catch { /* non-critical */ }
+    }
+
     // 7.4 Auto-Learner — 예측 등록 + 검증/학습
     if (cycleType === 'routine-cycle') {
       try {

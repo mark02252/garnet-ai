@@ -1,5 +1,98 @@
 import { prisma } from '@/lib/prisma'
 
+// ── CocoIndex 패턴: 인메모리 임베딩 캐시 + 증분 업데이트 ──
+
+type CachedEntry = {
+  id: string
+  domain: string
+  level: number
+  pattern: string
+  observation: string
+  confidence: number
+  isAntiPattern: boolean
+  embedding: number[]
+  observedCount: number
+  updatedAt: number // timestamp
+}
+
+let _embeddingCache: CachedEntry[] = []
+let _cacheLoadedAt = 0
+let _cacheVersion = 0
+const CACHE_TTL = 10 * 60 * 1000 // 10분 TTL — 10분마다 증분 체크
+
+/** 캐시 초기 로드 또는 증분 업데이트 */
+async function ensureCache(): Promise<CachedEntry[]> {
+  const now = Date.now()
+
+  if (_cacheLoadedAt === 0) {
+    // 최초 로드: 전체
+    const entries = await prisma.knowledgeEntry.findMany({
+      where: { embedding: { not: null } },
+      select: {
+        id: true, domain: true, level: true, pattern: true,
+        observation: true, confidence: true, isAntiPattern: true,
+        embedding: true, observedCount: true, updatedAt: true,
+      },
+    })
+    _embeddingCache = entries.map(e => ({
+      ...e,
+      embedding: JSON.parse(e.embedding!) as number[],
+      updatedAt: e.updatedAt.getTime(),
+    }))
+    _cacheLoadedAt = now
+    _cacheVersion++
+    return _embeddingCache
+  }
+
+  if (now - _cacheLoadedAt < CACHE_TTL) {
+    // TTL 내 — 캐시 그대로 사용
+    return _embeddingCache
+  }
+
+  // 증분 업데이트: 마지막 로드 이후 변경된 것만
+  const since = new Date(_cacheLoadedAt - 5000) // 5초 여유
+  const updated = await prisma.knowledgeEntry.findMany({
+    where: { embedding: { not: null }, updatedAt: { gte: since } },
+    select: {
+      id: true, domain: true, level: true, pattern: true,
+      observation: true, confidence: true, isAntiPattern: true,
+      embedding: true, observedCount: true, updatedAt: true,
+    },
+  })
+
+  if (updated.length > 0) {
+    const idSet = new Set(updated.map(e => e.id))
+    // 기존에서 업데이트된 것 제거
+    _embeddingCache = _embeddingCache.filter(e => !idSet.has(e.id))
+    // 새 데이터 추가
+    for (const e of updated) {
+      _embeddingCache.push({
+        ...e,
+        embedding: JSON.parse(e.embedding!) as number[],
+        updatedAt: e.updatedAt.getTime(),
+      })
+    }
+    _cacheVersion++
+  }
+
+  _cacheLoadedAt = now
+  return _embeddingCache
+}
+
+/** 캐시 무효화 (addKnowledge 후 호출) */
+function invalidateCache() {
+  _cacheLoadedAt = 0
+}
+
+/** 캐시 통계 */
+export function getCacheStats() {
+  return {
+    entries: _embeddingCache.length,
+    version: _cacheVersion,
+    loadedAt: _cacheLoadedAt ? new Date(_cacheLoadedAt).toISOString() : 'not loaded',
+  }
+}
+
 export type KnowledgeDomain =
   | 'marketing' | 'competitive' | 'consumer' | 'b2b'
   | 'operations' | 'finance' | 'macro' | 'self_improvement'
@@ -49,6 +142,7 @@ export async function addKnowledge(entry: NewKnowledge): Promise<string> {
       }
     } catch { /* Ollama may not be running */ }
 
+    invalidateCache() // 병합 시 캐시 무효화
     return existing.id
   }
 
@@ -93,6 +187,7 @@ export async function addKnowledge(entry: NewKnowledge): Promise<string> {
     } catch { /* non-critical */ }
   }
 
+  invalidateCache() // 새 지식 추가 시 캐시 무효화
   return created.id
 }
 
@@ -255,29 +350,16 @@ export async function searchKnowledgeSemantic(
     .filter(w => w.length > 1)
     .map(w => w.toLowerCase())
 
-  // Get all entries with embeddings
-  const where: Record<string, unknown> = { embedding: { not: null } }
-  if (options?.domain) where.domain = options.domain
-
-  const entries = await prisma.knowledgeEntry.findMany({
-    where,
-    select: {
-      id: true,
-      domain: true,
-      level: true,
-      pattern: true,
-      observation: true,
-      confidence: true,
-      isAntiPattern: true,
-      embedding: true,
-      observedCount: true,
-    },
-  })
+  // CocoIndex 패턴: 인메모리 캐시에서 검색 (DB 호출 없음)
+  const cache = await ensureCache()
+  const entries = options?.domain
+    ? cache.filter(e => e.domain === options.domain)
+    : cache
 
   // 다중 신호 스코어링 (LightRAG 패턴)
   const scored = entries
     .map((e) => {
-      const emb = JSON.parse(e.embedding!) as number[]
+      const emb = e.embedding
 
       // 신호 1: 벡터 유사도 (0~1)
       const vectorSim = cosineSimilarity(queryEmbedding, emb)
@@ -301,7 +383,7 @@ export async function searchKnowledgeSemantic(
       // 복합 스코어
       const similarity = vectorSim + keywordBoost + levelBoost + confBoost + freqBoost
 
-      return { ...e, embedding: undefined, observedCount: undefined, similarity }
+      return { id: e.id, domain: e.domain, level: e.level, pattern: e.pattern, observation: e.observation, confidence: e.confidence, isAntiPattern: e.isAntiPattern, similarity }
     })
     .filter((e) => e.similarity >= minSim)
     .sort((a, b) => b.similarity - a.similarity)

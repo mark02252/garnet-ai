@@ -603,6 +603,7 @@ async function runLocal(
   if (!baseUrl) {
     throw new ProviderError('local', 'MISSING_CONFIG', 'LOCAL_LLM_BASE_URL이 없습니다.');
   }
+  console.log(`[LLM:local] calling ${localCompletionsUrl(baseUrl)} model=${model}`);
   if (!model) {
     throw new ProviderError('local', 'MISSING_CONFIG', 'LOCAL_LLM_MODEL이 없습니다.');
   }
@@ -623,7 +624,8 @@ async function runLocal(
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ]
-    })
+    }),
+    signal: AbortSignal.timeout(180_000), // 3분 타임아웃 (로컬 LLM은 느릴 수 있음)
   });
 
   if (!response.ok) {
